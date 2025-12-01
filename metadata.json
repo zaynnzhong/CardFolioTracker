@@ -1,5 +1,5 @@
 {
-  "name": "CardFolio Tracker",
-  "description": "A smart spreadsheet application to track sports card collections, log daily prices, visualize profit/loss, and get AI-powered market insights.",
+  "name": "Prism",
+  "description": "A smart investment tracker for sports cards and collectibles.",
   "requestFramePermissions": []
 }

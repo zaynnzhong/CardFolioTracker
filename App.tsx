@@ -8,6 +8,7 @@ import { WatchList } from './components/WatchList';
 import { CardForm } from './components/CardForm';
 import { PriceUpdateModal } from './components/PriceUpdateModal';
 import { InsightModal } from './components/InsightModal';
+import { AnalyticsView } from './components/AnalyticsView';
 import { BottomNav } from './components/BottomNav';
 import { Loader2, Settings, Download, Trash2, Edit2, TrendingUp, Activity, X, Wallet, Eye } from 'lucide-react';
 
@@ -85,8 +86,8 @@ export default function App() {
     }
   };
 
-  const handleUpdatePrice = async (cardId: string, newPrice: number) => {
-    const updated = await dataService.updatePrice(cardId, newPrice);
+  const handleUpdatePrice = async (cardId: string, newPrice: number, dateStr: string) => {
+    const updated = await dataService.updatePrice(cardId, newPrice, dateStr);
     if (updated) {
       setCards(prev => prev.map(c => c.id === cardId ? updated : c));
       setUpdatingPriceCard(null);
@@ -127,7 +128,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `cardfolio_${new Date().toISOString()}.csv`;
+    link.download = `prism_portfolio_${new Date().toISOString()}.csv`;
     link.click();
   };
 
@@ -135,7 +136,7 @@ export default function App() {
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-emerald-500">
         <Loader2 size={48} className="animate-spin mb-4" />
-        <h1 className="text-xl font-bold text-white tracking-widest">CARDFOLIO</h1>
+        <h1 className="text-xl font-bold text-white tracking-widest">PRISM</h1>
       </div>
     );
   }
@@ -145,9 +146,9 @@ export default function App() {
       
       {/* Top Bar - Minimalist */}
       <header className="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur-md z-30 px-4 py-3 flex justify-between items-center border-b border-slate-900/50">
-        <div className="flex items-center gap-2">
-           <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-black font-bold text-lg">C</div>
-           <span className="font-bold text-lg tracking-tight text-white">CardFolio</span>
+        <div className="flex items-center gap-3">
+           <img src="https://i.imgur.com/Qh15d2B.jpeg" alt="Prism Logo" className="w-8 h-8 rounded-lg object-contain bg-slate-950" />
+           <span className="font-bold text-lg tracking-tight text-white">Prism</span>
         </div>
         <button onClick={exportToCSV} className="p-2 text-slate-500 hover:text-white transition-colors">
           <Download size={20} />
@@ -180,13 +181,7 @@ export default function App() {
              )}
           </>
         ) : (
-          <div className="p-8 text-center text-slate-500">
-             <div className="bg-slate-900 rounded-2xl p-8 mb-4 border border-slate-800">
-               <Activity size={48} className="mx-auto mb-4 text-emerald-500" />
-               <h2 className="text-xl font-bold text-white mb-2">Advanced Analytics</h2>
-               <p>Detailed charts and market distribution analysis coming soon.</p>
-             </div>
-          </div>
+          <AnalyticsView cards={cards} />
         )}
       </main>
 

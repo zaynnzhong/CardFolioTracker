@@ -44,25 +44,42 @@ export const dataService = {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newCards));
   },
 
-  async updatePrice(id: string, newPrice: number): Promise<Card | null> {
+  async updatePrice(id: string, newPrice: number, dateStr?: string): Promise<Card | null> {
     await delay(200);
     const cards = await this.getCards();
     const card = cards.find(c => c.id === id);
     if (!card) return null;
 
     const history = [...card.priceHistory];
-    const today = new Date().toISOString().split('T')[0];
-    const lastDate = history.length > 0 ? history[history.length - 1].date.split('T')[0] : '';
+    const newDate = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
+    const inputDateShort = newDate.split('T')[0];
     
-    if (lastDate === today) {
-       history[history.length - 1].value = newPrice;
+    // Check if we already have an entry for this specific date
+    const existingIndex = history.findIndex(h => h.date.split('T')[0] === inputDateShort);
+
+    if (existingIndex >= 0) {
+       // Update existing entry for that day
+       history[existingIndex].value = newPrice;
     } else {
-       history.push({ date: new Date().toISOString(), value: newPrice });
+       // Add new entry
+       history.push({ date: newDate, value: newPrice });
     }
+
+    // Sort history by date to ensure graphs are correct
+    history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Only update currentValue if the new date is the most recent (or today)
+    // If user is backfilling old data, we might not want to change currentValue.
+    // However, for simplicity in this app, we usually treat the user's manual update as the "current" truth
+    // unless the date is explicitly in the past compared to the last known date.
+    const lastHistoryDate = new Date(history[history.length - 1].date).getTime();
+    const newEntryDate = new Date(newDate).getTime();
+    
+    const shouldUpdateCurrent = newEntryDate >= lastHistoryDate;
 
     const updatedCard = {
       ...card,
-      currentValue: newPrice,
+      currentValue: shouldUpdateCurrent ? newPrice : card.currentValue,
       priceHistory: history
     };
 
