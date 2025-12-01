@@ -2,24 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>CardFolio Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                950: '#020617', // Deeper black for investment app feel
+              }
+            },
+            fontFamily: {
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
     <style>
-      /* Custom scrollbar for a sleek look */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+      /* Hide scrollbar for clean mobile look but keep functionality */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
       }
-      ::-webkit-scrollbar-track {
-        background: #1e293b;
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
-      ::-webkit-scrollbar-thumb {
-        background: #475569;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
+      body {
+        -webkit-tap-highlight-color: transparent;
+        background-color: #000000;
       }
     </style>
   <script type="importmap">
@@ -35,7 +50,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-950 text-slate-200">
+  <body class="bg-black text-slate-200 antialiased selection:bg-emerald-500/30">
     <div id="root"></div>
   </body>
 </html>

@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Sport, Currency } from '../types';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Eye, Wallet } from 'lucide-react';
 
 interface CardFormProps {
   initialData?: Card | null;
@@ -9,6 +10,9 @@ interface CardFormProps {
 }
 
 export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCancel }) => {
+  // Mode
+  const [isWatchlist, setIsWatchlist] = useState(false);
+
   // Visual
   const [imageUrl, setImageUrl] = useState<string>('');
   
@@ -29,7 +33,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
   // Economics
   const [currency, setCurrency] = useState<Currency>('USD');
-  const [purchasePrice, setPurchasePrice] = useState<string>('');
+  const [purchasePrice, setPurchasePrice] = useState<string>(''); // Used as Cost OR Target Price
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [currentValue, setCurrentValue] = useState<string>('');
   
@@ -43,6 +47,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
   useEffect(() => {
     if (initialData) {
+      setIsWatchlist(!!initialData.watchlist);
       setImageUrl(initialData.imageUrl || '');
       setPlayer(initialData.player);
       setSport(initialData.sport);
@@ -115,8 +120,12 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
     const cValue = parseFloat(currentValue) || 0;
     const sPrice = parseFloat(soldPrice) || 0;
     
+    // If transitioning from Watchlist to Owned, ensure we unflag watchlist
+    // But if we are simply editing, we keep the state
+    
     const newCard: Card = {
       id: initialData ? initialData.id : crypto.randomUUID(),
+      watchlist: isWatchlist,
       imageUrl,
       player,
       sport,
@@ -131,9 +140,9 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       certNumber: graded ? certNumber : undefined,
       currency,
       purchasePrice: pPrice,
-      purchaseDate,
+      purchaseDate: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate, // Default date for watchlist
       currentValue: cValue,
-      sold,
+      sold: isWatchlist ? false : sold, // Watchlist items can't be sold yet
       soldDate: sold ? soldDate : undefined,
       soldPrice: sold ? sPrice : undefined,
       notes,
@@ -159,12 +168,30 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
         <div className="overflow-y-auto p-6 flex-1">
           <form id="cardForm" onSubmit={handleSubmit} className="space-y-8">
             
+            {/* Status Toggle */}
+            <div className="bg-slate-950 p-1 rounded-lg inline-flex border border-slate-800 w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsWatchlist(false)}
+                className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${!isWatchlist ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <Wallet size={16} /> Portfolio Asset
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsWatchlist(true)}
+                className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${isWatchlist ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <Eye size={16} /> Watchlist
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Image Section - Left Column */}
               <div className="md:col-span-4 space-y-4">
                  <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-[3/4] bg-slate-950 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-slate-900 transition-all overflow-hidden relative group"
+                  className={`aspect-[3/4] bg-slate-950 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-all overflow-hidden relative group ${isWatchlist ? 'border-indigo-500/30 hover:border-indigo-500' : 'border-slate-700 hover:border-emerald-500'}`}
                  >
                   {imageUrl ? (
                     <>
@@ -267,60 +294,70 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                 {/* Economics */}
                 <div>
                    <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-1">
-                      <h3 className="text-sm uppercase tracking-wider text-emerald-500 font-bold">Value & Transactions</h3>
+                      <h3 className={`text-sm uppercase tracking-wider font-bold ${isWatchlist ? 'text-indigo-500' : 'text-emerald-500'}`}>
+                        {isWatchlist ? 'Watchlist Setup' : 'Value & Transactions'}
+                      </h3>
                       <div className="flex items-center bg-slate-800 rounded-lg p-1">
                          <button 
                            type="button" 
                            onClick={() => setCurrency('USD')}
-                           className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'USD' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                           className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'USD' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
                          >USD</button>
                          <button 
                            type="button"
                            onClick={() => setCurrency('CNY')}
-                           className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'CNY' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                           className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'CNY' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
                          >CNY</button>
                       </div>
                    </div>
 
                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-400">Cost ({currency})</label>
-                        <input type="number" step="0.01" required value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="form-input font-mono" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-400">Date of Purchase</label>
-                        <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="form-input" />
+                        <label className="text-xs font-medium text-slate-400">
+                          {isWatchlist ? 'Target Buy Price' : 'Cost Basis'} ({currency})
+                        </label>
+                        <input type="number" step="0.01" required={!isWatchlist} value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="form-input font-mono" placeholder="0.00" />
                       </div>
                       
-                      {/* Current Value is only relevant if not sold, but we track it anyway for history */}
+                      {!isWatchlist && (
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-slate-400">Date of Purchase</label>
+                          <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="form-input" />
+                        </div>
+                      )}
+                      
                       <div className="space-y-1 col-span-2">
                         <label className="text-xs font-medium text-slate-400">Current Market Value ({currency})</label>
                         <input type="number" step="0.01" required value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} className="form-input font-mono bg-slate-800" />
-                        <p className="text-[10px] text-slate-500">Update this later from the dashboard.</p>
+                        <p className="text-[10px] text-slate-500">
+                          {isWatchlist ? 'Used to calculate distance to target.' : 'Update this later from the dashboard.'}
+                        </p>
                       </div>
                    </div>
                 </div>
 
-                {/* Sales Toggle */}
-                <div className="bg-slate-800/20 border border-slate-700 rounded-lg p-4">
-                  <label className="flex items-center gap-2 cursor-pointer mb-4">
-                    <input type="checkbox" checked={sold} onChange={(e) => setSold(e.target.checked)} className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                    <span className="font-bold text-white">Mark as Sold</span>
-                  </label>
+                {/* Sales Toggle - Hide if Watchlist */}
+                {!isWatchlist && (
+                  <div className="bg-slate-800/20 border border-slate-700 rounded-lg p-4">
+                    <label className="flex items-center gap-2 cursor-pointer mb-4">
+                      <input type="checkbox" checked={sold} onChange={(e) => setSold(e.target.checked)} className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                      <span className="font-bold text-white">Mark as Sold</span>
+                    </label>
 
-                  {sold && (
-                    <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-                       <div className="space-y-1">
-                          <label className="text-xs font-medium text-emerald-400">Sold Price ({currency})</label>
-                          <input type="number" step="0.01" required={sold} value={soldPrice} onChange={(e) => setSoldPrice(e.target.value)} className="form-input font-mono border-emerald-500/30 focus:border-emerald-500" />
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-xs font-medium text-emerald-400">Date Sold</label>
-                          <input type="date" required={sold} value={soldDate} onChange={(e) => setSoldDate(e.target.value)} className="form-input border-emerald-500/30 focus:border-emerald-500" />
-                       </div>
-                    </div>
-                  )}
-                </div>
+                    {sold && (
+                      <div className="grid grid-cols-2 gap-4 animate-fadeIn">
+                         <div className="space-y-1">
+                            <label className="text-xs font-medium text-emerald-400">Sold Price ({currency})</label>
+                            <input type="number" step="0.01" required={sold} value={soldPrice} onChange={(e) => setSoldPrice(e.target.value)} className="form-input font-mono border-emerald-500/30 focus:border-emerald-500" />
+                         </div>
+                         <div className="space-y-1">
+                            <label className="text-xs font-medium text-emerald-400">Date Sold</label>
+                            <input type="date" required={sold} value={soldDate} onChange={(e) => setSoldDate(e.target.value)} className="form-input border-emerald-500/30 focus:border-emerald-500" />
+                         </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-400">Notes</label>
@@ -334,8 +371,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
         <div className="p-5 border-t border-slate-800 bg-slate-800/50 flex justify-end gap-3">
           <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
-          <button type="submit" form="cardForm" className="btn-primary">
-            {initialData ? 'Update Card' : 'Add Card'}
+          <button type="submit" form="cardForm" className={`btn-primary ${isWatchlist ? '!bg-indigo-600 hover:!bg-indigo-500' : ''}`}>
+            {initialData ? 'Update Card' : isWatchlist ? 'Add to Watchlist' : 'Add to Portfolio'}
           </button>
         </div>
       </div>
@@ -352,8 +389,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
           transition: all 0.2s;
         }
         .form-input:focus {
-          border-color: #10b981;
-          box-shadow: 0 0 0 1px #10b981;
+          border-color: ${isWatchlist ? '#6366f1' : '#10b981'};
+          box-shadow: 0 0 0 1px ${isWatchlist ? '#6366f1' : '#10b981'};
         }
         .btn-primary {
           padding: 0.5rem 1.5rem;

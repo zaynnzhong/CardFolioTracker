@@ -1,3 +1,4 @@
+
 export interface PricePoint {
   date: string; // ISO String
   value: number;
@@ -39,7 +40,7 @@ export interface Card {
   // Economics
   currency: Currency;
   purchaseDate: string;
-  purchasePrice: number;
+  purchasePrice: number; // For Watchlist items, this is the Target Price
   
   // Current Status (Unsold)
   currentValue: number;
@@ -49,6 +50,9 @@ export interface Card {
   sold: boolean;
   soldDate?: string;
   soldPrice?: number;
+
+  // Watchlist Status
+  watchlist?: boolean;
 
   notes?: string;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Sport } from '../types';
-import { TrendingUp, TrendingDown, Edit2, Trash2, Activity, CheckCircle2, Image as ImageIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, Edit2, Trash2, Activity, CheckCircle2, Image as ImageIcon, StickyNote } from 'lucide-react';
 
 interface CardTableProps {
   cards: Card[];
@@ -75,6 +75,12 @@ export const CardTable: React.FC<CardTableProps> = ({ cards, onUpdatePrice, onEd
                     </div>
                     <div className="text-sm text-slate-400">{card.year} {card.brand}</div>
                     <div className="text-xs text-slate-500">{card.series} {card.cardType}</div>
+                    {card.notes && (
+                      <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-500 italic">
+                         <StickyNote size={10} />
+                         <span className="truncate max-w-[150px]">{card.notes}</span>
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="p-4">
