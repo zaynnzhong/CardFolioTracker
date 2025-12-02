@@ -15,7 +15,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
   // Visual
   const [imageUrl, setImageUrl] = useState<string>('');
-  
+
   // Basics
   const [player, setPlayer] = useState('');
   const [sport, setSport] = useState<Sport>(Sport.BASKETBALL);
@@ -28,7 +28,9 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   // Grading
   const [graded, setGraded] = useState(false);
   const [gradeCompany, setGradeCompany] = useState('PSA');
+  const [gradeType, setGradeType] = useState('card-only');
   const [gradeValue, setGradeValue] = useState('10');
+  const [autoGrade, setAutoGrade] = useState('10');
   const [certNumber, setCertNumber] = useState('');
 
   // Economics
@@ -36,7 +38,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   const [purchasePrice, setPurchasePrice] = useState<string>(''); // Used as Cost OR Target Price
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [currentValue, setCurrentValue] = useState<string>('');
-  
+
   // Sales
   const [sold, setSold] = useState(false);
   const [soldPrice, setSoldPrice] = useState<string>('');
@@ -56,7 +58,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setSeries(initialData.series);
       setCardType(initialData.cardType);
       setSerialNumber(initialData.serialNumber || '');
-      
+
       setGraded(initialData.graded);
       setGradeCompany(initialData.gradeCompany || 'PSA');
       setGradeValue(initialData.gradeValue || '10');
@@ -66,7 +68,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setPurchasePrice(initialData.purchasePrice.toString());
       setPurchaseDate(initialData.purchaseDate);
       setCurrentValue(initialData.currentValue.toString());
-      
+
       setSold(initialData.sold);
       setSoldPrice(initialData.soldPrice ? initialData.soldPrice.toString() : '');
       setSoldDate(initialData.soldDate || new Date().toISOString().split('T')[0]);
@@ -115,14 +117,14 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const pPrice = parseFloat(purchasePrice) || 0;
     const cValue = parseFloat(currentValue) || 0;
     const sPrice = parseFloat(soldPrice) || 0;
-    
+
     // If transitioning from Watchlist to Owned, ensure we unflag watchlist
     // But if we are simply editing, we keep the state
-    
+
     const newCard: Card = {
       id: initialData ? initialData.id : crypto.randomUUID(),
       watchlist: isWatchlist,
@@ -164,10 +166,10 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
             <X size={24} />
           </button>
         </div>
-        
+
         <div className="overflow-y-auto p-6 flex-1">
           <form id="cardForm" onSubmit={handleSubmit} className="space-y-8">
-            
+
             {/* Status Toggle */}
             <div className="bg-slate-950 p-1 rounded-lg inline-flex border border-slate-800 w-full md:w-auto">
               <button
@@ -189,15 +191,15 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Image Section - Left Column */}
               <div className="md:col-span-4 space-y-4">
-                 <div 
+                <div
                   onClick={() => fileInputRef.current?.click()}
                   className={`aspect-[3/4] bg-slate-950 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-all overflow-hidden relative group ${isWatchlist ? 'border-indigo-500/30 hover:border-indigo-500' : 'border-slate-700 hover:border-emerald-500'}`}
-                 >
+                >
                   {imageUrl ? (
                     <>
                       <img src={imageUrl} alt="Card Preview" className="w-full h-full object-contain" />
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                         <span className="text-white font-medium flex items-center gap-2"><Upload size={16} /> Change Photo</span>
+                        <span className="text-white font-medium flex items-center gap-2"><Upload size={16} /> Change Photo</span>
                       </div>
                     </>
                   ) : (
@@ -207,19 +209,19 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                       <p className="text-xs text-slate-600 mt-1">Click to browse</p>
                     </div>
                   )}
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
                     accept="image/*"
                     onChange={handleImageUpload}
                   />
-                 </div>
+                </div>
               </div>
 
               {/* Data Section - Right Column */}
               <div className="md:col-span-8 space-y-6">
-                
+
                 {/* Basic Info */}
                 <div>
                   <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-b border-slate-800 pb-1">Card Details</h3>
@@ -239,16 +241,26 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                       <input type="number" required value={year} onChange={(e) => setYear(e.target.value)} className="form-input" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Brand / Set</label>
-                      <input type="text" required value={brand} onChange={(e) => setBrand(e.target.value)} className="form-input" placeholder="e.g. Prizm" />
+                      <label className="text-xs font-medium text-slate-400">Brand</label>
+                      <select required value={brand} onChange={(e) => setBrand(e.target.value)} className="form-input">
+                        <option value="">Select Brand</option>
+                        <option value="Panini">Panini</option>
+                        <option value="Topps">Topps</option>
+                        <option value="Leaf">Leaf</option>
+                        <option value="Upper Deck">Upper Deck</option>
+                        <option value="Bowman">Bowman</option>
+                        <option value="Donruss">Donruss</option>
+                        <option value="Select">Select</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Series / Variation</label>
-                      <input type="text" value={series} onChange={(e) => setSeries(e.target.value)} className="form-input" placeholder="e.g. Silver, Mojo" />
+                      <label className="text-xs font-medium text-slate-400">Set</label>
+                      <input type="text" value={series} onChange={(e) => setSeries(e.target.value)} className="form-input" placeholder="e.g. Flawless, Prizm, National Treasures" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Card Type</label>
-                      <input type="text" value={cardType} onChange={(e) => setCardType(e.target.value)} className="form-input" placeholder="e.g. RPA, Base, Insert" />
+                      <label className="text-xs font-medium text-slate-400">Insert / Parallel</label>
+                      <input type="text" value={cardType} onChange={(e) => setCardType(e.target.value)} className="form-input" placeholder="e.g. Silver, Mojo, Red" />
                     </div>
                     <div className="space-y-1 col-span-2">
                       <label className="text-xs font-medium text-slate-400">Serial Number (Optional)</label>
@@ -259,81 +271,132 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                 {/* Grading */}
                 <div>
-                   <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-1">
-                      <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold">Grading</h3>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={graded} onChange={(e) => setGraded(e.target.checked)} className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <span className="text-sm text-slate-300">Graded Card</span>
-                      </label>
-                   </div>
-                   
-                   {graded && (
-                     <div className="grid grid-cols-3 gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
+                  <div className="mb-4">
+                    <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3">Grading</h3>
+                    <button
+                      type="button"
+                      onClick={() => setGraded(!graded)}
+                      className={`w-full py-3 px-4 rounded-lg font-medium text-sm transition-all border-2 ${graded
+                          ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                        }`}
+                    >
+                      {graded ? '✓ Graded Card' : 'Click to Mark as Graded'}
+                    </button>
+                  </div>
+
+                  {graded && (
+                    <div className="space-y-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400">Company</label>
-                          <select value={gradeCompany} onChange={(e) => setGradeCompany(e.target.value)} className="form-input">
+                          <select value={gradeCompany} onChange={(e) => { setGradeCompany(e.target.value); setGradeType('card-only'); }} className="form-input">
                             <option value="PSA">PSA</option>
                             <option value="BGS">BGS</option>
                             <option value="SGC">SGC</option>
                             <option value="CGC">CGC</option>
+                            <option value="CSA">CSA</option>
                             <option value="TAG">TAG</option>
                           </select>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-medium text-slate-400">Grade</label>
-                          <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
+                          <label className="text-xs font-medium text-slate-400">Grade Type</label>
+                          <select value={gradeType} onChange={(e) => setGradeType(e.target.value)} className="form-input">
+                            {gradeCompany === 'PSA' && (
+                              <>
+                                <option value="card-auto">Graded (card + auto)</option>
+                                <option value="card-only">Graded (card only)</option>
+                                <option value="authentic">Authentic (no numerical grade)</option>
+                                <option value="dna-auth">DNA Auth only (sticker)</option>
+                              </>
+                            )}
+                            {(gradeCompany === 'BGS' || gradeCompany === 'SGC' || gradeCompany === 'CGC' || gradeCompany === 'CSA' || gradeCompany === 'TAG') && (
+                              <>
+                                <option value="card-auto">Graded (card + auto)</option>
+                                <option value="card-only">Graded (card only)</option>
+                                <option value="authentic">Authentic</option>
+                              </>
+                            )}
+                          </select>
                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Show grade inputs only if NOT authentic/dna-auth */}
+                        {gradeType !== 'authentic' && gradeType !== 'dna-auth' && (
+                          <>
+                            {gradeType === 'card-auto' ? (
+                              // Card + Auto: Show two separate inputs
+                              <>
+                                <div className="space-y-1">
+                                  <label className="text-xs font-medium text-slate-400">Card Grade</label>
+                                  <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs font-medium text-slate-400">Auto Grade</label>
+                                  <input type="text" value={autoGrade} onChange={(e) => setAutoGrade(e.target.value)} className="form-input" placeholder="10" />
+                                </div>
+                              </>
+                            ) : (
+                              // Card Only: Show single grade input
+                              <div className="space-y-1">
+                                <label className="text-xs font-medium text-slate-400">Grade</label>
+                                <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
+                              </div>
+                            )}
+                          </>
+                        )}
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400">Cert #</label>
                           <input type="text" value={certNumber} onChange={(e) => setCertNumber(e.target.value)} className="form-input" placeholder="Optional" />
                         </div>
-                     </div>
-                   )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Economics */}
                 <div>
-                   <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-1">
-                      <h3 className={`text-sm uppercase tracking-wider font-bold ${isWatchlist ? 'text-indigo-500' : 'text-emerald-500'}`}>
-                        {isWatchlist ? 'Watchlist Setup' : 'Value & Transactions'}
-                      </h3>
-                      <div className="flex items-center bg-slate-800 rounded-lg p-1">
-                         <button 
-                           type="button" 
-                           onClick={() => setCurrency('USD')}
-                           className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'USD' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                         >USD</button>
-                         <button 
-                           type="button"
-                           onClick={() => setCurrency('CNY')}
-                           className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'CNY' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                         >CNY</button>
-                      </div>
-                   </div>
+                  <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-1">
+                    <h3 className={`text-sm uppercase tracking-wider font-bold ${isWatchlist ? 'text-indigo-500' : 'text-emerald-500'}`}>
+                      {isWatchlist ? 'Watchlist Setup' : 'Value & Transactions'}
+                    </h3>
+                    <div className="flex items-center bg-slate-800 rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => setCurrency('USD')}
+                        className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'USD' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      >USD</button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrency('CNY')}
+                        className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'CNY' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      >CNY</button>
+                    </div>
+                  </div>
 
-                   <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-400">
+                        {isWatchlist ? 'Target Buy Price' : 'Cost Basis'} ({currency})
+                      </label>
+                      <input type="number" step="0.01" required={!isWatchlist} value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="form-input font-mono" placeholder="0.00" />
+                    </div>
+
+                    {!isWatchlist && (
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-400">
-                          {isWatchlist ? 'Target Buy Price' : 'Cost Basis'} ({currency})
-                        </label>
-                        <input type="number" step="0.01" required={!isWatchlist} value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="form-input font-mono" placeholder="0.00" />
+                        <label className="text-xs font-medium text-slate-400">Date of Purchase</label>
+                        <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="form-input" />
                       </div>
-                      
-                      {!isWatchlist && (
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-slate-400">Date of Purchase</label>
-                          <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="form-input" />
-                        </div>
-                      )}
-                      
-                      <div className="space-y-1 col-span-2">
-                        <label className="text-xs font-medium text-slate-400">Current Market Value ({currency})</label>
-                        <input type="number" step="0.01" required value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} className="form-input font-mono bg-slate-800" />
-                        <p className="text-[10px] text-slate-500">
-                          {isWatchlist ? 'Used to calculate distance to target.' : 'Update this later from the dashboard.'}
-                        </p>
-                      </div>
-                   </div>
+                    )}
+
+                    <div className="space-y-1 col-span-2">
+                      <label className="text-xs font-medium text-slate-400">Current Market Value ({currency})</label>
+                      <input type="number" step="0.01" required value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} className="form-input font-mono bg-slate-800" />
+                      <p className="text-[10px] text-slate-500">
+                        {isWatchlist ? 'Used to calculate distance to target.' : 'Update this later from the dashboard.'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Sales Toggle - Hide if Watchlist */}
@@ -346,14 +409,14 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                     {sold && (
                       <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-                         <div className="space-y-1">
-                            <label className="text-xs font-medium text-emerald-400">Sold Price ({currency})</label>
-                            <input type="number" step="0.01" required={sold} value={soldPrice} onChange={(e) => setSoldPrice(e.target.value)} className="form-input font-mono border-emerald-500/30 focus:border-emerald-500" />
-                         </div>
-                         <div className="space-y-1">
-                            <label className="text-xs font-medium text-emerald-400">Date Sold</label>
-                            <input type="date" required={sold} value={soldDate} onChange={(e) => setSoldDate(e.target.value)} className="form-input border-emerald-500/30 focus:border-emerald-500" />
-                         </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-emerald-400">Sold Price ({currency})</label>
+                          <input type="number" step="0.01" required={sold} value={soldPrice} onChange={(e) => setSoldPrice(e.target.value)} className="form-input font-mono border-emerald-500/30 focus:border-emerald-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-emerald-400">Date Sold</label>
+                          <input type="date" required={sold} value={soldDate} onChange={(e) => setSoldDate(e.target.value)} className="form-input border-emerald-500/30 focus:border-emerald-500" />
+                        </div>
                       </div>
                     )}
                   </div>
