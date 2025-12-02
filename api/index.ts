@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../server/src/db.js';
-import { getMarketInsight } from '../server/src/gemini.js';
-import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin.js';
+import { db } from '../server/src/db';
+import { getMarketInsight } from '../server/src/gemini';
+import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin';
 
 // Initialize Firebase Admin on cold start
 try {
