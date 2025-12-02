@@ -1,6 +1,7 @@
 import { Card } from "../types";
 
-const API_URL = 'http://localhost:3001/api';
+// Use relative URL in production, localhost in development
+const API_URL = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
 
 export const getMarketInsight = async (card: Card): Promise<string> => {
   try {
