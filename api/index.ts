@@ -1,7 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../server/src/db.js';
 import { getMarketInsight } from '../server/src/gemini.js';
-import { verifyAuthToken } from '../server/src/firebaseAdmin.js';
+import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin.js';
+
+// Initialize Firebase Admin on cold start
+try {
+    initializeFirebaseAdmin();
+} catch (error) {
+    console.error('[API] Failed to initialize Firebase Admin:', error);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
