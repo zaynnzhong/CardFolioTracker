@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Card } from "./db.js";
+import { Card } from "./db";
 
 export const getMarketInsight = async (card: Card): Promise<string> => {
     const apiKey = process.env.GEMINI_API_KEY;
