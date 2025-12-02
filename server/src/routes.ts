@@ -1,6 +1,6 @@
 import express from 'express';
-import { db } from './db';
-import { getMarketInsight } from './gemini';
+import { db } from './db.js';
+import { getMarketInsight } from './gemini.js';
 
 const router = express.Router();
 

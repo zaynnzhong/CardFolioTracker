@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../server/src/db';
-import { getMarketInsight } from '../server/src/gemini';
+import { db } from '../server/src/db.js';
+import { getMarketInsight } from '../server/src/gemini.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {

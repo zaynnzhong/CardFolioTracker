@@ -1,15 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
-import { Card } from "./db";
-
-const apiKey = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+import { Card } from "./db.js";
 
 export const getMarketInsight = async (card: Card): Promise<string> => {
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+        console.error("GEMINI_API_KEY is missing");
         return "API Key is missing. Please configure your environment.";
     }
 
     try {
+        const ai = new GoogleGenAI({ apiKey });
+
         const prompt = `
     I am a sports card collector. I have the following card in my collection:
     
