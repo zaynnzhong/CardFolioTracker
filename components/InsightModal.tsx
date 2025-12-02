@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '../types';
 import { getMarketInsight } from '../services/geminiService';
+import { useAuth } from '../contexts/AuthContext';
 import { X, Sparkles, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -10,18 +11,19 @@ interface InsightModalProps {
 }
 
 export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => {
+  const { getIdToken } = useAuth();
   const [insight, setInsight] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchInsight = async () => {
       setLoading(true);
-      const text = await getMarketInsight(card);
+      const text = await getMarketInsight(card, getIdToken);
       setInsight(text);
       setLoading(false);
     };
     fetchInsight();
-  }, [card]);
+  }, [card, getIdToken]);
 
   // Format price history for chart
   const chartData = card.priceHistory.map(p => ({

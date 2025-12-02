@@ -10,30 +10,39 @@ import { PriceUpdateModal } from './components/PriceUpdateModal';
 import { InsightModal } from './components/InsightModal';
 import { AnalyticsView } from './components/AnalyticsView';
 import { BottomNav } from './components/BottomNav';
-import { Loader2, Settings, Download, Trash2, Edit2, TrendingUp, Activity, X, Wallet, Eye } from 'lucide-react';
+import { Login } from './components/Login';
+import { useAuth } from './contexts/AuthContext';
+import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User } from 'lucide-react';
 
 export default function App() {
+  const { user, loading: authLoading, signOut, getIdToken } = useAuth();
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics'>('portfolio');
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null); // For the detail view
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [updatingPriceCard, setUpdatingPriceCard] = useState<Card | null>(null);
   const [analyzingCard, setAnalyzingCard] = useState<Card | null>(null);
 
-  // Load Data
+  // Load Data when user is authenticated
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const loadData = async () => {
       setLoading(true);
-      const data = await dataService.getCards();
+      const data = await dataService.getCards(getIdToken);
       setCards(data);
       setLoading(false);
     };
     loadData();
-  }, []);
+  }, [user, getIdToken]);
 
   const portfolioCards = cards.filter(c => !c.watchlist);
   const watchlistCards = cards.filter(c => c.watchlist);
@@ -47,7 +56,6 @@ export default function App() {
     const soldTotal = { ...initial };
     let cardCount = 0;
 
-    // Only calc stats for Portfolio items
     portfolioCards.forEach(card => {
       const cur = card.currency;
       if (card.sold) {
@@ -67,7 +75,7 @@ export default function App() {
   }, [portfolioCards]);
 
   const handleSaveCard = async (card: Card) => {
-    const saved = await dataService.saveCard(card);
+    const saved = await dataService.saveCard(card, getIdToken);
     setCards(prev => {
       const index = prev.findIndex(c => c.id === saved.id);
       if (index >= 0) return prev.map(c => c.id === saved.id ? saved : c);
@@ -80,14 +88,14 @@ export default function App() {
 
   const handleDeleteCard = async (id: string) => {
     if (window.confirm('Delete this item? This action cannot be undone.')) {
-      await dataService.deleteCard(id);
+      await dataService.deleteCard(id, getIdToken);
       setCards(prev => prev.filter(c => c.id !== id));
       setSelectedCard(null);
     }
   };
 
   const handleUpdatePrice = async (cardId: string, newPrice: number, dateStr: string) => {
-    const updated = await dataService.updatePrice(cardId, newPrice, dateStr);
+    const updated = await dataService.updatePrice(cardId, newPrice, getIdToken, dateStr);
     if (updated) {
       setCards(prev => prev.map(c => c.id === cardId ? updated : c));
       setUpdatingPriceCard(null);
@@ -95,20 +103,16 @@ export default function App() {
     }
   };
 
-  // Convert Watchlist item to Asset
   const handleConvertToAsset = (card: Card) => {
-    // Open form with this card data, but flip watchlist to false
-    // and let user confirm purchase price
     setEditingCard({
       ...card,
       watchlist: false,
       purchaseDate: new Date().toISOString().split('T')[0],
-      purchasePrice: card.currentValue // Default purchase price to current market value
+      purchasePrice: card.currentValue
     });
     setIsFormOpen(true);
   };
 
-  // CSV Export
   const exportToCSV = () => {
     const headers = ['ID', 'Type', 'Player', 'Year', 'Brand', 'Series', 'Cost/Target', 'Current Value'];
     const csvContent = [
@@ -132,6 +136,28 @@ export default function App() {
     link.click();
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    setCards([]);
+    setShowUserMenu(false);
+  };
+
+  // Show loading screen while checking auth
+  if (authLoading) {
+    return (
+      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
+        <img src="/logo.png" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
+        <Loader2 size={32} className="animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!user) {
+    return <Login />;
+  }
+
+  // Show app loading
   if (loading) {
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
@@ -149,17 +175,52 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-blue-500/5 to-purple-500/5 animate-pulse" style={{ animationDuration: '8s' }} />
       </div>
 
-      {/* Top Bar - Enhanced */}
+      {/* Top Bar with User Profile */}
       <header className="fixed top-0 left-0 right-0 bg-black/60 backdrop-blur-xl z-30 px-4 py-4 flex justify-between items-center border-b border-emerald-500/10 shadow-lg shadow-emerald-500/5">
         <div className="flex items-center">
           <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-lg" style={{ width: '168px', height: 'auto' }} />
         </div>
-        <button
-          onClick={exportToCSV}
-          className="p-2.5 text-slate-400 hover:text-emerald-400 transition-all duration-300 hover:bg-emerald-500/10 rounded-lg"
-        >
-          <Download size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportToCSV}
+            className="p-2.5 text-slate-400 hover:text-emerald-400 transition-all duration-300 hover:bg-emerald-500/10 rounded-lg"
+          >
+            <Download size={20} />
+          </button>
+
+          {/* User Profile Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-800/50 transition-all"
+            >
+              {user.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full border-2 border-emerald-500/30" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
+                  <User size={16} className="text-emerald-400" />
+                </div>
+              )}
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                <div className="p-4 border-b border-slate-800 bg-slate-800/50">
+                  <p className="text-white font-semibold truncate">{user.displayName || 'User'}</p>
+                  <p className="text-slate-400 text-xs truncate">{user.email}</p>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800 transition-colors text-rose-400"
+                >
+                  <LogOut size={18} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* Main Scrollable Area */}
@@ -192,16 +253,14 @@ export default function App() {
         )}
       </main>
 
-      {/* Detail Sheet (Custom "Action Sheet" for mobile feel) */}
+      {/* Detail Sheet */}
       {selectedCard && (
         <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto transition-opacity"
             onClick={() => setSelectedCard(null)}
           />
 
-          {/* Sheet */}
           <div className="bg-slate-900 w-full max-w-xl rounded-t-3xl border-t border-slate-800 p-6 pointer-events-auto transform transition-transform duration-300 ease-out max-h-[85vh] overflow-y-auto shadow-2xl">
             <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-6" />
 
@@ -261,7 +320,7 @@ export default function App() {
                 <span className="text-[10px] text-slate-300">Edit</span>
               </button>
               <button onClick={() => handleDeleteCard(selectedCard.id)} className="flex flex-col items-center gap-1 p-3 bg-slate-800 rounded-xl hover:bg-rose-900/30 active:scale-95 transition-all">
-                <Trash2 className="text-rose-400" size={24} />
+                <X className="text-rose-400" size={24} />
                 <span className="text-[10px] text-slate-300">Delete</span>
               </button>
             </div>

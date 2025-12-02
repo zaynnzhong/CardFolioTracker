@@ -3,11 +3,17 @@ import { Card } from "../types";
 // Use relative URL in production, localhost in development
 const API_URL = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
 
-export const getMarketInsight = async (card: Card): Promise<string> => {
+export const getMarketInsight = async (card: Card, getIdToken: () => Promise<string | null>): Promise<string> => {
   try {
+    const token = await getIdToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+
     const res = await fetch(`${API_URL}/gemini/insight`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ card })
     });
 

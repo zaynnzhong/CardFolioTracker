@@ -1,13 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../server/src/db.js';
 import { getMarketInsight } from '../server/src/gemini.js';
+import { verifyAuthToken } from '../server/src/firebaseAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         // Enable CORS
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
         if (req.method === 'OPTIONS') {
             return res.status(200).end();
@@ -18,11 +19,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log(`[API] ${method} ${path}`);
 
+        // Verify authentication
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Unauthorized: No token provided' });
+        }
+
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await verifyAuthToken(token);
+
+        if (!decodedToken) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        }
+
+        const userId = decodedToken.uid;
+        console.log(`[API] Authenticated user: ${userId}`);
+
         try {
             // GET /api/cards
             if (method === 'GET' && path === '/cards') {
                 console.log('[API] Fetching cards...');
-                const cards = await db.getCards();
+                const cards = await db.getCards(userId);
                 console.log(`[API] Found ${cards.length} cards`);
                 return res.status(200).json(cards);
             }
@@ -30,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // POST /api/cards
             if (method === 'POST' && path === '/cards') {
                 console.log('[API] Saving card:', req.body);
-                const card = await db.saveCard(req.body);
+                const card = await db.saveCard(req.body, userId);
                 console.log('[API] Card saved:', card.id);
                 return res.status(200).json(card);
             }
@@ -39,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (method === 'DELETE' && path.startsWith('/cards/')) {
                 const id = path.split('/')[2];
                 console.log('[API] Deleting card:', id);
-                await db.deleteCard(id);
+                await db.deleteCard(id, userId);
                 return res.status(200).json({ success: true });
             }
 
@@ -48,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const id = path.split('/')[2];
                 const { price, date } = req.body;
                 console.log('[API] Updating price for card:', id);
-                const updated = await db.updatePrice(id, price, date);
+                const updated = await db.updatePrice(id, userId, price, date);
                 if (updated) {
                     return res.status(200).json(updated);
                 }

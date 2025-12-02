@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 // 1. Define Interface
 export interface Card {
     id: string;
+    userId: string; // Firebase user ID
     player: string;
     sport: string;
     year: number;
@@ -30,6 +31,7 @@ export interface Card {
 // 2. Define Mongoose Schema
 const CardSchema = new Schema({
     id: { type: String, required: true, unique: true },
+    userId: { type: String, required: true, index: true }, // Firebase user ID with index for faster queries
     player: { type: String, required: true },
     sport: { type: String, required: true },
     year: { type: Number, required: true },
@@ -91,31 +93,34 @@ export const connectToDb = async () => {
 
 // 5. Service Implementation
 export const db = {
-    async getCards(): Promise<Card[]> {
+    async getCards(userId: string): Promise<Card[]> {
         await connectToDb();
-        const docs = await CardModel.find({});
+        const docs = await CardModel.find({ userId });
         return docs.map(d => d.toObject());
     },
 
-    async saveCard(card: Card): Promise<Card> {
+    async saveCard(card: Card, userId: string): Promise<Card> {
         await connectToDb();
-        // Upsert: Update if exists, Insert if not
+        // Ensure userId is set
+        const cardWithUser = { ...card, userId };
+
+        // Upsert: Update if exists for this user, Insert if not
         const result = await CardModel.findOneAndUpdate(
-            { id: card.id },
-            card,
+            { id: card.id, userId },
+            cardWithUser,
             { new: true, upsert: true }
         );
         return result.toObject();
     },
 
-    async deleteCard(id: string): Promise<void> {
+    async deleteCard(id: string, userId: string): Promise<void> {
         await connectToDb();
-        await CardModel.deleteOne({ id });
+        await CardModel.deleteOne({ id, userId });
     },
 
-    async updatePrice(id: string, newPrice: number, dateStr?: string): Promise<Card | null> {
+    async updatePrice(id: string, userId: string, newPrice: number, dateStr?: string): Promise<Card | null> {
         await connectToDb();
-        const card = await CardModel.findOne({ id });
+        const card = await CardModel.findOne({ id, userId });
         if (!card) return null;
 
         const history = [...card.priceHistory];
