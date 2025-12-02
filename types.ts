@@ -16,6 +16,17 @@ export enum Sport {
 
 export type Currency = 'USD' | 'CNY';
 
+export enum AcquisitionSource {
+  SELF_RIP = 'Self Rip (Case/Box)',
+  BREAK = 'Break',
+  EBAY = 'eBay',
+  CARD_HOBBY = 'CardHobby',
+  WECARD = 'Wecard',
+  XIANYU = 'Xianyu',
+  CARD_SHOW = 'Card Show',
+  OTHER = 'Other'
+}
+
 export interface Card {
   id: string;
   
@@ -41,6 +52,8 @@ export interface Card {
   currency: Currency;
   purchaseDate: string;
   purchasePrice: number; // For Watchlist items, this is the Target Price
+  acquisitionSource?: AcquisitionSource;
+  acquisitionSourceOther?: string; // For when source is 'Other'
   
   // Current Status (Unsold)
   currentValue: number;

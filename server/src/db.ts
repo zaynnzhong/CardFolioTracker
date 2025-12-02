@@ -26,6 +26,8 @@ export interface Card {
     notes?: string;
     serialNumber?: string;
     purchaseDate?: string;
+    acquisitionSource?: string;
+    acquisitionSourceOther?: string;
 }
 
 // 2. Define Mongoose Schema
@@ -56,7 +58,9 @@ const CardSchema = new Schema({
     certNumber: String,
     notes: String,
     serialNumber: String,
-    purchaseDate: String
+    purchaseDate: String,
+    acquisitionSource: String,
+    acquisitionSourceOther: String
 });
 
 // 3. Create Model

@@ -73,12 +73,13 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect }) => {
 
                 {/* Info */}
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-white font-bold text-base leading-tight truncate">{card.player}</span>
+                  <span className="text-white font-bold text-base leading-tight truncate">
+                    {card.year} {card.brand} {card.series} {card.sport} {card.cardType} {card.player} {card.serialNumber || ''}
+                  </span>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${getSportColor(card.sport)}`}>
-                      {card.sport}
+                      {card.player}
                     </span>
-                    <span className="text-xs text-slate-400 font-medium">{card.year} • {card.brand}</span>
                   </div>
                   {card.graded && (
                     <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full w-fit mt-1.5 font-semibold">

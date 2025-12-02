@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Sport, Currency } from '../types';
+import { Card, Sport, Currency, AcquisitionSource } from '../types';
 import { X, Upload, Image as ImageIcon, Eye, Wallet } from 'lucide-react';
 
 interface CardFormProps {
@@ -38,6 +38,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   const [purchasePrice, setPurchasePrice] = useState<string>(''); // Used as Cost OR Target Price
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [currentValue, setCurrentValue] = useState<string>('');
+  const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource>(AcquisitionSource.EBAY);
+  const [acquisitionSourceOther, setAcquisitionSourceOther] = useState<string>('');
 
   // Sales
   const [sold, setSold] = useState(false);
@@ -68,6 +70,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setPurchasePrice(initialData.purchasePrice.toString());
       setPurchaseDate(initialData.purchaseDate);
       setCurrentValue(initialData.currentValue.toString());
+      setAcquisitionSource(initialData.acquisitionSource || AcquisitionSource.EBAY);
+      setAcquisitionSourceOther(initialData.acquisitionSourceOther || '');
 
       setSold(initialData.sold);
       setSoldPrice(initialData.soldPrice ? initialData.soldPrice.toString() : '');
@@ -144,6 +148,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       purchasePrice: pPrice,
       purchaseDate: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate, // Default date for watchlist
       currentValue: cValue,
+      acquisitionSource,
+      acquisitionSourceOther: acquisitionSource === AcquisitionSource.OTHER ? acquisitionSourceOther : undefined,
       sold: isWatchlist ? false : sold, // Watchlist items can't be sold yet
       soldDate: sold ? soldDate : undefined,
       soldPrice: sold ? sPrice : undefined,
@@ -386,6 +392,34 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                       <div className="space-y-1">
                         <label className="text-xs font-medium text-slate-400">Date of Purchase</label>
                         <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="form-input" />
+                      </div>
+                    )}
+
+                    {!isWatchlist && (
+                      <div className="space-y-1 col-span-2">
+                        <label className="text-xs font-medium text-slate-400">Acquisition Source</label>
+                        <select
+                          value={acquisitionSource}
+                          onChange={(e) => setAcquisitionSource(e.target.value as AcquisitionSource)}
+                          className="form-input"
+                        >
+                          {Object.values(AcquisitionSource).map(source => (
+                            <option key={source} value={source}>{source}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {!isWatchlist && acquisitionSource === AcquisitionSource.OTHER && (
+                      <div className="space-y-1 col-span-2">
+                        <label className="text-xs font-medium text-slate-400">Specify Other Source</label>
+                        <input
+                          type="text"
+                          value={acquisitionSourceOther}
+                          onChange={(e) => setAcquisitionSourceOther(e.target.value)}
+                          className="form-input"
+                          placeholder="Enter source name"
+                        />
                       </div>
                     )}
 
