@@ -64,20 +64,28 @@ const CardModel = mongoose.models.Card || mongoose.model<Card & Document>('Card'
 // 4. Connection Logic
 let isConnected = false;
 export const connectToDb = async () => {
-    if (isConnected) return;
-
-    const uri = process.env.MONGODB_URI;
-    if (!uri) {
-        console.warn("MONGODB_URI not set. Database features will fail.");
+    if (isConnected) {
+        console.log('[DB] Already connected to MongoDB');
         return;
     }
 
+    const uri = process.env.MONGODB_URI;
+    console.log('[DB] MONGODB_URI exists:', !!uri);
+
+    if (!uri) {
+        const error = new Error("MONGODB_URI environment variable is not set");
+        console.error('[DB]', error.message);
+        throw error;
+    }
+
     try {
+        console.log('[DB] Attempting to connect to MongoDB...');
         await mongoose.connect(uri);
         isConnected = true;
-        console.log("Connected to MongoDB");
+        console.log('[DB] Successfully connected to MongoDB');
     } catch (error) {
-        console.error("MongoDB connection error:", error);
+        console.error('[DB] MongoDB connection error:', error);
+        throw error;
     }
 };
 
