@@ -9,7 +9,7 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, onAdd }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-slate-800/50 pb-safe pt-2 px-6 pb-6 z-40 flex items-center justify-between">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-slate-800/50 pb-safe pt-2 px-6 pb-6 z-40 flex items-center justify-between">
 
       <button
         onClick={() => onTabChange('portfolio')}

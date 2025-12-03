@@ -31,6 +31,19 @@ export default function App() {
   const [analyzingCard, setAnalyzingCard] = useState<Card | null>(null);
   const [soldModalCard, setSoldModalCard] = useState<Card | null>(null);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showUserMenu) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showUserMenu]);
+
   // Load Data when user is authenticated
   useEffect(() => {
     if (!user) {
@@ -253,109 +266,119 @@ export default function App() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 p-4 space-y-2">
-          <button
-            onClick={() => setActiveTab('portfolio')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeTab === 'portfolio'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            <Home size={20} />
-            <span className="font-medium">Portfolio</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeTab === 'analytics'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            <BarChart3 size={20} />
-            <span className="font-medium">Analytics</span>
-          </button>
-
-          <div className="pt-4 space-y-3">
+        <nav className="flex-1 p-4 flex flex-col">
+          <div className="space-y-2">
             <button
-              onClick={() => { setEditingCard(null); setIsFormOpen(true); }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-all"
+              onClick={() => setActiveTab('portfolio')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'portfolio'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
             >
-              <Plus size={20} />
-              <span>Add Card</span>
+              <Home size={20} />
+              <span className="font-medium">Portfolio</span>
             </button>
 
-            {/* Currency Toggle */}
-            <div className="bg-slate-900/40 rounded-lg p-1 border border-slate-800/50">
-              <div className="grid grid-cols-2 gap-1">
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'analytics'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <BarChart3 size={20} />
+              <span className="font-medium">Analytics</span>
+            </button>
+
+            <div className="pt-4 space-y-3">
+              <button
+                onClick={() => { setEditingCard(null); setIsFormOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-all"
+              >
+                <Plus size={20} />
+                <span>Add Card</span>
+              </button>
+
+              {/* Currency Toggle */}
+              <div className="bg-slate-900/40 rounded-lg p-1 border border-slate-800/50">
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={() => setDisplayCurrency('USD')}
+                    className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
+                      displayCurrency === 'USD'
+                        ? 'bg-slate-700 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    USD $
+                  </button>
+                  <button
+                    onClick={() => setDisplayCurrency('CNY')}
+                    className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
+                      displayCurrency === 'CNY'
+                        ? 'bg-slate-700 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    CNY ¥
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section - Export CSV and User Profile */}
+          <div className="mt-auto pt-4 border-t border-slate-800/50">
+            <div className="flex items-center gap-2 px-4 py-3">
+              {/* Export CSV Button */}
+              <button
+                onClick={exportToCSV}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg hover:bg-slate-800/50 transition-all text-slate-300"
+              >
+                <Download size={18} />
+                <span className="text-sm font-medium">Export CSV</span>
+              </button>
+
+              {/* User Profile */}
+              <div className="relative">
                 <button
-                  onClick={() => setDisplayCurrency('USD')}
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
-                    displayCurrency === 'USD'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                  className="flex items-center justify-center p-1 rounded-lg hover:bg-slate-800/50 transition-all"
                 >
-                  USD $
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-emerald-500/30" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
+                      <User size={20} className="text-emerald-400" />
+                    </div>
+                  )}
                 </button>
-                <button
-                  onClick={() => setDisplayCurrency('CNY')}
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
-                    displayCurrency === 'CNY'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  CNY ¥
-                </button>
+
+                {/* Desktop Dropdown Menu */}
+                {showUserMenu && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute bottom-full right-0 mb-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
+                  >
+                    <div className="px-4 py-3 border-b border-slate-800/50">
+                      <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
+                      <p className="text-slate-500 text-xs truncate">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
+                    >
+                      <LogOut size={18} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </nav>
-
-        {/* User Profile at Bottom */}
-        <div className="p-4 border-t border-slate-800/50">
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-all"
-            >
-              {user.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-emerald-500/30" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
-                  <User size={20} className="text-emerald-400" />
-                </div>
-              )}
-              <div className="flex-1 text-left">
-                <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
-                <p className="text-slate-500 text-xs truncate">{user.email}</p>
-              </div>
-            </button>
-
-            {/* Dropdown Menu */}
-            {showUserMenu && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-900/95 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden">
-                <button
-                  onClick={exportToCSV}
-                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-slate-300 font-medium"
-                >
-                  <Download size={18} />
-                  <span>Export CSV</span>
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
-                >
-                  <LogOut size={18} />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </aside>
 
       {/* Main Content Area - Full Width on Desktop */}
@@ -390,22 +413,47 @@ export default function App() {
               </div>
             </div>
             <button onClick={exportToCSV} className="p-2 text-slate-400 hover:text-white">
-              <Download size={18} />
+              <Download size={20} />
             </button>
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="p-1">
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-emerald-500/30" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
-                  <User size={16} className="text-emerald-400" />
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                className="p-1"
+              >
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-emerald-500/30" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
+                    <User size={16} className="text-emerald-400" />
+                  </div>
+                )}
+              </button>
+
+              {/* Mobile Dropdown Menu */}
+              {showUserMenu && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-full right-0 mt-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
+                >
+                  <div className="px-4 py-3 border-b border-slate-800/50">
+                    <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
+                    <p className="text-slate-500 text-xs truncate">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
+                    className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
+                  >
+                    <LogOut size={18} />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
               )}
-            </button>
+            </div>
           </div>
         </header>
 
         {/* Main Scrollable Area - Full Width */}
-        <main className="relative pt-0 lg:pt-0 pb-20 lg:pb-0 min-h-screen bg-slate-950">
+        <main className="relative pt-16 lg:pt-0 pb-32 lg:pb-0 min-h-screen bg-slate-950">
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
               <DashboardStats stats={stats} displayCurrency={displayCurrency} convertPrice={convertPrice} />
