@@ -43,17 +43,44 @@ export const dataService = {
     });
   },
 
-  async updatePrice(id: string, newPrice: number, getIdToken: () => Promise<string | null>, dateStr?: string, platform?: string, variation?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
+  async updatePrice(id: string, newPrice: number, getIdToken: () => Promise<string | null>, dateStr?: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
     const headers = await getAuthHeaders(getIdToken);
-    console.log('[dataService] Sending updatePrice request:', { id, price: newPrice, date: dateStr, platform, variation, grade, serialNumber });
+    console.log('[dataService] Sending updatePrice request:', { id, price: newPrice, date: dateStr, platform, parallel, grade, serialNumber });
     const res = await fetch(`${API_URL}/cards/${id}/price`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ price: newPrice, date: dateStr, platform, variation, grade, serialNumber })
+      body: JSON.stringify({ price: newPrice, date: dateStr, platform, parallel, grade, serialNumber })
     });
     if (!res.ok) return null;
     const result = await res.json();
     console.log('[dataService] updatePrice response:', result);
+    return result;
+  },
+
+  async deletePriceEntry(id: string, priceDate: string, getIdToken: () => Promise<string | null>): Promise<Card | null> {
+    const headers = await getAuthHeaders(getIdToken);
+    console.log('[dataService] Sending deletePriceEntry request:', { id, priceDate });
+    const res = await fetch(`${API_URL}/cards/${id}/price/${encodeURIComponent(priceDate)}`, {
+      method: 'DELETE',
+      headers
+    });
+    if (!res.ok) return null;
+    const result = await res.json();
+    console.log('[dataService] deletePriceEntry response:', result);
+    return result;
+  },
+
+  async editPriceEntry(id: string, oldDate: string, newPrice: number, getIdToken: () => Promise<string | null>, newDate?: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
+    const headers = await getAuthHeaders(getIdToken);
+    console.log('[dataService] Sending editPriceEntry request:', { id, oldDate, newPrice, newDate, platform, parallel, grade, serialNumber });
+    const res = await fetch(`${API_URL}/cards/${id}/price/${encodeURIComponent(oldDate)}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ price: newPrice, date: newDate, platform, parallel, grade, serialNumber })
+    });
+    if (!res.ok) return null;
+    const result = await res.json();
+    console.log('[dataService] editPriceEntry response:', result);
     return result;
   }
 };

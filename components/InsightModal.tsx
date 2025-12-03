@@ -1,20 +1,94 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../types';
-import { X, Filter, Calendar } from 'lucide-react';
+import { X, Filter, Calendar, Trash2, Edit2, Check, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface InsightModalProps {
   card: Card;
+  allCards: Card[];
   onClose: () => void;
+  onDeleteEntry: (cardId: string, priceDate: string) => Promise<void>;
+  onEditEntry: (cardId: string, oldDate: string, newPrice: number, newDate?: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string) => Promise<void>;
 }
 
-export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => {
+export const InsightModal: React.FC<InsightModalProps> = ({ card, allCards, onClose, onDeleteEntry, onEditEntry }) => {
   const [filterPlatform, setFilterPlatform] = useState<string>('');
-  const [filterVariation, setFilterVariation] = useState<string>('');
+  const [filterParallel, setFilterParallel] = useState<string>('');
   const [filterGrade, setFilterGrade] = useState<string>('');
   const [filterSerialNumber, setFilterSerialNumber] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [variantsExpanded, setVariantsExpanded] = useState<boolean>(false);
+
+  // Edit state
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState<string>('');
+  const [editDate, setEditDate] = useState<string>('');
+  const [editPlatform, setEditPlatform] = useState<string>('');
+  const [editParallel, setEditParallel] = useState<string>('');
+  const [editGrade, setEditGrade] = useState<string>('');
+  const [editSerialNumber, setEditSerialNumber] = useState<string>('');
+
+  // Get currency symbol
+  const symbol = card.currency === 'USD' ? '$' : '¥';
+
+  // Find related card variants (same base details: player, year, brand, series, insert)
+  const relatedVariants = useMemo(() => {
+    return allCards.filter(c =>
+      c.id !== card.id && // Exclude the current card
+      c.player === card.player &&
+      c.year === card.year &&
+      c.brand === card.brand &&
+      c.series === card.series &&
+      c.insert === card.insert
+    ).sort((a, b) => {
+      // Sort by parallel, then grade
+      const parallelCompare = (a.parallel || '').localeCompare(b.parallel || '');
+      if (parallelCompare !== 0) return parallelCompare;
+      return (a.gradeValue || '').localeCompare(b.gradeValue || '');
+    });
+  }, [allCards, card]);
+
+  // Handler functions
+  const handleDelete = async (priceDate: string) => {
+    if (window.confirm('Delete this price entry? This action cannot be undone.')) {
+      await onDeleteEntry(card.id, priceDate);
+    }
+  };
+
+  const handleEditClick = (entry: { date: string; value: number; platform?: string; parallel?: string; grade?: string; serialNumber?: string }) => {
+    setEditingDate(entry.date);
+    setEditPrice(entry.value.toString());
+    setEditDate(new Date(entry.date).toISOString().split('T')[0]);
+    setEditPlatform(entry.platform || '');
+    setEditParallel(entry.parallel || '');
+    setEditGrade(entry.grade || '');
+    setEditSerialNumber(entry.serialNumber || '');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingDate) return;
+    const price = parseFloat(editPrice);
+    if (isNaN(price)) {
+      alert('Please enter a valid price');
+      return;
+    }
+    await onEditEntry(
+      card.id,
+      editingDate,
+      price,
+      editDate,
+      editPlatform || undefined,
+      editParallel || undefined,
+      editGrade || undefined,
+      editSerialNumber || undefined
+    );
+    setEditingDate(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingDate(null);
+  };
 
   // Get unique values for filters
   const uniquePlatforms = useMemo(() => {
@@ -24,11 +98,11 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
     return [...new Set(platforms)].sort();
   }, [card.priceHistory]);
 
-  const uniqueVariations = useMemo(() => {
-    const variations = card.priceHistory
-      .map(p => p.variation)
+  const uniqueParallels = useMemo(() => {
+    const parallels = card.priceHistory
+      .map(p => p.parallel)
       .filter((v): v is string => !!v);
-    return [...new Set(variations)].sort();
+    return [...new Set(parallels)].sort();
   }, [card.priceHistory]);
 
   const uniqueGrades = useMemo(() => {
@@ -55,8 +129,8 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
     }
 
     // Apply variation filter
-    if (filterVariation) {
-      filtered = filtered.filter(p => p.variation === filterVariation);
+    if (filterParallel) {
+      filtered = filtered.filter(p => p.parallel === filterParallel);
     }
 
     // Apply grade filter
@@ -78,7 +152,7 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
     }
 
     return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [card.priceHistory, filterPlatform, filterVariation, filterGrade, filterSerialNumber, startDate, endDate]);
+  }, [card.priceHistory, filterPlatform, filterParallel, filterGrade, filterSerialNumber, startDate, endDate]);
 
   // Format for chart
   const chartData = filteredHistory.map(p => ({
@@ -86,7 +160,7 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
     value: p.value,
     fullDate: new Date(p.date).toLocaleDateString(),
     platform: p.platform || 'N/A',
-    variation: p.variation || 'N/A',
+    variation: p.parallel || 'N/A',
     grade: p.grade || 'N/A',
     serialNumber: p.serialNumber || 'N/A'
   }));
@@ -145,15 +219,15 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
 
               <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">
-                  Variation
+                  Parallel
                 </label>
                 <select
-                  value={filterVariation}
-                  onChange={(e) => setFilterVariation(e.target.value)}
+                  value={filterParallel}
+                  onChange={(e) => setFilterParallel(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 >
-                  <option value="">All Variations</option>
-                  {uniqueVariations.map(variation => (
+                  <option value="">All Parallels</option>
+                  {uniqueParallels.map(variation => (
                     <option key={variation} value={variation}>{variation}</option>
                   ))}
                 </select>
@@ -216,11 +290,11 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
               </div>
             </div>
 
-            {(filterPlatform || filterVariation || filterGrade || filterSerialNumber || startDate || endDate) && (
+            {(filterPlatform || filterParallel || filterGrade || filterSerialNumber || startDate || endDate) && (
               <button
                 onClick={() => {
                   setFilterPlatform('');
-                  setFilterVariation('');
+                  setFilterParallel('');
                   setFilterGrade('');
                   setFilterSerialNumber('');
                   setStartDate('');
@@ -233,23 +307,111 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
             )}
           </div>
 
+          {/* Related Variants Section */}
+          {relatedVariants.length > 0 && (
+            <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setVariantsExpanded(!variantsExpanded)}
+                className="w-full p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+                    Related Variants
+                  </h3>
+                  <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-full">
+                    {relatedVariants.length} {relatedVariants.length === 1 ? 'variant' : 'variants'}
+                  </span>
+                </div>
+                {variantsExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+              </button>
+
+              {variantsExpanded && (
+                <div className="border-t border-slate-800/50">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-950/50">
+                        <tr>
+                          <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Parallel</th>
+                          <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Grade</th>
+                          <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Serial #</th>
+                          <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Cost Basis</th>
+                          <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Current Value</th>
+                          <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">P/L</th>
+                          <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50">
+                        {relatedVariants.map((variant) => {
+                          const basis = variant.purchasePrice;
+                          const currentValue = variant.sold ? (variant.soldPrice || 0) : variant.currentValue;
+                          const profit = currentValue - basis;
+                          const isProfit = profit >= 0;
+                          const profitPercent = basis > 0 ? (profit / basis) * 100 : 0;
+
+                          return (
+                            <tr key={variant.id} className="hover:bg-slate-800/30 transition-colors">
+                              <td className="px-4 py-3 text-sm text-white">
+                                {variant.parallel || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-300">
+                                {variant.graded ? `${variant.gradeCompany} ${variant.gradeValue}` : 'Raw'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-400">
+                                {variant.serialNumber || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-mono text-slate-400">
+                                {symbol}{basis.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-white">
+                                {symbol}{currentValue.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right">
+                                <div className={`font-mono font-semibold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {isProfit ? '+' : ''}{symbol}{Math.abs(profit).toLocaleString()}
+                                </div>
+                                <div className={`text-xs ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {isProfit ? '+' : ''}{profitPercent.toFixed(1)}%
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {variant.sold ? (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400">
+                                    SOLD
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-400">
+                                    HOLDING
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-slate-900/40 backdrop-blur-sm p-4 rounded-xl border border-slate-800/50">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide mb-1.5">Latest</p>
-              <p className="text-2xl font-mono font-bold text-white">${stats.latest.toFixed(2)}</p>
+              <p className="text-2xl font-mono font-bold text-white">{symbol}{stats.latest.toFixed(2)}</p>
             </div>
             <div className="bg-slate-900/40 backdrop-blur-sm p-4 rounded-xl border border-slate-800/50">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide mb-1.5">Average</p>
-              <p className="text-2xl font-mono font-bold text-emerald-400">${stats.avg.toFixed(2)}</p>
+              <p className="text-2xl font-mono font-bold text-emerald-400">{symbol}{stats.avg.toFixed(2)}</p>
             </div>
             <div className="bg-slate-900/40 backdrop-blur-sm p-4 rounded-xl border border-slate-800/50">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide mb-1.5">High</p>
-              <p className="text-2xl font-mono font-bold text-green-400">${stats.max.toFixed(2)}</p>
+              <p className="text-2xl font-mono font-bold text-green-400">{symbol}{stats.max.toFixed(2)}</p>
             </div>
             <div className="bg-slate-900/40 backdrop-blur-sm p-4 rounded-xl border border-slate-800/50">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide mb-1.5">Low</p>
-              <p className="text-2xl font-mono font-bold text-rose-400">${stats.min.toFixed(2)}</p>
+              <p className="text-2xl font-mono font-bold text-rose-400">{symbol}{stats.min.toFixed(2)}</p>
             </div>
           </div>
 
@@ -292,10 +454,10 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
                       formatter={(value: number, name: string, props: any) => {
                         return [
                           <div key="tooltip" className="space-y-1">
-                            <div className="font-mono font-bold text-emerald-400">${value.toFixed(2)}</div>
+                            <div className="font-mono font-bold text-emerald-400">{symbol}{value.toFixed(2)}</div>
                             <div className="text-xs text-slate-400">{props.payload.fullDate}</div>
                             <div className="text-xs text-slate-400">Platform: {props.payload.platform}</div>
-                            <div className="text-xs text-slate-400">Variation: {props.payload.variation}</div>
+                            <div className="text-xs text-slate-400">Parallel: {props.payload.parallel}</div>
                             <div className="text-xs text-slate-400">Grade: {props.payload.grade}</div>
                             <div className="text-xs text-slate-400">Serial #: {props.payload.serialNumber}</div>
                           </div>
@@ -337,34 +499,131 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, onClose }) => 
                       <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Date</th>
                       <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Price</th>
                       <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Platform</th>
-                      <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Variation</th>
+                      <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Parallel</th>
                       <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Grade</th>
                       <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Serial #</th>
+                      <th className="text-center text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
-                    {filteredHistory.map((entry, index) => (
-                      <tr key={index} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-slate-300">
-                          {new Date(entry.date).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-white">
-                          ${entry.value.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-400">
-                          {entry.platform || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-400">
-                          {entry.variation || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-400">
-                          {entry.grade || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-400">
-                          {entry.serialNumber || '-'}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredHistory.map((entry, index) => {
+                      const isEditing = editingDate === entry.date;
+
+                      return isEditing ? (
+                        <tr key={index} className="bg-slate-800/50">
+                          <td className="px-4 py-3">
+                            <input
+                              type="date"
+                              value={editDate}
+                              onChange={(e) => setEditDate(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editPrice}
+                              onChange={(e) => setEditPrice(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white text-right"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editPlatform}
+                              onChange={(e) => setEditPlatform(e.target.value)}
+                              placeholder="Platform"
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editParallel}
+                              onChange={(e) => setEditParallel(e.target.value)}
+                              placeholder="Parallel"
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editGrade}
+                              onChange={(e) => setEditGrade(e.target.value)}
+                              placeholder="Grade"
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editSerialNumber}
+                              onChange={(e) => setEditSerialNumber(e.target.value)}
+                              placeholder="Serial #"
+                              className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-center gap-2">
+                              <button
+                                onClick={handleEditSave}
+                                className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors"
+                                title="Save"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button
+                                onClick={handleEditCancel}
+                                className="p-1.5 text-slate-400 hover:bg-slate-700 rounded transition-colors"
+                                title="Cancel"
+                              >
+                                <XCircle size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={index} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-3 text-sm text-slate-300">
+                            {new Date(entry.date).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-white">
+                            {symbol}{entry.value.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-400">
+                            {entry.platform || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-400">
+                            {entry.parallel || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-400">
+                            {entry.grade || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-400">
+                            {entry.serialNumber || '-'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-center gap-2">
+                              <button
+                                onClick={() => handleEditClick(entry)}
+                                className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(entry.date)}
+                                className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

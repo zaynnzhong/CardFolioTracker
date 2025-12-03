@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Stats } from './types';
+import { Card, Stats, Currency } from './types';
 import { dataService } from './services/dataService';
 import { DashboardStats } from './components/DashboardStats';
 import { CardList } from './components/CardList';
@@ -8,11 +8,12 @@ import { WatchList } from './components/WatchList';
 import { CardForm } from './components/CardForm';
 import { PriceUpdateModal } from './components/PriceUpdateModal';
 import { InsightModal } from './components/InsightModal';
+import { SoldModal } from './components/SoldModal';
 import { AnalyticsView } from './components/AnalyticsView';
 import { BottomNav } from './components/BottomNav';
 import { Login } from './components/Login';
 import { useAuth } from './contexts/AuthContext';
-import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User } from 'lucide-react';
+import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign } from 'lucide-react';
 
 export default function App() {
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();
@@ -20,6 +21,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics'>('portfolio');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
 
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -27,6 +29,7 @@ export default function App() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [updatingPriceCard, setUpdatingPriceCard] = useState<Card | null>(null);
   const [analyzingCard, setAnalyzingCard] = useState<Card | null>(null);
+  const [soldModalCard, setSoldModalCard] = useState<Card | null>(null);
 
   // Load Data when user is authenticated
   useEffect(() => {
@@ -47,6 +50,14 @@ export default function App() {
   const portfolioCards = cards.filter(c => !c.watchlist);
   const watchlistCards = cards.filter(c => c.watchlist);
 
+  // Currency conversion utility (1 USD = 7 CNY)
+  const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
+    if (fromCurrency === toCurrency) return price;
+    if (fromCurrency === 'USD' && toCurrency === 'CNY') return price * 7;
+    if (fromCurrency === 'CNY' && toCurrency === 'USD') return price / 7;
+    return price;
+  };
+
   const stats: Stats = useMemo(() => {
     const initial = { USD: 0, CNY: 0 };
     const totalInvested = { ...initial };
@@ -54,27 +65,51 @@ export default function App() {
     const unrealizedProfit = { ...initial };
     const realizedProfit = { ...initial };
     const soldTotal = { ...initial };
+    const cash = { ...initial };
     let cardCount = 0;
 
     portfolioCards.forEach(card => {
       const cur = card.currency;
+      const isBreakOrSelfRip = card.acquisitionSource === 'Break' || card.acquisitionSource === 'Self Rip (Case/Box)';
+
+      // For Break/Self Rip cards, use earliest comp as basis if available
+      const earliestComp = card.priceHistory && card.priceHistory.length > 0
+        ? card.priceHistory[0].value
+        : card.purchasePrice;
+      const basis = isBreakOrSelfRip ? earliestComp : card.purchasePrice;
+
       if (card.sold) {
         const soldPrice = card.soldPrice || 0;
-        const profit = soldPrice - card.purchasePrice;
         soldTotal[cur] += soldPrice;
+
+        // Calculate realized P/L using appropriate basis
+        const profit = soldPrice - basis;
         realizedProfit[cur] += profit;
       } else {
         cardCount++;
-        totalInvested[cur] += card.purchasePrice;
+
+        // Only count investment for non-break/self-rip cards
+        if (!isBreakOrSelfRip) {
+          totalInvested[cur] += card.purchasePrice;
+        }
+
         // Only add to portfolio value if not unknown (-1)
         if (card.currentValue !== -1) {
           currentPortfolioValue[cur] += card.currentValue;
-          unrealizedProfit[cur] += (card.currentValue - card.purchasePrice);
+
+          // Calculate unrealized P/L using appropriate basis
+          const profit = card.currentValue - basis;
+          // Only count unrealized P/L for cards with known value
+          unrealizedProfit[cur] += profit;
         }
       }
     });
 
-    return { totalInvested, currentPortfolioValue, unrealizedProfit, realizedProfit, soldTotal, cardCount };
+    // Calculate cash position: Total Invested + Realized P/L (net cash flow)
+    cash.USD = totalInvested.USD + realizedProfit.USD;
+    cash.CNY = totalInvested.CNY + realizedProfit.CNY;
+
+    return { totalInvested, currentPortfolioValue, unrealizedProfit, realizedProfit, soldTotal, cash, cardCount };
   }, [portfolioCards]);
 
   const handleSaveCard = async (card: Card) => {
@@ -97,12 +132,32 @@ export default function App() {
     }
   };
 
-  const handleUpdatePrice = async (cardId: string, newPrice: number, dateStr: string, platform?: string, variation?: string, grade?: string, serialNumber?: string) => {
-    console.log('[App] handleUpdatePrice called with:', { cardId, newPrice, dateStr, platform, variation, grade, serialNumber });
-    const updated = await dataService.updatePrice(cardId, newPrice, getIdToken, dateStr, platform, variation, grade, serialNumber);
+  const handleUpdatePrice = async (cardId: string, newPrice: number, dateStr: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string) => {
+    console.log('[App] handleUpdatePrice called with:', { cardId, newPrice, dateStr, platform, parallel, grade, serialNumber });
+    const updated = await dataService.updatePrice(cardId, newPrice, getIdToken, dateStr, platform, parallel, grade, serialNumber);
     if (updated) {
       setCards(prev => prev.map(c => c.id === cardId ? updated : c));
       setUpdatingPriceCard(null);
+      if (selectedCard?.id === cardId) setSelectedCard(updated);
+    }
+  };
+
+  const handleDeletePriceEntry = async (cardId: string, priceDate: string) => {
+    console.log('[App] handleDeletePriceEntry called with:', { cardId, priceDate });
+    const updated = await dataService.deletePriceEntry(cardId, priceDate, getIdToken);
+    if (updated) {
+      setCards(prev => prev.map(c => c.id === cardId ? updated : c));
+      if (analyzingCard?.id === cardId) setAnalyzingCard(updated);
+      if (selectedCard?.id === cardId) setSelectedCard(updated);
+    }
+  };
+
+  const handleEditPriceEntry = async (cardId: string, oldDate: string, newPrice: number, newDate?: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string) => {
+    console.log('[App] handleEditPriceEntry called with:', { cardId, oldDate, newPrice, newDate, platform, parallel, grade, serialNumber });
+    const updated = await dataService.editPriceEntry(cardId, oldDate, newPrice, getIdToken, newDate, platform, parallel, grade, serialNumber);
+    if (updated) {
+      setCards(prev => prev.map(c => c.id === cardId ? updated : c));
+      if (analyzingCard?.id === cardId) setAnalyzingCard(updated);
       if (selectedCard?.id === cardId) setSelectedCard(updated);
     }
   };
@@ -115,6 +170,22 @@ export default function App() {
       purchasePrice: card.currentValue
     });
     setIsFormOpen(true);
+  };
+
+  const handleMarkAsSold = async (cardId: string, soldPrice: number, soldDate: string, platform: string) => {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+
+    // Update the card with sold information
+    const updatedCard: Card = {
+      ...card,
+      sold: true,
+      soldPrice,
+      soldDate
+    };
+
+    await handleSaveCard(updatedCard);
+    setSoldModalCard(null);
   };
 
   const exportToCSV = () => {
@@ -172,48 +243,108 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative bg-black text-slate-200 font-sans pb-20 overflow-hidden">
+    <div className="min-h-screen relative bg-slate-950 text-slate-200 font-sans overflow-hidden flex">
 
-      {/* Unified Animated Background Gradient */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/3 via-blue-500/3 to-purple-500/3 animate-pulse" style={{ animationDuration: '8s' }} />
-      </div>
-
-      {/* Top Bar with User Profile */}
-      <header className="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur-xl z-30 px-5 py-4 flex justify-between items-center border-b border-slate-800/50">
-        <div className="flex items-center">
-          <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-lg" style={{ width: '168px', height: 'auto' }} />
+      {/* Sidebar Navigation - Desktop Only */}
+      <aside className="hidden lg:flex lg:flex-col w-64 bg-slate-900/50 border-r border-slate-800/50 backdrop-blur-xl fixed left-0 top-0 bottom-0 z-40">
+        {/* Logo */}
+        <div className="p-6 border-b border-slate-800/50">
+          <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-lg" style={{ width: '140px', height: 'auto' }} />
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Navigation Items */}
+        <nav className="flex-1 p-4 space-y-2">
           <button
-            onClick={exportToCSV}
-            className="p-2.5 text-slate-400 hover:text-white transition-all duration-200 hover:bg-slate-800 rounded-lg"
+            onClick={() => setActiveTab('portfolio')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'portfolio'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
           >
-            <Download size={20} />
+            <Home size={20} />
+            <span className="font-medium">Portfolio</span>
           </button>
 
-          {/* User Profile Menu */}
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'analytics'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
+          >
+            <BarChart3 size={20} />
+            <span className="font-medium">Analytics</span>
+          </button>
+
+          <div className="pt-4 space-y-3">
+            <button
+              onClick={() => { setEditingCard(null); setIsFormOpen(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-all"
+            >
+              <Plus size={20} />
+              <span>Add Card</span>
+            </button>
+
+            {/* Currency Toggle */}
+            <div className="bg-slate-900/40 rounded-lg p-1 border border-slate-800/50">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setDisplayCurrency('USD')}
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
+                    displayCurrency === 'USD'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  USD $
+                </button>
+                <button
+                  onClick={() => setDisplayCurrency('CNY')}
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
+                    displayCurrency === 'CNY'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  CNY ¥
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* User Profile at Bottom */}
+        <div className="p-4 border-t border-slate-800/50">
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-800/50 transition-all"
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-all"
             >
               {user.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full border-2 border-emerald-500/30" />
+                <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-emerald-500/30" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
-                  <User size={16} className="text-emerald-400" />
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
+                  <User size={20} className="text-emerald-400" />
                 </div>
               )}
+              <div className="flex-1 text-left">
+                <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
+                <p className="text-slate-500 text-xs truncate">{user.email}</p>
+              </div>
             </button>
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-50">
-                <div className="p-4 border-b border-slate-800/50">
-                  <p className="text-white font-semibold truncate">{user.displayName || 'User'}</p>
-                  <p className="text-slate-400 text-sm truncate mt-0.5">{user.email}</p>
-                </div>
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-900/95 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden">
+                <button
+                  onClick={exportToCSV}
+                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-slate-300 font-medium"
+                >
+                  <Download size={18} />
+                  <span>Export CSV</span>
+                </button>
                 <button
                   onClick={handleSignOut}
                   className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
@@ -225,37 +356,86 @@ export default function App() {
             )}
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Main Scrollable Area */}
-      <main className="relative pt-20 max-w-2xl mx-auto">
-        {activeTab === 'portfolio' ? (
-          <>
-            <DashboardStats stats={stats} />
-
-            {/* Owned Assets */}
-            <CardList cards={portfolioCards} onSelect={setSelectedCard} />
-
-            {/* Watchlist Section */}
-            {watchlistCards.length > 0 && (
-              <WatchList
-                cards={watchlistCards}
-                onSelect={setSelectedCard}
-                onConvertToAsset={handleConvertToAsset}
-                onUpdatePrice={(c) => setUpdatingPriceCard(c)}
-              />
-            )}
-
-            {portfolioCards.length === 0 && watchlistCards.length === 0 && (
-              <div className="text-center py-10 px-6">
-                <p className="text-slate-500 mb-4">Start your journey by adding a card to your portfolio or watchlist.</p>
+      {/* Main Content Area - Full Width on Desktop */}
+      <div className="flex-1 lg:ml-64">
+        {/* Top Bar - Mobile Only */}
+        <header className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900/80 backdrop-blur-xl z-30 px-4 py-3 flex justify-between items-center border-b border-slate-800/50">
+          <img src="/logo.png" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
+          <div className="flex items-center gap-2">
+            {/* Currency Toggle - Mobile */}
+            <div className="bg-slate-900/60 rounded-lg p-0.5 border border-slate-800/50">
+              <div className="flex gap-0.5">
+                <button
+                  onClick={() => setDisplayCurrency('USD')}
+                  className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                    displayCurrency === 'USD'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  $
+                </button>
+                <button
+                  onClick={() => setDisplayCurrency('CNY')}
+                  className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                    displayCurrency === 'CNY'
+                      ? 'bg-slate-700 text-white'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  ¥
+                </button>
               </div>
-            )}
-          </>
-        ) : (
-          <AnalyticsView cards={cards} />
-        )}
-      </main>
+            </div>
+            <button onClick={exportToCSV} className="p-2 text-slate-400 hover:text-white">
+              <Download size={18} />
+            </button>
+            <button onClick={() => setShowUserMenu(!showUserMenu)} className="p-1">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-emerald-500/30" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
+                  <User size={16} className="text-emerald-400" />
+                </div>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* Main Scrollable Area - Full Width */}
+        <main className="relative pt-0 lg:pt-0 pb-20 lg:pb-0 min-h-screen bg-slate-950">
+          {activeTab === 'portfolio' ? (
+            <div className="p-4 lg:p-6 space-y-6">
+              <DashboardStats stats={stats} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+
+              {/* Owned Assets */}
+              <CardList cards={portfolioCards} onSelect={setSelectedCard} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+
+              {/* Watchlist Section */}
+              {watchlistCards.length > 0 && (
+                <WatchList
+                  cards={watchlistCards}
+                  onSelect={setSelectedCard}
+                  onConvertToAsset={handleConvertToAsset}
+                  onUpdatePrice={(c) => setUpdatingPriceCard(c)}
+                  displayCurrency={displayCurrency}
+                  convertPrice={convertPrice}
+                />
+              )}
+
+              {portfolioCards.length === 0 && watchlistCards.length === 0 && (
+                <div className="text-center py-20 px-6">
+                  <p className="text-slate-500 mb-4">Start your journey by adding a card to your portfolio or watchlist.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <AnalyticsView cards={cards} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+          )}
+        </main>
+      </div>
 
       {/* Detail Sheet */}
       {selectedCard && (
@@ -277,10 +457,16 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white leading-tight mb-1">{selectedCard.player}</h2>
-                <p className="text-slate-400">{selectedCard.year} {selectedCard.brand}</p>
-                <p className="text-sm text-slate-500 mb-2">{selectedCard.series}</p>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-white leading-tight mb-1">
+                  {selectedCard.year} {selectedCard.brand} {selectedCard.series}
+                </h2>
+                <p className="text-slate-400 text-sm mb-2">
+                  {selectedCard.insert}
+                  {selectedCard.parallel && ` • ${selectedCard.parallel}`}
+                  {selectedCard.serialNumber && ` • ${selectedCard.serialNumber}`}
+                </p>
+                <p className="text-lg font-semibold text-white mb-2">{selectedCard.player}</p>
                 {selectedCard.graded && (
                   <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded border border-emerald-500/20">
                     {selectedCard.gradeCompany} {selectedCard.gradeValue}
@@ -296,7 +482,7 @@ export default function App() {
                   {selectedCard.currentValue === -1 ? (
                     <span className="text-amber-400">Unknown</span>
                   ) : (
-                    `$${selectedCard.currentValue.toLocaleString()}`
+                    `${displayCurrency === 'USD' ? '$' : '¥'}${convertPrice(selectedCard.currentValue, selectedCard.currency, displayCurrency).toLocaleString()}`
                   )}
                 </div>
               </div>
@@ -304,35 +490,58 @@ export default function App() {
                 <span className="text-xs text-slate-500 uppercase font-semibold tracking-wide">
                   {selectedCard.watchlist ? 'Target' : 'Cost Basis'}
                 </span>
-                <div className="text-2xl font-mono font-bold text-slate-400 mt-1.5">${selectedCard.purchasePrice.toLocaleString()}</div>
+                <div className="text-2xl font-mono font-bold text-slate-400 mt-1.5">{displayCurrency === 'USD' ? '$' : '¥'}{convertPrice(selectedCard.purchasePrice, selectedCard.currency, displayCurrency).toLocaleString()}</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
-              {selectedCard.watchlist ? (
-                <button onClick={() => handleConvertToAsset(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
-                  <Wallet className="text-emerald-400" size={22} />
-                  <span className="text-[10px] font-medium text-slate-300">Buy</span>
+            <div className="space-y-3">
+              <div className="grid grid-cols-4 gap-3">
+                {selectedCard.watchlist ? (
+                  <button onClick={() => handleConvertToAsset(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
+                    <Wallet className="text-emerald-400" size={22} />
+                    <span className="text-[10px] font-medium text-slate-300">Buy</span>
+                  </button>
+                ) : (
+                  <button onClick={() => setUpdatingPriceCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
+                    <TrendingUp className="text-emerald-400" size={22} />
+                    <span className="text-[10px] font-medium text-slate-300">Log Price</span>
+                  </button>
+                )}
+
+                <button onClick={() => setAnalyzingCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-indigo-500/10 hover:border-indigo-500/30 active:scale-95 transition-all">
+                  <Activity className="text-indigo-400" size={22} />
+                  <span className="text-[10px] font-medium text-slate-300">History</span>
                 </button>
-              ) : (
-                <button onClick={() => setUpdatingPriceCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
-                  <TrendingUp className="text-emerald-400" size={22} />
-                  <span className="text-[10px] font-medium text-slate-300">Log Price</span>
+                <button onClick={() => { setEditingCard(selectedCard); setIsFormOpen(true); }} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-slate-800 hover:border-slate-700 active:scale-95 transition-all">
+                  <Edit2 className="text-blue-400" size={22} />
+                  <span className="text-[10px] font-medium text-slate-300">Edit</span>
+                </button>
+                <button onClick={() => handleDeleteCard(selectedCard.id)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-rose-500/10 hover:border-rose-500/30 active:scale-95 transition-all">
+                  <X className="text-rose-400" size={22} />
+                  <span className="text-[10px] font-medium text-slate-300">Delete</span>
+                </button>
+              </div>
+
+              {/* Mark as Sold Button - Only show if card is not sold and not in watchlist */}
+              {!selectedCard.watchlist && !selectedCard.sold && (
+                <button
+                  onClick={() => setSoldModalCard(selectedCard)}
+                  className="w-full flex items-center justify-center gap-2 p-3 bg-emerald-500/10 backdrop-blur-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 active:scale-95 transition-all"
+                >
+                  <Wallet className="text-emerald-400" size={20} />
+                  <span className="text-sm font-semibold text-emerald-300">Mark as Sold</span>
                 </button>
               )}
 
-              <button onClick={() => setAnalyzingCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-indigo-500/10 hover:border-indigo-500/30 active:scale-95 transition-all">
-                <Activity className="text-indigo-400" size={22} />
-                <span className="text-[10px] font-medium text-slate-300">History</span>
-              </button>
-              <button onClick={() => { setEditingCard(selectedCard); setIsFormOpen(true); }} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-slate-800 hover:border-slate-700 active:scale-95 transition-all">
-                <Edit2 className="text-blue-400" size={22} />
-                <span className="text-[10px] font-medium text-slate-300">Edit</span>
-              </button>
-              <button onClick={() => handleDeleteCard(selectedCard.id)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-rose-500/10 hover:border-rose-500/30 active:scale-95 transition-all">
-                <X className="text-rose-400" size={22} />
-                <span className="text-[10px] font-medium text-slate-300">Delete</span>
-              </button>
+              {/* Show sold status if already sold */}
+              {selectedCard.sold && (
+                <div className="w-full p-3 bg-emerald-500/10 backdrop-blur-sm rounded-xl border border-emerald-500/30">
+                  <div className="flex items-center justify-center gap-2">
+                    <Wallet className="text-emerald-400" size={18} />
+                    <span className="text-sm font-semibold text-emerald-300">Sold on {selectedCard.soldDate}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-8 text-center">
@@ -369,7 +578,18 @@ export default function App() {
       {analyzingCard && (
         <InsightModal
           card={analyzingCard}
+          allCards={cards}
           onClose={() => setAnalyzingCard(null)}
+          onDeleteEntry={handleDeletePriceEntry}
+          onEditEntry={handleEditPriceEntry}
+        />
+      )}
+
+      {soldModalCard && (
+        <SoldModal
+          card={soldModalCard}
+          onSave={handleMarkAsSold}
+          onCancel={() => setSoldModalCard(null)}
         />
       )}
     </div>

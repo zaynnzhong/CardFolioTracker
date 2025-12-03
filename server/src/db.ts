@@ -9,11 +9,12 @@ export interface Card {
     year: number;
     brand: string;
     series: string;
-    cardType: string;
+    insert: string;
+    parallel?: string;
     purchasePrice: number;
     currency: 'USD' | 'CNY';
     currentValue: number;
-    priceHistory: { date: string; value: number; platform?: string; variation?: string; grade?: string; serialNumber?: string }[];
+    priceHistory: { date: string; value: number; platform?: string; parallel?: string; grade?: string; serialNumber?: string }[];
     imageUrl?: string;
     watchlist?: boolean;
     sold?: boolean;
@@ -47,7 +48,8 @@ const CardSchema = new Schema({
     year: { type: Number, required: true },
     brand: { type: String, required: true },
     series: { type: String, required: true },
-    cardType: { type: String, required: true },
+    insert: { type: String, required: true },
+    parallel: String,
     purchasePrice: { type: Number, required: true },
     currency: { type: String, enum: ['USD', 'CNY'], default: 'USD' },
     currentValue: { type: Number, required: true },
@@ -55,7 +57,7 @@ const CardSchema = new Schema({
         date: { type: String, required: true },
         value: { type: Number, required: true },
         platform: String,
-        variation: String,
+        parallel: String,
         grade: String,
         serialNumber: String
     }],
@@ -142,9 +144,9 @@ export const db = {
         await CardModel.deleteOne({ id, userId });
     },
 
-    async updatePrice(id: string, userId: string, newPrice: number, dateStr?: string, platform?: string, variation?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
+    async updatePrice(id: string, userId: string, newPrice: number, dateStr?: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
         await connectToDb();
-        console.log('[DB] updatePrice called with:', { id, userId, newPrice, dateStr, platform, variation, grade, serialNumber });
+        console.log('[DB] updatePrice called with:', { id, userId, newPrice, dateStr, platform, parallel, grade, serialNumber });
         const card = await CardModel.findOne({ id, userId });
         if (!card) {
             console.log('[DB] Card not found:', id);
@@ -152,28 +154,20 @@ export const db = {
         }
 
         const history = [...card.priceHistory];
+        // Always create a new entry with current timestamp to allow multiple entries per day
         const newDate = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
-        const inputDateShort = newDate.split('T')[0];
 
-        const existingIndex = history.findIndex(h => h.date.split('T')[0] === inputDateShort);
-
-        if (existingIndex >= 0) {
-            console.log('[DB] Updating existing entry at index:', existingIndex);
-            history[existingIndex].value = newPrice;
-            if (platform) history[existingIndex].platform = platform;
-            if (variation) history[existingIndex].variation = variation;
-            if (grade) history[existingIndex].grade = grade;
-            if (serialNumber) history[existingIndex].serialNumber = serialNumber;
-        } else {
-            console.log('[DB] Creating new price entry with:', { date: newDate, value: newPrice, platform, variation, grade, serialNumber });
-            history.push({ date: newDate, value: newPrice, platform, variation, grade, serialNumber });
-        }
+        console.log('[DB] Creating new price entry with:', { date: newDate, value: newPrice, platform, parallel, grade, serialNumber });
+        history.push({ date: newDate, value: newPrice, platform, parallel, grade, serialNumber });
 
         history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         const lastHistoryDate = new Date(history[history.length - 1].date).getTime();
         const newEntryDate = new Date(newDate).getTime();
-        const shouldUpdateCurrent = newEntryDate >= lastHistoryDate;
+
+        // Only update currentValue if the parallel matches the card's parallel AND it's the most recent entry
+        const parallelMatches = !card.parallel || !parallel || card.parallel === parallel;
+        const shouldUpdateCurrent = newEntryDate >= lastHistoryDate && parallelMatches;
 
         // Update fields
         card.priceHistory = history;
@@ -183,6 +177,85 @@ export const db = {
 
         await card.save();
         console.log('[DB] Price updated successfully, priceHistory length:', card.priceHistory.length);
+        return card.toObject();
+    },
+
+    async deletePriceEntry(id: string, userId: string, priceDate: string): Promise<Card | null> {
+        await connectToDb();
+        console.log('[DB] deletePriceEntry called with:', { id, userId, priceDate });
+        const card = await CardModel.findOne({ id, userId });
+        if (!card) {
+            console.log('[DB] Card not found:', id);
+            return null;
+        }
+
+        // Filter out the entry with matching date
+        const history = card.priceHistory.filter(p => p.date !== priceDate);
+
+        if (history.length === card.priceHistory.length) {
+            console.log('[DB] Price entry not found:', priceDate);
+            return null;
+        }
+
+        card.priceHistory = history;
+
+        // Recalculate currentValue from the most recent matching parallel entry
+        if (history.length > 0) {
+            // Find the most recent entry that matches the card's parallel
+            const matchingEntries = history.filter(p =>
+                !card.parallel || !p.parallel || card.parallel === p.parallel
+            );
+            if (matchingEntries.length > 0) {
+                card.currentValue = matchingEntries[matchingEntries.length - 1].value;
+            }
+        }
+
+        await card.save();
+        console.log('[DB] Price entry deleted successfully, remaining entries:', card.priceHistory.length);
+        return card.toObject();
+    },
+
+    async editPriceEntry(id: string, userId: string, oldDate: string, newPrice: number, newDate?: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
+        await connectToDb();
+        console.log('[DB] editPriceEntry called with:', { id, userId, oldDate, newPrice, newDate, platform, parallel, grade, serialNumber });
+        const card = await CardModel.findOne({ id, userId });
+        if (!card) {
+            console.log('[DB] Card not found:', id);
+            return null;
+        }
+
+        // Find the entry to edit
+        const entryIndex = card.priceHistory.findIndex(p => p.date === oldDate);
+        if (entryIndex === -1) {
+            console.log('[DB] Price entry not found:', oldDate);
+            return null;
+        }
+
+        // Update the entry
+        const updatedDate = newDate ? new Date(newDate).toISOString() : oldDate;
+        card.priceHistory[entryIndex] = {
+            date: updatedDate,
+            value: newPrice,
+            platform,
+            parallel,
+            grade,
+            serialNumber
+        };
+
+        // Re-sort if date changed
+        if (newDate && newDate !== oldDate) {
+            card.priceHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        }
+
+        // Recalculate currentValue if needed
+        const lastEntry = card.priceHistory[card.priceHistory.length - 1];
+        const parallelMatches = !card.parallel || !parallel || card.parallel === parallel;
+        if (lastEntry.date === updatedDate && parallelMatches) {
+            card.currentValue = newPrice;
+        }
+
+        await card.save();
+        console.log('[DB] Price entry edited successfully');
         return card.toObject();
     }
 };

@@ -9,12 +9,29 @@ interface CardFormProps {
   onCancel: () => void;
 }
 
+interface CardVariant {
+  id: string;
+  graded: boolean;
+  gradeCompany: string;
+  gradeValue: string;
+  certNumber: string;
+  quantity: number;
+  purchasePrice: string; // Individual purchase price for this variant
+  currentValue: string; // Individual current value for this variant
+}
+
 export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCancel }) => {
   // Mode
   const [isWatchlist, setIsWatchlist] = useState(false);
+  const [isBulkMode, setIsBulkMode] = useState(false);
 
   // Visual
   const [imageUrl, setImageUrl] = useState<string>('');
+
+  // Bulk entry variants
+  const [variants, setVariants] = useState<CardVariant[]>([
+    { id: crypto.randomUUID(), graded: false, gradeCompany: 'PSA', gradeValue: '10', certNumber: '', quantity: 1, purchasePrice: '', currentValue: '' }
+  ]);
 
   // Basics
   const [player, setPlayer] = useState('');
@@ -22,7 +39,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   const [year, setYear] = useState<string>(new Date().getFullYear().toString());
   const [brand, setBrand] = useState('');
   const [series, setSeries] = useState('');
-  const [cardType, setCardType] = useState('');
+  const [insert, setInsert] = useState('');
+  const [parallel, setParallel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
 
   // Grading
@@ -60,7 +78,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setYear(initialData.year.toString());
       setBrand(initialData.brand);
       setSeries(initialData.series);
-      setCardType(initialData.cardType);
+      setInsert(initialData.insert);
+      setParallel(initialData.parallel || '');
       setSerialNumber(initialData.serialNumber || '');
 
       setGraded(initialData.graded);
@@ -92,6 +111,29 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setNotes(initialData.notes || '');
     }
   }, [initialData]);
+
+  const addVariant = () => {
+    setVariants([...variants, {
+      id: crypto.randomUUID(),
+      graded: false,
+      gradeCompany: 'PSA',
+      gradeValue: '10',
+      certNumber: '',
+      quantity: 1,
+      purchasePrice: '',
+      currentValue: ''
+    }]);
+  };
+
+  const removeVariant = (id: string) => {
+    if (variants.length > 1) {
+      setVariants(variants.filter(v => v.id !== id));
+    }
+  };
+
+  const updateVariant = (id: string, field: keyof CardVariant, value: string | number) => {
+    setVariants(variants.map(v => v.id === id ? { ...v, [field]: value } : v));
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,16 +173,68 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const pPrice = parseFloat(purchasePrice) || 0;
     const cValue = currentValueUnknown ? -1 : (parseFloat(currentValue) || 0);
     const sPrice = parseFloat(soldPrice) || 0;
 
-    // If transitioning from Watchlist to Owned, ensure we unflag watchlist
-    // But if we are simply editing, we keep the state
+    // If in bulk mode and not editing, create multiple cards
+    if (isBulkMode && !initialData) {
+      // Generate a unique bulk group ID for this batch
+      const bulkGroupId = crypto.randomUUID();
 
+      // Create a card for each variant with quantity
+      for (const variant of variants) {
+        const variantPurchasePrice = parseFloat(variant.purchasePrice) || 0;
+        const variantCurrentValue = parseFloat(variant.currentValue) || 0;
+
+        for (let i = 0; i < variant.quantity; i++) {
+          const newCard: Card = {
+            id: crypto.randomUUID(),
+            watchlist: isWatchlist,
+            imageUrl,
+            player,
+            sport,
+            year: parseInt(year) || 0,
+            brand,
+            series,
+            insert,
+            parallel: parallel || undefined,
+            serialNumber,
+            graded: variant.graded,
+            gradeCompany: variant.graded ? variant.gradeCompany : undefined,
+            gradeValue: variant.graded ? variant.gradeValue : undefined,
+            certNumber: variant.graded ? (variant.certNumber || undefined) : undefined,
+            currency,
+            purchasePrice: variantPurchasePrice,
+            purchaseDate: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate,
+            currentValue: variantCurrentValue,
+            acquisitionSource,
+            acquisitionSourceOther: acquisitionSource === AcquisitionSource.OTHER ? acquisitionSourceOther : undefined,
+            sold: isWatchlist ? false : sold,
+            soldDate: sold ? soldDate : undefined,
+            soldPrice: sold ? sPrice : undefined,
+            offers: [],
+            notes,
+            bulkGroupId, // Link all cards in this bulk entry
+            priceHistory: [{
+              date: new Date().toISOString(),
+              value: variantCurrentValue
+            }]
+          };
+
+          onSave(newCard);
+          // Small delay to avoid overwhelming the backend
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      onCancel(); // Close form after all cards are saved
+      return;
+    }
+
+    // Regular single card save
     const newCard: Card = {
       id: initialData ? initialData.id : crypto.randomUUID(),
       watchlist: isWatchlist,
@@ -150,7 +244,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       year: parseInt(year) || 0,
       brand,
       series,
-      cardType,
+      insert,
+      parallel: parallel || undefined,
       serialNumber,
       graded,
       gradeCompany: graded ? gradeCompany : undefined,
@@ -158,11 +253,11 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       certNumber: graded ? certNumber : undefined,
       currency,
       purchasePrice: pPrice,
-      purchaseDate: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate, // Default date for watchlist
+      purchaseDate: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate,
       currentValue: cValue,
       acquisitionSource,
       acquisitionSourceOther: acquisitionSource === AcquisitionSource.OTHER ? acquisitionSourceOther : undefined,
-      sold: isWatchlist ? false : sold, // Watchlist items can't be sold yet
+      sold: isWatchlist ? false : sold,
       soldDate: sold ? soldDate : undefined,
       soldPrice: sold ? sPrice : undefined,
       offers,
@@ -244,71 +339,275 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                 {/* Basic Info */}
                 <div>
                   <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-4">Card Details</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Player / Subject</label>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-400 block">Player / Subject</label>
                       <input type="text" required value={player} onChange={(e) => setPlayer(e.target.value)} className="form-input" placeholder="e.g. LeBron James" />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Sport</label>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-400 block">Sport</label>
                       <select value={sport} onChange={(e) => setSport(e.target.value as Sport)} className="form-input">
                         {Object.values(Sport).map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Year</label>
-                      <input type="number" required value={year} onChange={(e) => setYear(e.target.value)} className="form-input" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Year</label>
+                        <input type="number" required value={year} onChange={(e) => setYear(e.target.value)} className="form-input" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Brand</label>
+                        <select required value={brand} onChange={(e) => setBrand(e.target.value)} className="form-input">
+                          <option value="">Select Brand</option>
+                          <option value="Panini">Panini</option>
+                          <option value="Topps">Topps</option>
+                          <option value="Leaf">Leaf</option>
+                          <option value="Upper Deck">Upper Deck</option>
+                          <option value="Bowman">Bowman</option>
+                          <option value="Donruss">Donruss</option>
+                          <option value="Select">Select</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Brand</label>
-                      <select required value={brand} onChange={(e) => setBrand(e.target.value)} className="form-input">
-                        <option value="">Select Brand</option>
-                        <option value="Panini">Panini</option>
-                        <option value="Topps">Topps</option>
-                        <option value="Leaf">Leaf</option>
-                        <option value="Upper Deck">Upper Deck</option>
-                        <option value="Bowman">Bowman</option>
-                        <option value="Donruss">Donruss</option>
-                        <option value="Select">Select</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Set</label>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-400 block">Set</label>
                       <input type="text" value={series} onChange={(e) => setSeries(e.target.value)} className="form-input" placeholder="e.g. Flawless, Prizm, National Treasures" />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Insert / Parallel</label>
-                      <input type="text" value={cardType} onChange={(e) => setCardType(e.target.value)} className="form-input" placeholder="e.g. Silver, Mojo, Red" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Insert</label>
+                        <input type="text" required value={insert} onChange={(e) => setInsert(e.target.value)} className="form-input" placeholder="e.g. RPA, Base, Auto" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Parallel (Optional)</label>
+                        <input type="text" value={parallel} onChange={(e) => setParallel(e.target.value)} className="form-input" placeholder="e.g. Silver, Purple Ice" />
+                      </div>
                     </div>
-                    <div className="space-y-1 col-span-2">
-                      <label className="text-xs font-medium text-slate-400">Serial Number (Optional)</label>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-400 block">Serial Number (Optional)</label>
                       <input type="text" value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} className="form-input" placeholder="e.g. 05/99" />
                     </div>
                   </div>
                 </div>
 
+                {/* Bulk Mode Toggle - Only show for new cards, not editing */}
+                {!initialData && !isWatchlist && (
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isBulkMode}
+                        onChange={(e) => setIsBulkMode(e.target.checked)}
+                        className="rounded border-slate-700 bg-slate-800 text-blue-500 focus:ring-blue-500 w-5 h-5"
+                      />
+                      <div>
+                        <span className="text-sm font-semibold text-blue-300">Bulk Entry Mode</span>
+                        <p className="text-xs text-blue-400/60 mt-0.5">Add multiple copies (graded or raw) in one go</p>
+                      </div>
+                    </label>
+                  </div>
+                )}
+
                 {/* Grading */}
                 <div>
                   <div className="mb-4">
                     <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-4">Grading</h3>
-                    <button
-                      type="button"
-                      onClick={() => setGraded(!graded)}
-                      className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all border ${graded
-                          ? 'bg-emerald-500 border-emerald-500 text-white'
-                          : 'bg-slate-900/40 border-slate-800/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
-                        }`}
-                    >
-                      {graded ? '✓ Graded Card' : 'Mark as Graded'}
-                    </button>
+
+                    {!isBulkMode && (
+                      <button
+                        type="button"
+                        onClick={() => setGraded(!graded)}
+                        className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all border ${graded
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : 'bg-slate-900/40 border-slate-800/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                          }`}
+                      >
+                        {graded ? '✓ Graded Card' : 'Mark as Graded'}
+                      </button>
+                    )}
                   </div>
 
-                  {graded && (
+                  {/* Bulk Mode Variants */}
+                  {isBulkMode && (
+                    <div className="space-y-4 p-4 bg-slate-900/40 rounded-xl border border-slate-800/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-white">Grade Variants</h4>
+                        <button
+                          type="button"
+                          onClick={addVariant}
+                          className="flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          <Plus size={14} /> Add Variant
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {variants.map((variant, index) => (
+                          <div key={variant.id} className="bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-xs font-semibold text-slate-400">Variant {index + 1}</span>
+                              {variants.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeVariant(variant.id)}
+                                  className="text-rose-400 hover:text-rose-300 transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Graded Toggle */}
+                            <div className="mb-3">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={variant.graded}
+                                  onChange={(e) => updateVariant(variant.id, 'graded', e.target.checked)}
+                                  className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
+                                />
+                                <span className="text-xs font-medium text-slate-300">Graded Card</span>
+                              </label>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              {variant.graded && (
+                                <>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-400 block">Company</label>
+                                    <select
+                                      value={variant.gradeCompany}
+                                      onChange={(e) => updateVariant(variant.id, 'gradeCompany', e.target.value)}
+                                      className="form-input text-sm"
+                                    >
+                                      <option value="PSA">PSA</option>
+                                      <option value="BGS">BGS</option>
+                                      <option value="SGC">SGC</option>
+                                      <option value="CGC">CGC</option>
+                                      <option value="CSA">CSA</option>
+                                      <option value="TAG">TAG</option>
+                                    </select>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-400 block">Grade</label>
+                                    <input
+                                      type="text"
+                                      value={variant.gradeValue}
+                                      onChange={(e) => updateVariant(variant.id, 'gradeValue', e.target.value)}
+                                      className="form-input text-sm"
+                                      placeholder="10"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-400 block">Cert # (Optional)</label>
+                                    <input
+                                      type="text"
+                                      value={variant.certNumber}
+                                      onChange={(e) => updateVariant(variant.id, 'certNumber', e.target.value)}
+                                      className="form-input text-sm"
+                                      placeholder="Optional"
+                                    />
+                                  </div>
+                                </>
+                              )}
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-slate-400 block">Quantity</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={variant.quantity}
+                                  onChange={(e) => updateVariant(variant.id, 'quantity', parseInt(e.target.value) || 1)}
+                                  className="form-input text-sm"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Price Inputs for each variant */}
+                            <div className="mt-3 pt-3 border-t border-slate-800/50">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-400 block">Purchase Price (each) ({currency})</label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={variant.purchasePrice}
+                                    onChange={(e) => updateVariant(variant.id, 'purchasePrice', e.target.value)}
+                                    className="form-input text-sm font-mono"
+                                    placeholder="0.00"
+                                    required
+                                  />
+                                  {variant.quantity > 1 && variant.purchasePrice && (
+                                    <p className="text-[10px] text-emerald-400 font-semibold">
+                                      Total: {currency === 'USD' ? '$' : '¥'}{(parseFloat(variant.purchasePrice) * variant.quantity).toFixed(2)}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-400 block">Current Value (each) ({currency})</label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={variant.currentValue}
+                                    onChange={(e) => updateVariant(variant.id, 'currentValue', e.target.value)}
+                                    className="form-input text-sm font-mono"
+                                    placeholder="0.00"
+                                    required
+                                  />
+                                  {variant.quantity > 1 && variant.currentValue && (
+                                    <p className="text-[10px] text-blue-400 font-semibold">
+                                      Total: {currency === 'USD' ? '$' : '¥'}{(parseFloat(variant.currentValue) * variant.quantity).toFixed(2)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <div className="space-y-1">
+                          <p className="text-xs text-blue-300 font-semibold">
+                            Total cards to create: {variants.reduce((sum, v) => sum + v.quantity, 0)}
+                          </p>
+                          <div className="text-[10px] text-blue-400/70 space-y-0.5">
+                            {variants.map((v, i) => {
+                              const totalCost = (parseFloat(v.purchasePrice) || 0) * v.quantity;
+                              const totalValue = (parseFloat(v.currentValue) || 0) * v.quantity;
+                              return (
+                                <div key={v.id}>
+                                  • {v.quantity}x {v.graded ? `${v.gradeCompany} ${v.gradeValue}` : 'Raw'}
+                                  {v.purchasePrice && ` - Cost: ${currency === 'USD' ? '$' : '¥'}${totalCost.toFixed(2)}`}
+                                  {v.currentValue && ` - Value: ${currency === 'USD' ? '$' : '¥'}${totalValue.toFixed(2)}`}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {variants.some(v => v.purchasePrice) && (
+                            <div className="mt-2 pt-2 border-t border-blue-500/20">
+                              <p className="text-xs text-blue-200 font-bold">
+                                Total Investment: {currency === 'USD' ? '$' : '¥'}
+                                {variants.reduce((sum, v) => sum + ((parseFloat(v.purchasePrice) || 0) * v.quantity), 0).toFixed(2)}
+                              </p>
+                              {variants.some(v => v.currentValue) && (
+                                <p className="text-xs text-blue-200 font-bold">
+                                  Total Value: {currency === 'USD' ? '$' : '¥'}
+                                  {variants.reduce((sum, v) => sum + ((parseFloat(v.currentValue) || 0) * v.quantity), 0).toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {graded && !isBulkMode && (
                     <div className="space-y-4 p-4 bg-slate-900/40 rounded-xl border border-slate-800/50">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-slate-400">Company</label>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 block">Company</label>
                           <select value={gradeCompany} onChange={(e) => { setGradeCompany(e.target.value); setGradeType('card-only'); }} className="form-input">
                             <option value="PSA">PSA</option>
                             <option value="BGS">BGS</option>
@@ -318,8 +617,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                             <option value="TAG">TAG</option>
                           </select>
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-slate-400">Grade Type</label>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 block">Grade Type</label>
                           <select value={gradeType} onChange={(e) => setGradeType(e.target.value)} className="form-input">
                             {gradeCompany === 'PSA' && (
                               <>
@@ -346,26 +645,26 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                             {gradeType === 'card-auto' ? (
                               // Card + Auto: Show two separate inputs
                               <>
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-slate-400">Card Grade</label>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-400 block">Card Grade</label>
                                   <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
                                 </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-slate-400">Auto Grade</label>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-slate-400 block">Auto Grade</label>
                                   <input type="text" value={autoGrade} onChange={(e) => setAutoGrade(e.target.value)} className="form-input" placeholder="10" />
                                 </div>
                               </>
                             ) : (
                               // Card Only: Show single grade input
-                              <div className="space-y-1">
-                                <label className="text-xs font-medium text-slate-400">Grade</label>
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-slate-400 block">Grade</label>
                                 <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
                               </div>
                             )}
                           </>
                         )}
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-slate-400">Cert #</label>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 block">Cert #</label>
                           <input type="text" value={certNumber} onChange={(e) => setCertNumber(e.target.value)} className="form-input" placeholder="Optional" />
                         </div>
                       </div>
@@ -393,24 +692,84 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">
-                        {isWatchlist ? 'Target Buy Price' : 'Cost Basis'} ({currency})
-                      </label>
-                      <input type="number" step="0.01" required={!isWatchlist} value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="form-input font-mono" placeholder="0.00" />
-                    </div>
+                  <div className="space-y-4">
+                    {/* In bulk mode, show read-only totals instead of input fields */}
+                    {isBulkMode ? (
+                      <>
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                          <label className="text-xs font-medium text-emerald-400 block mb-2">
+                            Total Cost Basis ({currency})
+                          </label>
+                          <p className="text-lg font-bold text-emerald-300 font-mono">
+                            {currency === 'USD' ? '$' : '¥'}
+                            {variants.reduce((sum, v) => sum + ((parseFloat(v.purchasePrice) || 0) * v.quantity), 0).toFixed(2)}
+                          </p>
+                          <p className="text-[10px] text-emerald-400/60 mt-1">
+                            Calculated from variant prices
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                          <label className="text-xs font-medium text-blue-400 block mb-2">
+                            Total Current Value ({currency})
+                          </label>
+                          <p className="text-lg font-bold text-blue-300 font-mono">
+                            {currency === 'USD' ? '$' : '¥'}
+                            {variants.reduce((sum, v) => sum + ((parseFloat(v.currentValue) || 0) * v.quantity), 0).toFixed(2)}
+                          </p>
+                          <p className="text-[10px] text-blue-400/60 mt-1">
+                            Calculated from variant values
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 block">
+                            {isWatchlist ? 'Target Buy Price' : 'Cost Basis'} ({currency})
+                          </label>
+                          <input type="number" step="0.01" required={!isWatchlist} value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="form-input font-mono" placeholder="0.00" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 block">Current Market Value ({currency})</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              step="0.01"
+                              required={!currentValueUnknown}
+                              value={currentValue}
+                              onChange={(e) => setCurrentValue(e.target.value)}
+                              className="form-input font-mono bg-slate-800 flex-1"
+                              disabled={currentValueUnknown}
+                            />
+                            <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={currentValueUnknown}
+                                onChange={(e) => setCurrentValueUnknown(e.target.checked)}
+                                className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                              />
+                              <span className="text-xs text-slate-400">Unknown</span>
+                            </label>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1">
+                            {isWatchlist ? 'Used to calculate distance to target.' : 'Update this later from the dashboard.'}
+                          </p>
+                        </div>
+                      </>
+                    )}
 
                     {!isWatchlist && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-400">Date of Purchase</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Date of Purchase</label>
                         <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="form-input" />
                       </div>
                     )}
 
                     {!isWatchlist && (
-                      <div className="space-y-1 col-span-2">
-                        <label className="text-xs font-medium text-slate-400">Acquisition Source</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Acquisition Source</label>
                         <select
                           value={acquisitionSource}
                           onChange={(e) => setAcquisitionSource(e.target.value as AcquisitionSource)}
@@ -424,8 +783,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     )}
 
                     {!isWatchlist && acquisitionSource === AcquisitionSource.OTHER && (
-                      <div className="space-y-1 col-span-2">
-                        <label className="text-xs font-medium text-slate-400">Specify Other Source</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 block">Specify Other Source</label>
                         <input
                           type="text"
                           value={acquisitionSourceOther}
@@ -435,33 +794,6 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                         />
                       </div>
                     )}
-
-                    <div className="space-y-1 col-span-2">
-                      <label className="text-xs font-medium text-slate-400">Current Market Value ({currency})</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          step="0.01"
-                          required={!currentValueUnknown}
-                          value={currentValue}
-                          onChange={(e) => setCurrentValue(e.target.value)}
-                          className="form-input font-mono bg-slate-800 flex-1"
-                          disabled={currentValueUnknown}
-                        />
-                        <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            checked={currentValueUnknown}
-                            onChange={(e) => setCurrentValueUnknown(e.target.checked)}
-                            className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
-                          />
-                          <span className="text-xs text-slate-400">Unknown</span>
-                        </label>
-                      </div>
-                      <p className="text-[10px] text-slate-500">
-                        {isWatchlist ? 'Used to calculate distance to target.' : 'Update this later from the dashboard.'}
-                      </p>
-                    </div>
                   </div>
                 </div>
 

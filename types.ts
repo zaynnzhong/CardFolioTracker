@@ -3,7 +3,7 @@ export interface PricePoint {
   date: string; // ISO String
   value: number;
   platform?: string; // Platform where this price was observed
-  variation?: string; // Card variation (e.g., Silver, Red, Platinum, Base)
+  parallel?: string; // Parallel (e.g., Silver, Red, Purple Ice, Base)
   grade?: string; // Grade (e.g., PSA 10, BGS 10, PSA 10+10, Raw)
   serialNumber?: string; // Serial number of the comp (e.g., 15/99, 1/1)
 }
@@ -59,7 +59,7 @@ export enum Platform {
 
 export interface Card {
   id: string;
-  
+
   // Visual
   imageUrl?: string; // Base64 string
 
@@ -68,8 +68,9 @@ export interface Card {
   year: number;
   sport: Sport;
   brand: string;   // e.g. Panini Prizm
-  series: string;  // e.g. Silver Prizm, Mojo
-  cardType: string; // e.g. RPA, Base, Insert
+  series: string;  // e.g. National Treasures, Flawless
+  insert: string;  // e.g. RPA, Base, Auto
+  parallel?: string; // e.g. Silver, Purple Ice, Red, Gold (THIS is what distinguishes price)
   serialNumber?: string; // e.g. 15/99
 
   // Grading
@@ -84,7 +85,7 @@ export interface Card {
   purchasePrice: number; // For Watchlist items, this is the Target Price
   acquisitionSource?: AcquisitionSource;
   acquisitionSourceOther?: string; // For when source is 'Other'
-  
+
   // Current Status (Unsold)
   currentValue: number; // Can be -1 to indicate "Unknown/Unsure"
   priceHistory: PricePoint[];
@@ -98,6 +99,9 @@ export interface Card {
   // Watchlist Status
   watchlist?: boolean;
 
+  // Bulk Entry Grouping
+  bulkGroupId?: string; // Links cards added together in bulk mode
+
   notes?: string;
 }
 
@@ -107,5 +111,6 @@ export interface Stats {
   unrealizedProfit: { USD: number; CNY: number }; // Paper profit
   realizedProfit: { USD: number; CNY: number }; // Cash profit from sold
   soldTotal: { USD: number; CNY: number };
+  cash: { USD: number; CNY: number }; // Net cash position: Total Invested + Realized P/L
   cardCount: number;
 }

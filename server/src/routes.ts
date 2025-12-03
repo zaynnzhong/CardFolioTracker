@@ -72,11 +72,11 @@ router.delete('/cards/:id', authMiddleware, async (req, res) => {
 
 // Update price (user-specific)
 router.post('/cards/:id/price', authMiddleware, async (req, res) => {
-    console.log('[Local API] POST /cards/' + req.params.id + '/price');
+    console.log('[Local API] POST /cards/' + req.params.id + '/price', req.body);
     try {
         const userId = (req as any).userId;
-        const { price, date } = req.body;
-        const updated = await db.updatePrice(req.params.id, userId, price, date);
+        const { price, date, platform, parallel, grade, serialNumber } = req.body;
+        const updated = await db.updatePrice(req.params.id, userId, price, date, platform, parallel, grade, serialNumber);
         if (updated) {
             res.json(updated);
         } else {
@@ -85,6 +85,41 @@ router.post('/cards/:id/price', authMiddleware, async (req, res) => {
     } catch (error: any) {
         console.error('[Local API] Error updating price:', error);
         res.status(500).json({ error: 'Failed to update price', details: error.message });
+    }
+});
+
+// Delete price entry (user-specific)
+router.delete('/cards/:id/price/:priceDate', authMiddleware, async (req, res) => {
+    console.log('[Local API] DELETE /cards/' + req.params.id + '/price/' + req.params.priceDate);
+    try {
+        const userId = (req as any).userId;
+        const updated = await db.deletePriceEntry(req.params.id, userId, req.params.priceDate);
+        if (updated) {
+            res.json(updated);
+        } else {
+            res.status(404).json({ error: 'Card not found' });
+        }
+    } catch (error: any) {
+        console.error('[Local API] Error deleting price entry:', error);
+        res.status(500).json({ error: 'Failed to delete price entry', details: error.message });
+    }
+});
+
+// Edit price entry (user-specific)
+router.put('/cards/:id/price/:priceDate', authMiddleware, async (req, res) => {
+    console.log('[Local API] PUT /cards/' + req.params.id + '/price/' + req.params.priceDate, req.body);
+    try {
+        const userId = (req as any).userId;
+        const { price, date, platform, parallel, grade, serialNumber } = req.body;
+        const updated = await db.editPriceEntry(req.params.id, userId, req.params.priceDate, price, date, platform, parallel, grade, serialNumber);
+        if (updated) {
+            res.json(updated);
+        } else {
+            res.status(404).json({ error: 'Card or price entry not found' });
+        }
+    } catch (error: any) {
+        console.error('[Local API] Error editing price entry:', error);
+        res.status(500).json({ error: 'Failed to edit price entry', details: error.message });
     }
 });
 
