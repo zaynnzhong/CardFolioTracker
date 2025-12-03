@@ -91,17 +91,28 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect }) => {
 
               {/* Price / Change */}
               <div className="relative flex flex-col items-end gap-1.5 ml-2">
-                <span className={`font-mono font-bold text-base ${card.sold ? 'text-slate-400' : 'text-white'}`}>
-                  {symbol}{card.sold ? (card.soldPrice || 0).toLocaleString() : card.currentValue.toLocaleString()}
-                </span>
+                {card.currentValue === -1 && !card.sold ? (
+                  <>
+                    <span className="font-mono font-bold text-base text-amber-400">Unknown</span>
+                    <div className="px-2 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      ?
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className={`font-mono font-bold text-base ${card.sold ? 'text-slate-400' : 'text-white'}`}>
+                      {symbol}{card.sold ? (card.soldPrice || 0).toLocaleString() : card.currentValue.toLocaleString()}
+                    </span>
 
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold backdrop-blur-sm ${isProfit
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  }`}>
-                  {isProfit ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                  {Math.abs(profitPercent).toFixed(1)}%
-                </div>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold backdrop-blur-sm ${isProfit
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      }`}>
+                      {isProfit ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {Math.abs(profitPercent).toFixed(1)}%
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           );

@@ -28,6 +28,14 @@ export interface Card {
     purchaseDate?: string;
     acquisitionSource?: string;
     acquisitionSourceOther?: string;
+    offers?: Array<{
+        id: string;
+        offerPrice: number;
+        platform: string;
+        senderName: string;
+        date: string;
+        notes?: string;
+    }>;
 }
 
 // 2. Define Mongoose Schema
@@ -60,7 +68,15 @@ const CardSchema = new Schema({
     serialNumber: String,
     purchaseDate: String,
     acquisitionSource: String,
-    acquisitionSourceOther: String
+    acquisitionSourceOther: String,
+    offers: [{
+        id: String,
+        offerPrice: Number,
+        platform: String,
+        senderName: String,
+        date: String,
+        notes: String
+    }]
 });
 
 // 3. Create Model

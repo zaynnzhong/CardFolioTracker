@@ -4,6 +4,15 @@ export interface PricePoint {
   value: number;
 }
 
+export interface Offer {
+  id: string;
+  offerPrice: number;
+  platform: string; // e.g., eBay, Wecard, Xianyu, Instagram, Other
+  senderName: string;
+  date: string; // ISO String
+  notes?: string;
+}
+
 export enum Sport {
   BASKETBALL = 'Basketball',
   BASEBALL = 'Baseball',
@@ -56,9 +65,10 @@ export interface Card {
   acquisitionSourceOther?: string; // For when source is 'Other'
   
   // Current Status (Unsold)
-  currentValue: number;
+  currentValue: number; // Can be -1 to indicate "Unknown/Unsure"
   priceHistory: PricePoint[];
-  
+  offers?: Offer[]; // Pending offers received
+
   // Sales (Sold)
   sold: boolean;
   soldDate?: string;

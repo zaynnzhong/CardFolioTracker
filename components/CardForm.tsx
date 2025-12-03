@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Sport, Currency, AcquisitionSource } from '../types';
-import { X, Upload, Image as ImageIcon, Eye, Wallet } from 'lucide-react';
+import { Card, Sport, Currency, AcquisitionSource, Offer, PricePoint } from '../types';
+import { X, Upload, Image as ImageIcon, Eye, Wallet, Plus, Trash2 } from 'lucide-react';
 
 interface CardFormProps {
   initialData?: Card | null;
@@ -38,8 +38,10 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   const [purchasePrice, setPurchasePrice] = useState<string>(''); // Used as Cost OR Target Price
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [currentValue, setCurrentValue] = useState<string>('');
+  const [currentValueUnknown, setCurrentValueUnknown] = useState(false);
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource>(AcquisitionSource.EBAY);
   const [acquisitionSourceOther, setAcquisitionSourceOther] = useState<string>('');
+  const [offers, setOffers] = useState<Offer[]>([]);
 
   // Sales
   const [sold, setSold] = useState(false);
@@ -69,9 +71,19 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setCurrency(initialData.currency);
       setPurchasePrice(initialData.purchasePrice.toString());
       setPurchaseDate(initialData.purchaseDate);
-      setCurrentValue(initialData.currentValue.toString());
+
+      // Handle unknown/unsure current value (-1)
+      if (initialData.currentValue === -1) {
+        setCurrentValueUnknown(true);
+        setCurrentValue('0');
+      } else {
+        setCurrentValueUnknown(false);
+        setCurrentValue(initialData.currentValue.toString());
+      }
+
       setAcquisitionSource(initialData.acquisitionSource || AcquisitionSource.EBAY);
       setAcquisitionSourceOther(initialData.acquisitionSourceOther || '');
+      setOffers(initialData.offers || []);
 
       setSold(initialData.sold);
       setSoldPrice(initialData.soldPrice ? initialData.soldPrice.toString() : '');
@@ -123,7 +135,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
     e.preventDefault();
 
     const pPrice = parseFloat(purchasePrice) || 0;
-    const cValue = parseFloat(currentValue) || 0;
+    const cValue = currentValueUnknown ? -1 : (parseFloat(currentValue) || 0);
     const sPrice = parseFloat(soldPrice) || 0;
 
     // If transitioning from Watchlist to Owned, ensure we unflag watchlist
@@ -153,6 +165,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       sold: isWatchlist ? false : sold, // Watchlist items can't be sold yet
       soldDate: sold ? soldDate : undefined,
       soldPrice: sold ? sPrice : undefined,
+      offers,
       notes,
       priceHistory: initialData ? initialData.priceHistory : [{
         date: new Date().toISOString(),
@@ -425,13 +438,138 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                     <div className="space-y-1 col-span-2">
                       <label className="text-xs font-medium text-slate-400">Current Market Value ({currency})</label>
-                      <input type="number" step="0.01" required value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} className="form-input font-mono bg-slate-800" />
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.01"
+                          required={!currentValueUnknown}
+                          value={currentValue}
+                          onChange={(e) => setCurrentValue(e.target.value)}
+                          className="form-input font-mono bg-slate-800 flex-1"
+                          disabled={currentValueUnknown}
+                        />
+                        <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={currentValueUnknown}
+                            onChange={(e) => setCurrentValueUnknown(e.target.checked)}
+                            className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                          />
+                          <span className="text-xs text-slate-400">Unknown</span>
+                        </label>
+                      </div>
                       <p className="text-[10px] text-slate-500">
                         {isWatchlist ? 'Used to calculate distance to target.' : 'Update this later from the dashboard.'}
                       </p>
                     </div>
                   </div>
                 </div>
+
+                {/* Offers Section - Hide if Watchlist or Sold */}
+                {!isWatchlist && !sold && (
+                  <div className="bg-slate-800/20 border border-slate-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-white">Pending Offers</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOffer: Offer = {
+                            id: crypto.randomUUID(),
+                            offerPrice: 0,
+                            platform: '',
+                            senderName: '',
+                            date: new Date().toISOString().split('T')[0],
+                            notes: ''
+                          };
+                          setOffers([...offers, newOffer]);
+                        }}
+                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        <Plus size={14} />
+                        Add Offer
+                      </button>
+                    </div>
+
+                    {offers.length > 0 ? (
+                      <div className="space-y-3">
+                        {offers.map((offer, index) => (
+                          <div key={offer.id} className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div className="space-y-1">
+                                <label className="text-[10px] text-slate-400">Offer Amount ({currency})</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={offer.offerPrice}
+                                  onChange={(e) => {
+                                    const updated = [...offers];
+                                    updated[index].offerPrice = parseFloat(e.target.value) || 0;
+                                    setOffers(updated);
+                                  }}
+                                  className="form-input text-sm font-mono"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] text-slate-400">Date</label>
+                                <input
+                                  type="date"
+                                  value={offer.date}
+                                  onChange={(e) => {
+                                    const updated = [...offers];
+                                    updated[index].date = e.target.value;
+                                    setOffers(updated);
+                                  }}
+                                  className="form-input text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <label className="text-[10px] text-slate-400">Platform</label>
+                                <input
+                                  type="text"
+                                  value={offer.platform}
+                                  onChange={(e) => {
+                                    const updated = [...offers];
+                                    updated[index].platform = e.target.value;
+                                    setOffers(updated);
+                                  }}
+                                  className="form-input text-sm"
+                                  placeholder="eBay, Wecard, etc."
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] text-slate-400">Sender Name</label>
+                                <input
+                                  type="text"
+                                  value={offer.senderName}
+                                  onChange={(e) => {
+                                    const updated = [...offers];
+                                    updated[index].senderName = e.target.value;
+                                    setOffers(updated);
+                                  }}
+                                  className="form-input text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end mt-2">
+                              <button
+                                type="button"
+                                onClick={() => setOffers(offers.filter((_, i) => i !== index))}
+                                className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1"
+                              >
+                                <Trash2 size={12} />
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 text-center py-2">No pending offers</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Sales Toggle - Hide if Watchlist */}
                 {!isWatchlist && (

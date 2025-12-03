@@ -66,8 +66,11 @@ export default function App() {
       } else {
         cardCount++;
         totalInvested[cur] += card.purchasePrice;
-        currentPortfolioValue[cur] += card.currentValue;
-        unrealizedProfit[cur] += (card.currentValue - card.purchasePrice);
+        // Only add to portfolio value if not unknown (-1)
+        if (card.currentValue !== -1) {
+          currentPortfolioValue[cur] += card.currentValue;
+          unrealizedProfit[cur] += (card.currentValue - card.purchasePrice);
+        }
       }
     });
 
