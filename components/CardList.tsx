@@ -239,93 +239,158 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
       {/* Mobile Card View */}
       <div className="lg:hidden flex flex-col gap-3 px-4">
-        {filteredAndSortedCards.map((card) => {
+        {cardGroups.map((group) => {
+          // Use the first card as representative for the group
+          const card = group.cards[0];
           const isBreakOrSelfRip = card.acquisitionSource === 'Break' || card.acquisitionSource === 'Self Rip (Case/Box)';
-          const currentValue = convertPrice(card.sold ? (card.soldPrice || 0) : card.currentValue, card.currency, displayCurrency);
-          const purchasePrice = convertPrice(card.purchasePrice, card.currency, displayCurrency);
 
-          // For Break/Self Rip cards, use earliest comp as basis if available
-          const earliestComp = card.priceHistory && card.priceHistory.length > 0
-            ? convertPrice(card.priceHistory[0].value, card.currency, displayCurrency)
-            : purchasePrice;
-          const basis = isBreakOrSelfRip ? earliestComp : purchasePrice;
+          // Calculate group totals
+          const groupBasis = group.cards.reduce((sum, c) => {
+            const purchasePrice = convertPrice(c.purchasePrice, c.currency, displayCurrency);
+            const isBreak = c.acquisitionSource === 'Break' || c.acquisitionSource === 'Self Rip (Case/Box)';
+            const earliestComp = c.priceHistory && c.priceHistory.length > 0
+              ? convertPrice(c.priceHistory[0].value, c.currency, displayCurrency)
+              : purchasePrice;
+            return sum + (isBreak ? earliestComp : purchasePrice);
+          }, 0);
 
-          const profit = currentValue - basis;
-          const profitPercent = basis > 0 ? (profit / basis) * 100 : 0;
-          const isProfit = profit >= 0;
+          const groupCurrentValue = group.cards.reduce((sum, c) => {
+            return sum + convertPrice(c.sold ? (c.soldPrice || 0) : c.currentValue, c.currency, displayCurrency);
+          }, 0);
+
+          const groupProfit = groupCurrentValue - groupBasis;
+          const groupProfitPercent = groupBasis > 0 ? (groupProfit / groupBasis) * 100 : 0;
+          const isProfit = groupProfit >= 0;
           const symbol = displayCurrency === 'USD' ? '$' : '¥';
+          const isExpanded = expandedGroups.has(group.id);
 
           return (
-            <div
-              key={card.id}
-              onClick={() => onSelect(card)}
-              className="group relative flex items-start justify-between p-4 bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl hover:bg-slate-900/60 hover:border-slate-700 transition-all duration-200 cursor-pointer active:scale-[0.99]"
-            >
-              <div className="relative flex items-start gap-3 flex-1 min-w-0">
-                {/* Image / Icon */}
-                <div className="relative w-16 h-20 bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700/50 flex-shrink-0 shadow-md">
-                  {card.imageUrl ? (
-                    <img src={card.imageUrl} alt={card.player} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-600">
-                      <ImageIcon size={20} />
-                    </div>
-                  )}
-                  {card.sold && (
-                    <div className="absolute top-1 right-1">
-                      <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
-                        SOLD
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex flex-col flex-1 min-w-0 gap-1">
-                  <span className="text-white font-semibold text-sm leading-tight line-clamp-2">
-                    {card.year} {card.brand} {card.series} {card.insert} {card.player} {card.parallel ? `(${card.parallel})` : ''} {card.serialNumber || ''}
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${getSportColor(card.sport)}`}>
-                      {card.player}
-                    </span>
-                    {card.graded && (
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-semibold">
-                        {card.gradeCompany} {card.gradeValue}
-                      </span>
+            <React.Fragment key={group.id}>
+              <div
+                onClick={() => group.isBulkGroup ? toggleGroupExpanded(group.id) : onSelect(card)}
+                className="group relative flex items-start justify-between p-4 bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl hover:bg-slate-900/60 hover:border-slate-700 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+              >
+                <div className="relative flex items-start gap-3 flex-1 min-w-0">
+                  {/* Image / Icon */}
+                  <div className="relative w-16 h-20 bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700/50 flex-shrink-0 shadow-md">
+                    {card.imageUrl ? (
+                      <img src={card.imageUrl} alt={card.player} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-600">
+                        <ImageIcon size={20} />
+                      </div>
                     )}
-                    {isBreakOrSelfRip && (
-                      <span className="text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md font-semibold">
-                        {card.acquisitionSource === 'Break' ? 'BREAK' : 'SELF RIP'}
-                      </span>
+                    {card.sold && (
+                      <div className="absolute top-1 right-1">
+                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
+                          SOLD
+                        </span>
+                      </div>
                     )}
                   </div>
+
+                  {/* Info */}
+                  <div className="flex flex-col flex-1 min-w-0 gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-semibold text-sm leading-tight line-clamp-2">
+                        {card.year} {card.brand} {card.series} {card.insert} {card.player} {card.parallel ? `(${card.parallel})` : ''} {card.serialNumber || ''}
+                      </span>
+                      {group.isBulkGroup && (
+                        <>
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/30 flex-shrink-0">
+                            {group.cards.length}x
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp size={16} className="text-blue-400 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown size={16} className="text-blue-400 flex-shrink-0" />
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${getSportColor(card.sport)}`}>
+                        {card.player}
+                      </span>
+                      {!group.isBulkGroup && card.graded && (
+                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-semibold">
+                          {card.gradeCompany} {card.gradeValue}
+                        </span>
+                      )}
+                      {isBreakOrSelfRip && (
+                        <span className="text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md font-semibold">
+                          {card.acquisitionSource === 'Break' ? 'BREAK' : 'SELF RIP'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price / Change */}
+                <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                  {card.currentValue === -1 && !card.sold ? (
+                    <>
+                      <span className="font-mono font-bold text-lg text-amber-400">Unknown</span>
+                      <span className="text-xs font-medium text-amber-400/60">?</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={`font-mono font-bold text-lg ${card.sold ? 'text-slate-400' : 'text-white'}`}>
+                        {symbol}{groupCurrentValue.toLocaleString()}
+                      </span>
+
+                      <div className={`flex items-center gap-1 ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {isProfit ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        <span className="text-sm font-semibold">
+                          {isProfit ? '+' : ''}{Math.abs(groupProfitPercent).toFixed(1)}%
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Price / Change */}
-              <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
-                {card.currentValue === -1 && !card.sold ? (
-                  <>
-                    <span className="font-mono font-bold text-lg text-amber-400">Unknown</span>
-                    <span className="text-xs font-medium text-amber-400/60">?</span>
-                  </>
-                ) : (
-                  <>
-                    <span className={`font-mono font-bold text-lg ${card.sold ? 'text-slate-400' : 'text-white'}`}>
-                      {symbol}{currentValue.toLocaleString()}
-                    </span>
+              {/* Expanded group cards */}
+              {group.isBulkGroup && isExpanded && group.cards.map((groupCard) => {
+                const cardIsBreak = groupCard.acquisitionSource === 'Break' || groupCard.acquisitionSource === 'Self Rip (Case/Box)';
+                const cardCurrentValue = convertPrice(groupCard.sold ? (groupCard.soldPrice || 0) : groupCard.currentValue, groupCard.currency, displayCurrency);
+                const cardPurchasePrice = convertPrice(groupCard.purchasePrice, groupCard.currency, displayCurrency);
+                const cardEarliestComp = groupCard.priceHistory && groupCard.priceHistory.length > 0
+                  ? convertPrice(groupCard.priceHistory[0].value, groupCard.currency, displayCurrency)
+                  : cardPurchasePrice;
+                const cardBasis = cardIsBreak ? cardEarliestComp : cardPurchasePrice;
+                const cardProfit = cardCurrentValue - cardBasis;
+                const cardProfitPercent = cardBasis > 0 ? (cardProfit / cardBasis) * 100 : 0;
+                const cardIsProfit = cardProfit >= 0;
 
-                    <div className={`flex items-center gap-1 ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {isProfit ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                      <span className="text-sm font-semibold">
-                        {isProfit ? '+' : ''}{Math.abs(profitPercent).toFixed(1)}%
+                return (
+                  <div
+                    key={groupCard.id}
+                    onClick={() => onSelect(groupCard)}
+                    className="group relative flex items-start justify-between p-4 pl-8 bg-slate-950/50 backdrop-blur-sm border border-slate-800/50 rounded-xl hover:bg-slate-900/60 hover:border-slate-700 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+                  >
+                    <div className="flex flex-col flex-1 min-w-0 gap-1">
+                      <span className="text-slate-300 text-xs">
+                        {groupCard.parallel && <span className="text-slate-400">{groupCard.parallel}</span>}
+                        {groupCard.serialNumber && <span className="ml-2 text-slate-500">#{groupCard.serialNumber}</span>}
+                        {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}</span>}
                       </span>
                     </div>
-                  </>
-                )}
-              </div>
-            </div>
+
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                      <span className="font-mono font-bold text-sm text-white">
+                        {symbol}{cardCurrentValue.toLocaleString()}
+                      </span>
+                      <div className={`flex items-center gap-1 ${cardIsProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <span className="text-xs font-semibold">
+                          {cardIsProfit ? '+' : ''}{Math.abs(cardProfitPercent).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </div>
@@ -455,7 +520,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className="font-mono text-sm text-slate-400">
-                              {symbol}{basis.toLocaleString()}
+                              {symbol}{groupBasis.toLocaleString()}
                             </div>
                             <div className="text-[10px] text-slate-600 mt-0.5">
                               {new Date(card.purchaseDate).toLocaleDateString()}
@@ -467,7 +532,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className="font-mono text-sm font-semibold text-white">
-                              {symbol}{currentValue.toLocaleString()}
+                              {symbol}{groupCurrentValue.toLocaleString()}
                             </div>
                             <div className="text-[10px] text-slate-600 mt-0.5">
                               {card.soldDate ? new Date(card.soldDate).toLocaleDateString() : '—'}
@@ -479,7 +544,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className={`font-mono text-sm font-semibold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {isProfit ? '+' : ''}{symbol}{Math.abs(profit).toLocaleString()}
+                              {isProfit ? '+' : ''}{symbol}{Math.abs(groupProfit).toLocaleString()}
                             </div>
                           </div>
                         </td>
@@ -489,7 +554,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                           <div className="flex items-center justify-end gap-2">
                             {isProfit ? <TrendingUp size={16} className="text-emerald-400" /> : <TrendingDown size={16} className="text-rose-400" />}
                             <span className={`font-semibold text-sm ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {isProfit ? '+' : ''}{Math.abs(profitPercent).toFixed(1)}%
+                              {isProfit ? '+' : ''}{Math.abs(groupProfitPercent).toFixed(1)}%
                             </span>
                           </div>
                         </td>
