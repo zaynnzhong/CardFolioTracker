@@ -9,39 +9,38 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, onAdd }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl border-t border-emerald-500/10 pb-safe pt-3 px-6 pb-7 z-40 flex items-center justify-between shadow-2xl shadow-emerald-500/5">
+    <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-slate-800/50 pb-safe pt-2 px-6 pb-6 z-40 flex items-center justify-between">
 
       <button
         onClick={() => onTabChange('portfolio')}
-        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all duration-300 ${currentTab === 'portfolio'
-            ? 'text-emerald-400 bg-emerald-500/10'
-            : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+        className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-200 ${currentTab === 'portfolio'
+            ? 'text-emerald-400'
+            : 'text-slate-500 hover:text-slate-300'
           }`}
       >
-        <Home size={24} strokeWidth={currentTab === 'portfolio' ? 2.5 : 2} />
-        <span className="text-[10px] font-semibold tracking-wide">Portfolio</span>
+        <Home size={26} strokeWidth={currentTab === 'portfolio' ? 2.5 : 2} />
+        <span className="text-[11px] font-medium">Portfolio</span>
       </button>
 
       {/* Floating Action Button for Add */}
-      <div className="-mt-10">
+      <div className="-mt-8">
         <button
           onClick={onAdd}
-          className="relative w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white shadow-2xl shadow-emerald-500/40 hover:shadow-emerald-500/60 hover:scale-110 transition-all duration-300 active:scale-95 border-4 border-black group"
+          className="relative w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg hover:scale-105 transition-all duration-200 active:scale-95 border-4 border-black"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-transparent rounded-full animate-pulse" />
-          <Plus size={32} strokeWidth={2.5} className="relative z-10" />
+          <Plus size={28} strokeWidth={2.5} />
         </button>
       </div>
 
       <button
         onClick={() => onTabChange('analytics')}
-        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all duration-300 ${currentTab === 'analytics'
-            ? 'text-emerald-400 bg-emerald-500/10'
-            : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+        className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-200 ${currentTab === 'analytics'
+            ? 'text-emerald-400'
+            : 'text-slate-500 hover:text-slate-300'
           }`}
       >
-        <PieChart size={24} strokeWidth={currentTab === 'analytics' ? 2.5 : 2} />
-        <span className="text-[10px] font-semibold tracking-wide">Analytics</span>
+        <PieChart size={26} strokeWidth={currentTab === 'analytics' ? 2.5 : 2} />
+        <span className="text-[11px] font-medium">Analytics</span>
       </button>
     </div>
   );

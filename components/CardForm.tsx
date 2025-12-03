@@ -177,33 +177,33 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[95vh]">
-        <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-          <h2 className="text-xl font-bold text-white">{initialData ? 'Edit Card' : 'Add New Card'}</h2>
-          <button onClick={onCancel} className="text-slate-400 hover:text-white transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <div className="bg-slate-900/95 border border-slate-800/50 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[95vh]">
+        <div className="p-6 border-b border-slate-800/50 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Card' : 'Add Card'}</h2>
+          <button onClick={onCancel} className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-800 rounded-lg">
             <X size={24} />
           </button>
         </div>
 
         <div className="overflow-y-auto p-6 flex-1">
-          <form id="cardForm" onSubmit={handleSubmit} className="space-y-8">
+          <form id="cardForm" onSubmit={handleSubmit} className="space-y-6">
 
             {/* Status Toggle */}
-            <div className="bg-slate-950 p-1 rounded-lg inline-flex border border-slate-800 w-full md:w-auto">
+            <div className="bg-slate-950/50 p-1 rounded-xl inline-flex border border-slate-800/50 w-full md:w-auto">
               <button
                 type="button"
                 onClick={() => setIsWatchlist(false)}
-                className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${!isWatchlist ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex-1 md:flex-none px-6 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${!isWatchlist ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                <Wallet size={16} /> Portfolio Asset
+                <Wallet size={18} /> Portfolio
               </button>
               <button
                 type="button"
                 onClick={() => setIsWatchlist(true)}
-                className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${isWatchlist ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex-1 md:flex-none px-6 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${isWatchlist ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                <Eye size={16} /> Watchlist
+                <Eye size={18} /> Watchlist
               </button>
             </div>
 
@@ -243,7 +243,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                 {/* Basic Info */}
                 <div>
-                  <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-b border-slate-800 pb-1">Card Details</h3>
+                  <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-4">Card Details</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-slate-400">Player / Subject</label>
@@ -291,21 +291,21 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                 {/* Grading */}
                 <div>
                   <div className="mb-4">
-                    <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3">Grading</h3>
+                    <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-4">Grading</h3>
                     <button
                       type="button"
                       onClick={() => setGraded(!graded)}
-                      className={`w-full py-3 px-4 rounded-lg font-medium text-sm transition-all border-2 ${graded
-                          ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                      className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all border ${graded
+                          ? 'bg-emerald-500 border-emerald-500 text-white'
+                          : 'bg-slate-900/40 border-slate-800/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
                         }`}
                     >
-                      {graded ? '✓ Graded Card' : 'Click to Mark as Graded'}
+                      {graded ? '✓ Graded Card' : 'Mark as Graded'}
                     </button>
                   </div>
 
                   {graded && (
-                    <div className="space-y-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
+                    <div className="space-y-4 p-4 bg-slate-900/40 rounded-xl border border-slate-800/50">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <label className="text-xs font-medium text-slate-400">Company</label>
@@ -375,20 +375,20 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                 {/* Economics */}
                 <div>
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-1">
-                    <h3 className={`text-sm uppercase tracking-wider font-bold ${isWatchlist ? 'text-indigo-500' : 'text-emerald-500'}`}>
-                      {isWatchlist ? 'Watchlist Setup' : 'Value & Transactions'}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                      {isWatchlist ? 'Pricing' : 'Value & Economics'}
                     </h3>
-                    <div className="flex items-center bg-slate-800 rounded-lg p-1">
+                    <div className="flex items-center bg-slate-900/40 rounded-lg p-1 border border-slate-800/50">
                       <button
                         type="button"
                         onClick={() => setCurrency('USD')}
-                        className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'USD' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${currency === 'USD' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
                       >USD</button>
                       <button
                         type="button"
                         onClick={() => setCurrency('CNY')}
-                        className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${currency === 'CNY' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${currency === 'CNY' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
                       >CNY</button>
                     </div>
                   </div>
@@ -467,9 +467,9 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                 {/* Offers Section - Hide if Watchlist or Sold */}
                 {!isWatchlist && !sold && (
-                  <div className="bg-slate-800/20 border border-slate-700 rounded-lg p-4">
+                  <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-bold text-white">Pending Offers</span>
+                      <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Pending Offers</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -493,7 +493,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     {offers.length > 0 ? (
                       <div className="space-y-3">
                         {offers.map((offer, index) => (
-                          <div key={offer.id} className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                          <div key={offer.id} className="bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
                             <div className="grid grid-cols-2 gap-2 mb-2">
                               <div className="space-y-1">
                                 <label className="text-[10px] text-slate-400">Offer Amount ({currency})</label>
@@ -573,10 +573,10 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
                 {/* Sales Toggle - Hide if Watchlist */}
                 {!isWatchlist && (
-                  <div className="bg-slate-800/20 border border-slate-700 rounded-lg p-4">
+                  <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-4">
                     <label className="flex items-center gap-2 cursor-pointer mb-4">
                       <input type="checkbox" checked={sold} onChange={(e) => setSold(e.target.checked)} className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                      <span className="font-bold text-white">Mark as Sold</span>
+                      <span className="font-semibold text-white">Mark as Sold</span>
                     </label>
 
                     {sold && (
@@ -604,10 +604,10 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
           </form>
         </div>
 
-        <div className="p-5 border-t border-slate-800 bg-slate-800/50 flex justify-end gap-3">
+        <div className="p-6 border-t border-slate-800/50 flex justify-end gap-3">
           <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
-          <button type="submit" form="cardForm" className={`btn-primary ${isWatchlist ? '!bg-indigo-600 hover:!bg-indigo-500' : ''}`}>
-            {initialData ? 'Update Card' : isWatchlist ? 'Add to Watchlist' : 'Add to Portfolio'}
+          <button type="submit" form="cardForm" className={`btn-primary ${isWatchlist ? '!bg-indigo-500 hover:!bg-indigo-400' : ''}`}>
+            {initialData ? 'Save' : isWatchlist ? 'Add to Watchlist' : 'Add to Portfolio'}
           </button>
         </div>
       </div>
@@ -616,38 +616,41 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
         .form-input {
           width: 100%;
           background-color: #0f172a;
-          border: 1px solid #334155;
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
+          border: 1px solid rgba(51, 65, 85, 0.5);
+          border-radius: 0.75rem;
+          padding: 0.625rem 0.875rem;
           color: white;
           outline: none;
           transition: all 0.2s;
+          font-size: 0.9375rem;
         }
         .form-input:focus {
           border-color: ${isWatchlist ? '#6366f1' : '#10b981'};
-          box-shadow: 0 0 0 1px ${isWatchlist ? '#6366f1' : '#10b981'};
+          background-color: #1e293b;
         }
         .btn-primary {
-          padding: 0.5rem 1.5rem;
-          background-color: #059669;
+          padding: 0.625rem 2rem;
+          background-color: #10b981;
           color: white;
-          border-radius: 0.5rem;
-          font-weight: 500;
+          border-radius: 0.75rem;
+          font-weight: 600;
           transition: background-color 0.2s;
+          font-size: 0.9375rem;
         }
         .btn-primary:hover {
-          background-color: #047857;
+          background-color: #059669;
         }
         .btn-secondary {
-          padding: 0.5rem 1.5rem;
+          padding: 0.625rem 1.5rem;
           color: #cbd5e1;
-          border-radius: 0.5rem;
-          font-weight: 500;
-          transition: color 0.2s;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          transition: all 0.2s;
+          font-size: 0.9375rem;
         }
         .btn-secondary:hover {
           color: white;
-          background-color: #1e293b;
+          background-color: #334155;
         }
       `}</style>
     </div>

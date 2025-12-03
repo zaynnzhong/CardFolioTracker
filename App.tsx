@@ -97,8 +97,9 @@ export default function App() {
     }
   };
 
-  const handleUpdatePrice = async (cardId: string, newPrice: number, dateStr: string) => {
-    const updated = await dataService.updatePrice(cardId, newPrice, getIdToken, dateStr);
+  const handleUpdatePrice = async (cardId: string, newPrice: number, dateStr: string, platform?: string, variation?: string, grade?: string, serialNumber?: string) => {
+    console.log('[App] handleUpdatePrice called with:', { cardId, newPrice, dateStr, platform, variation, grade, serialNumber });
+    const updated = await dataService.updatePrice(cardId, newPrice, getIdToken, dateStr, platform, variation, grade, serialNumber);
     if (updated) {
       setCards(prev => prev.map(c => c.id === cardId ? updated : c));
       setUpdatingPriceCard(null);
@@ -175,18 +176,18 @@ export default function App() {
 
       {/* Unified Animated Background Gradient */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-blue-500/5 to-purple-500/5 animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/3 via-blue-500/3 to-purple-500/3 animate-pulse" style={{ animationDuration: '8s' }} />
       </div>
 
       {/* Top Bar with User Profile */}
-      <header className="fixed top-0 left-0 right-0 bg-black/60 backdrop-blur-xl z-30 px-4 py-4 flex justify-between items-center border-b border-emerald-500/10 shadow-lg shadow-emerald-500/5">
+      <header className="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur-xl z-30 px-5 py-4 flex justify-between items-center border-b border-slate-800/50">
         <div className="flex items-center">
           <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-lg" style={{ width: '168px', height: 'auto' }} />
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={exportToCSV}
-            className="p-2.5 text-slate-400 hover:text-emerald-400 transition-all duration-300 hover:bg-emerald-500/10 rounded-lg"
+            className="p-2.5 text-slate-400 hover:text-white transition-all duration-200 hover:bg-slate-800 rounded-lg"
           >
             <Download size={20} />
           </button>
@@ -208,14 +209,14 @@ export default function App() {
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                <div className="p-4 border-b border-slate-800 bg-slate-800/50">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-50">
+                <div className="p-4 border-b border-slate-800/50">
                   <p className="text-white font-semibold truncate">{user.displayName || 'User'}</p>
-                  <p className="text-slate-400 text-xs truncate">{user.email}</p>
+                  <p className="text-slate-400 text-sm truncate mt-0.5">{user.email}</p>
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800 transition-colors text-rose-400"
+                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
                 >
                   <LogOut size={18} />
                   <span>Sign Out</span>
@@ -260,11 +261,11 @@ export default function App() {
       {selectedCard && (
         <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto transition-opacity"
+            className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-auto transition-opacity"
             onClick={() => setSelectedCard(null)}
           />
 
-          <div className="bg-slate-900 w-full max-w-xl rounded-t-3xl border-t border-slate-800 p-6 pointer-events-auto transform transition-transform duration-300 ease-out max-h-[85vh] overflow-y-auto shadow-2xl">
+          <div className="bg-slate-900/95 w-full max-w-xl rounded-t-3xl border-t border-slate-800/50 p-6 pointer-events-auto transform transition-transform duration-300 ease-out max-h-[85vh] overflow-y-auto shadow-2xl">
             <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-6" />
 
             <div className="flex gap-6 mb-6">
@@ -288,43 +289,49 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <span className="text-xs text-slate-500 uppercase font-bold">Market Value</span>
-                <div className="text-xl font-mono text-white mt-1">${selectedCard.currentValue}</div>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-slate-900/40 backdrop-blur-sm p-4 rounded-xl border border-slate-800/50">
+                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wide">Market Value</span>
+                <div className="text-2xl font-mono font-bold text-white mt-1.5">
+                  {selectedCard.currentValue === -1 ? (
+                    <span className="text-amber-400">Unknown</span>
+                  ) : (
+                    `$${selectedCard.currentValue.toLocaleString()}`
+                  )}
+                </div>
               </div>
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <span className="text-xs text-slate-500 uppercase font-bold">
-                  {selectedCard.watchlist ? 'Target Price' : 'Cost Basis'}
+              <div className="bg-slate-900/40 backdrop-blur-sm p-4 rounded-xl border border-slate-800/50">
+                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wide">
+                  {selectedCard.watchlist ? 'Target' : 'Cost Basis'}
                 </span>
-                <div className="text-xl font-mono text-slate-400 mt-1">${selectedCard.purchasePrice}</div>
+                <div className="text-2xl font-mono font-bold text-slate-400 mt-1.5">${selectedCard.purchasePrice.toLocaleString()}</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-3">
               {selectedCard.watchlist ? (
-                <button onClick={() => handleConvertToAsset(selectedCard)} className="flex flex-col items-center gap-1 p-3 bg-slate-800 rounded-xl hover:bg-emerald-900/40 active:scale-95 transition-all">
-                  <Wallet className="text-emerald-400" size={24} />
-                  <span className="text-[10px] text-slate-300">Buy</span>
+                <button onClick={() => handleConvertToAsset(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
+                  <Wallet className="text-emerald-400" size={22} />
+                  <span className="text-[10px] font-medium text-slate-300">Buy</span>
                 </button>
               ) : (
-                <button onClick={() => setUpdatingPriceCard(selectedCard)} className="flex flex-col items-center gap-1 p-3 bg-slate-800 rounded-xl hover:bg-slate-700 active:scale-95 transition-all">
-                  <TrendingUp className="text-emerald-400" size={24} />
-                  <span className="text-[10px] text-slate-300">Price</span>
+                <button onClick={() => setUpdatingPriceCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
+                  <TrendingUp className="text-emerald-400" size={22} />
+                  <span className="text-[10px] font-medium text-slate-300">Log Price</span>
                 </button>
               )}
 
-              <button onClick={() => setAnalyzingCard(selectedCard)} className="flex flex-col items-center gap-1 p-3 bg-slate-800 rounded-xl hover:bg-slate-700 active:scale-95 transition-all">
-                <Activity className="text-indigo-400" size={24} />
-                <span className="text-[10px] text-slate-300">Insight</span>
+              <button onClick={() => setAnalyzingCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-indigo-500/10 hover:border-indigo-500/30 active:scale-95 transition-all">
+                <Activity className="text-indigo-400" size={22} />
+                <span className="text-[10px] font-medium text-slate-300">History</span>
               </button>
-              <button onClick={() => { setEditingCard(selectedCard); setIsFormOpen(true); }} className="flex flex-col items-center gap-1 p-3 bg-slate-800 rounded-xl hover:bg-slate-700 active:scale-95 transition-all">
-                <Edit2 className="text-blue-400" size={24} />
-                <span className="text-[10px] text-slate-300">Edit</span>
+              <button onClick={() => { setEditingCard(selectedCard); setIsFormOpen(true); }} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-slate-800 hover:border-slate-700 active:scale-95 transition-all">
+                <Edit2 className="text-blue-400" size={22} />
+                <span className="text-[10px] font-medium text-slate-300">Edit</span>
               </button>
-              <button onClick={() => handleDeleteCard(selectedCard.id)} className="flex flex-col items-center gap-1 p-3 bg-slate-800 rounded-xl hover:bg-rose-900/30 active:scale-95 transition-all">
-                <X className="text-rose-400" size={24} />
-                <span className="text-[10px] text-slate-300">Delete</span>
+              <button onClick={() => handleDeleteCard(selectedCard.id)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-rose-500/10 hover:border-rose-500/30 active:scale-95 transition-all">
+                <X className="text-rose-400" size={22} />
+                <span className="text-[10px] font-medium text-slate-300">Delete</span>
               </button>
             </div>
 

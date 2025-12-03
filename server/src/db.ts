@@ -13,7 +13,7 @@ export interface Card {
     purchasePrice: number;
     currency: 'USD' | 'CNY';
     currentValue: number;
-    priceHistory: { date: string; value: number }[];
+    priceHistory: { date: string; value: number; platform?: string; variation?: string; grade?: string; serialNumber?: string }[];
     imageUrl?: string;
     watchlist?: boolean;
     sold?: boolean;
@@ -53,7 +53,11 @@ const CardSchema = new Schema({
     currentValue: { type: Number, required: true },
     priceHistory: [{
         date: { type: String, required: true },
-        value: { type: Number, required: true }
+        value: { type: Number, required: true },
+        platform: String,
+        variation: String,
+        grade: String,
+        serialNumber: String
     }],
     imageUrl: String,
     watchlist: Boolean,
@@ -138,10 +142,14 @@ export const db = {
         await CardModel.deleteOne({ id, userId });
     },
 
-    async updatePrice(id: string, userId: string, newPrice: number, dateStr?: string): Promise<Card | null> {
+    async updatePrice(id: string, userId: string, newPrice: number, dateStr?: string, platform?: string, variation?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
         await connectToDb();
+        console.log('[DB] updatePrice called with:', { id, userId, newPrice, dateStr, platform, variation, grade, serialNumber });
         const card = await CardModel.findOne({ id, userId });
-        if (!card) return null;
+        if (!card) {
+            console.log('[DB] Card not found:', id);
+            return null;
+        }
 
         const history = [...card.priceHistory];
         const newDate = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
@@ -150,9 +158,15 @@ export const db = {
         const existingIndex = history.findIndex(h => h.date.split('T')[0] === inputDateShort);
 
         if (existingIndex >= 0) {
+            console.log('[DB] Updating existing entry at index:', existingIndex);
             history[existingIndex].value = newPrice;
+            if (platform) history[existingIndex].platform = platform;
+            if (variation) history[existingIndex].variation = variation;
+            if (grade) history[existingIndex].grade = grade;
+            if (serialNumber) history[existingIndex].serialNumber = serialNumber;
         } else {
-            history.push({ date: newDate, value: newPrice });
+            console.log('[DB] Creating new price entry with:', { date: newDate, value: newPrice, platform, variation, grade, serialNumber });
+            history.push({ date: newDate, value: newPrice, platform, variation, grade, serialNumber });
         }
 
         history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -168,6 +182,7 @@ export const db = {
         }
 
         await card.save();
+        console.log('[DB] Price updated successfully, priceHistory length:', card.priceHistory.length);
         return card.toObject();
     }
 };

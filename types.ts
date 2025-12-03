@@ -2,6 +2,10 @@
 export interface PricePoint {
   date: string; // ISO String
   value: number;
+  platform?: string; // Platform where this price was observed
+  variation?: string; // Card variation (e.g., Silver, Red, Platinum, Base)
+  grade?: string; // Grade (e.g., PSA 10, BGS 10, PSA 10+10, Raw)
+  serialNumber?: string; // Serial number of the comp (e.g., 15/99, 1/1)
 }
 
 export interface Offer {
@@ -33,6 +37,23 @@ export enum AcquisitionSource {
   WECARD = 'Wecard',
   XIANYU = 'Xianyu',
   CARD_SHOW = 'Card Show',
+  ALT = 'Alt',
+  FANATICS = 'Fanatics',
+  PWCC = 'PWCC',
+  OTHER = 'Other'
+}
+
+export enum Platform {
+  EBAY = 'eBay',
+  CARD_HOBBY = 'CardHobby',
+  XIANYU = 'Xianyu',
+  CARD_SHOW = 'Card Show',
+  ALT = 'Alt',
+  FANATICS = 'Fanatics',
+  PWCC = 'PWCC',
+  GOLDIN = 'Goldin',
+  HERITAGE = 'Heritage',
+  WECARD = 'Wecard',
   OTHER = 'Other'
 }
 

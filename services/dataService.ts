@@ -43,14 +43,17 @@ export const dataService = {
     });
   },
 
-  async updatePrice(id: string, newPrice: number, getIdToken: () => Promise<string | null>, dateStr?: string): Promise<Card | null> {
+  async updatePrice(id: string, newPrice: number, getIdToken: () => Promise<string | null>, dateStr?: string, platform?: string, variation?: string, grade?: string, serialNumber?: string): Promise<Card | null> {
     const headers = await getAuthHeaders(getIdToken);
+    console.log('[dataService] Sending updatePrice request:', { id, price: newPrice, date: dateStr, platform, variation, grade, serialNumber });
     const res = await fetch(`${API_URL}/cards/${id}/price`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ price: newPrice, date: dateStr })
+      body: JSON.stringify({ price: newPrice, date: dateStr, platform, variation, grade, serialNumber })
     });
     if (!res.ok) return null;
-    return await res.json();
+    const result = await res.json();
+    console.log('[dataService] updatePrice response:', result);
+    return result;
   }
 };

@@ -70,9 +70,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // POST /api/cards/:id/price
             if (method === 'POST' && path.match(/^\/cards\/[^/]+\/price$/)) {
                 const id = path.split('/')[2];
-                const { price, date } = req.body;
-                console.log('[API] Updating price for card:', id);
-                const updated = await db.updatePrice(id, userId, price, date);
+                const { price, date, platform, variation, grade, serialNumber } = req.body;
+                console.log('[API] Updating price for card:', id, 'with data:', { price, date, platform, variation, grade, serialNumber });
+                const updated = await db.updatePrice(id, userId, price, date, platform, variation, grade, serialNumber);
                 if (updated) {
                     return res.status(200).json(updated);
                 }
