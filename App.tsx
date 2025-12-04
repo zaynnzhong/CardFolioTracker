@@ -9,17 +9,19 @@ import { CardForm } from './components/CardForm';
 import { PriceUpdateModal } from './components/PriceUpdateModal';
 import { InsightModal } from './components/InsightModal';
 import { SoldModal } from './components/SoldModal';
+import { TradeModal, TradeData } from './components/TradeModal';
 import { AnalyticsView } from './components/AnalyticsView';
+import { TransactionsView } from './components/TransactionsView';
 import { BottomNav } from './components/BottomNav';
 import { Login } from './components/Login';
 import { useAuth } from './contexts/AuthContext';
-import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign } from 'lucide-react';
+import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
 export default function App() {
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics' | 'transactions'>('portfolio');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
 
@@ -30,6 +32,7 @@ export default function App() {
   const [updatingPriceCard, setUpdatingPriceCard] = useState<Card | null>(null);
   const [analyzingCard, setAnalyzingCard] = useState<Card | null>(null);
   const [soldModalCard, setSoldModalCard] = useState<Card | null>(null);
+  const [tradeModalCard, setTradeModalCard] = useState<Card | null>(null);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -194,11 +197,64 @@ export default function App() {
       ...card,
       sold: true,
       soldPrice,
-      soldDate
+      soldDate,
+      soldVia: 'sale'
     };
 
     await handleSaveCard(updatedCard);
     setSoldModalCard(null);
+  };
+
+  const handleTrade = async (tradeData: TradeData) => {
+    // Mark the given card as sold with FMV as sold price
+    const givenCard = cards.find(c => c.id === tradeData.cardGivenId);
+    if (!givenCard) return;
+
+    const soldCard: Card = {
+      ...givenCard,
+      sold: true,
+      soldPrice: tradeData.cardGivenFMV,
+      soldDate: tradeData.tradeDate,
+      soldVia: 'trade'
+    };
+
+    console.log('[TRADE DEBUG] Saving card with soldVia:', soldCard.soldVia);
+    console.log('[TRADE DEBUG] Full card object:', soldCard);
+    await handleSaveCard(soldCard);
+
+    // Create new cards for received cards using full ReceivedCardData
+    for (const receivedCard of tradeData.cardsReceived) {
+      const newCard: Card = {
+        id: `${Date.now()}_${Math.random()}`,
+        player: receivedCard.player,
+        year: receivedCard.year,
+        sport: receivedCard.sport,
+        brand: receivedCard.brand,
+        series: receivedCard.series,
+        insert: receivedCard.insert,
+        parallel: receivedCard.parallel || '',
+        serialNumber: receivedCard.serialNumber || '',
+        graded: receivedCard.graded,
+        gradeCompany: receivedCard.gradeCompany,
+        gradeValue: receivedCard.gradeValue,
+        currency: displayCurrency,
+        purchaseDate: tradeData.tradeDate,
+        purchasePrice: receivedCard.fmv, // Cost basis is FMV on trade date
+        currentValue: receivedCard.fmv,
+        priceHistory: [{
+          date: tradeData.tradeDate,
+          value: receivedCard.fmv,
+          platform: 'Trade'
+        }],
+        sold: false,
+        watchlist: false
+      };
+
+      await handleSaveCard(newCard);
+    }
+
+    setTradeModalCard(null);
+    setSelectedCard(null);
   };
 
   const exportToCSV = () => {
@@ -290,6 +346,18 @@ export default function App() {
             >
               <BarChart3 size={20} />
               <span className="font-medium">Analytics</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'transactions'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <Receipt size={20} />
+              <span className="font-medium">Transactions</span>
             </button>
 
             <div className="pt-4 space-y-3">
@@ -479,8 +547,12 @@ export default function App() {
                 </div>
               )}
             </div>
-          ) : (
+          ) : activeTab === 'analytics' ? (
             <AnalyticsView cards={cards} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+          ) : (
+            <div className="p-4 lg:p-6">
+              <TransactionsView cards={cards} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+            </div>
           )}
         </main>
       </div>
@@ -570,15 +642,25 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Mark as Sold Button - Only show if card is not sold and not in watchlist */}
+              {/* Mark as Sold and Log Trade Buttons - Only show if card is not sold and not in watchlist */}
               {!selectedCard.watchlist && !selectedCard.sold && (
-                <button
-                  onClick={() => setSoldModalCard(selectedCard)}
-                  className="w-full flex items-center justify-center gap-2 p-3 bg-emerald-500/10 backdrop-blur-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 active:scale-95 transition-all"
-                >
-                  <Wallet className="text-emerald-400" size={20} />
-                  <span className="text-sm font-semibold text-emerald-300">Mark as Sold</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setSoldModalCard(selectedCard)}
+                    className="w-full flex items-center justify-center gap-2 p-3 bg-emerald-500/10 backdrop-blur-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 active:scale-95 transition-all"
+                  >
+                    <Wallet className="text-emerald-400" size={20} />
+                    <span className="text-sm font-semibold text-emerald-300">Mark as Sold</span>
+                  </button>
+
+                  <button
+                    onClick={() => setTradeModalCard(selectedCard)}
+                    className="w-full flex items-center justify-center gap-2 p-3 bg-purple-500/10 backdrop-blur-sm rounded-xl border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50 active:scale-95 transition-all"
+                  >
+                    <ArrowRightLeft className="text-purple-400" size={20} />
+                    <span className="text-sm font-semibold text-purple-300">Log Trade</span>
+                  </button>
+                </>
               )}
 
               {/* Show sold status if already sold */}
@@ -638,6 +720,17 @@ export default function App() {
           card={soldModalCard}
           onSave={handleMarkAsSold}
           onCancel={() => setSoldModalCard(null)}
+        />
+      )}
+
+      {tradeModalCard && (
+        <TradeModal
+          card={tradeModalCard}
+          allCards={cards}
+          onSave={handleTrade}
+          onCancel={() => setTradeModalCard(null)}
+          displayCurrency={displayCurrency}
+          convertPrice={convertPrice}
         />
       )}
     </div>

@@ -282,8 +282,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                     )}
                     {card.sold && (
                       <div className="absolute top-1 right-1">
-                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
-                          SOLD
+                        <span className={`text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg ${card.soldVia === 'trade' ? 'bg-purple-500' : 'bg-emerald-500'}`}>
+                          {card.soldVia === 'trade' ? 'TRADED' : 'SOLD'}
                         </span>
                       </div>
                     )}
@@ -470,8 +470,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                           )}
                           {card.sold && (
                             <div className="absolute top-1 right-1">
-                              <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg">
-                                SOLD
+                              <span className={`text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg ${card.soldVia === 'trade' ? 'bg-purple-500' : 'bg-emerald-500'}`}>
+                                {card.soldVia === 'trade' ? 'TRADED' : 'SOLD'}
                               </span>
                             </div>
                           )}

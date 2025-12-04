@@ -95,6 +95,7 @@ export interface Card {
   sold: boolean;
   soldDate?: string;
   soldPrice?: number;
+  soldVia?: 'sale' | 'trade'; // How the card was disposed of
 
   // Watchlist Status
   watchlist?: boolean;
@@ -102,6 +103,24 @@ export interface Card {
   // Bulk Entry Grouping
   bulkGroupId?: string; // Links cards added together in bulk mode
 
+  notes?: string;
+}
+
+export interface TransactionLine {
+  direction: 'OUT' | 'IN';
+  item: string; // Card description or "Cash"
+  bookedAs: 'Taxable SALE' | 'New PURCHASE' | 'Cash received' | 'Cash paid';
+  amountFMV: number;
+  costBasis?: number;
+  realizedGainLoss?: number;
+  cardId?: string; // Reference to card if applicable
+}
+
+export interface Transaction {
+  id: string;
+  date: string;
+  type: 'sale' | 'trade';
+  lines: TransactionLine[];
   notes?: string;
 }
 

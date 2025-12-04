@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migrate soldVia Field</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .container {
+      background: #2a2a2a;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #10b981;
+      margin-top: 0;
+    }
+    button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #059669;
+    }
+    button:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+      font-family: monospace;
+      font-size: 14px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Migrate soldVia Field</h1>
+    <p>This script will update all your sold cards to add the <code>soldVia</code> field.</p>
+    <p>Cards will be set to <code>soldVia: 'sale'</code> (all existing sold cards were sales, not trades).</p>
+
+    <button id="migrateBtn" onclick="runMigration()">Run Migration</button>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore, collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTEk0XLEdPt0wWyAqO2Z5d5Q5gSlujGdw",
+      authDomain: "prism-b59f3.firebaseapp.com",
+      projectId: "prism-b59f3",
+      storageBucket: "prism-b59f3.firebasestorage.app",
+      messagingSenderId: "626260251060",
+      appId: "1:626260251060:web:a0da9e0de2aa82bb69e67f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    const log = (message, type = 'info') => {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    };
+
+    window.runMigration = async () => {
+      const btn = document.getElementById('migrateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          log('Not authenticated. Signing in...', 'info');
+          await signInWithPopup(auth, provider);
+          log('Signed in successfully!', 'success');
+          return;
+        }
+
+        log('Starting migration...', 'info');
+        log(`User: ${user.email}`, 'info');
+
+        const cardsRef = collection(db, 'users', user.uid, 'cards');
+        const snapshot = await getDocs(cardsRef);
+
+        log(`Found ${snapshot.size} total cards`, 'info');
+
+        let updatedCount = 0;
+        let skippedCount = 0;
+        let soldCount = 0;
+
+        for (const cardDoc of snapshot.docs) {
+          const card = cardDoc.data();
+
+          if (card.sold) {
+            soldCount++;
+
+            if (!card.soldVia) {
+              // Card is sold but doesn't have soldVia field
+              await updateDoc(doc(db, 'users', user.uid, 'cards', cardDoc.id), {
+                soldVia: 'sale'
+              });
+              updatedCount++;
+              log(`✓ Updated card: ${card.player} - ${card.year} ${card.brand}`, 'success');
+            } else {
+              skippedCount++;
+              log(`○ Skipped (already has soldVia): ${card.player}`, 'info');
+            }
+          }
+        }
+
+        log('', 'info');
+        log('='.repeat(50), 'info');
+        log(`Migration complete!`, 'success');
+        log(`Total cards: ${snapshot.size}`, 'info');
+        log(`Sold cards found: ${soldCount}`, 'info');
+        log(`Cards updated: ${updatedCount}`, 'success');
+        log(`Cards skipped: ${skippedCount}`, 'info');
+        log('='.repeat(50), 'info');
+        log('', 'info');
+        log('You can now close this page and refresh your app!', 'success');
+
+        btn.textContent = 'Migration Complete!';
+      } catch (error) {
+        log(`Error: ${error.message}`, 'error');
+        console.error(error);
+        btn.disabled = false;
+        btn.textContent = 'Run Migration';
+      }
+    };
+
+    // Check auth state on load
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        log(`Authenticated as: ${user.email}`, 'success');
+        log('Click "Run Migration" to start', 'info');
+      } else {
+        log('Not authenticated. Click button to sign in first.', 'info');
+      }
+    });
+  </script>
+</body>
+</html>

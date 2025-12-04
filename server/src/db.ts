@@ -20,6 +20,7 @@ export interface Card {
     sold?: boolean;
     soldPrice?: number;
     soldDate?: string;
+    soldVia?: 'sale' | 'trade';
     graded?: boolean;
     gradeCompany?: string;
     gradeValue?: number;
@@ -66,6 +67,7 @@ const CardSchema = new Schema({
     sold: Boolean,
     soldPrice: Number,
     soldDate: String,
+    soldVia: { type: String, enum: ['sale', 'trade'] },
     graded: Boolean,
     gradeCompany: String,
     gradeValue: Number,
