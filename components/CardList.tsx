@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Sport, Currency } from '../types';
 import { TrendingUp, TrendingDown, Image as ImageIcon, ChevronRight, CheckCircle2, Sparkles, Filter, ArrowUpDown, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
-import { DirectionAwareTabs } from './DirectionAwareTabs';
+import { PillTabs } from './PillTabs';
 import { FocusCards } from './FocusCards';
 
 interface CardListProps {
@@ -159,29 +159,14 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
     );
   }
 
-  const tabs = [
-    {
-      id: 0,
-      label: 'Holdings',
-      content: <></>
-    },
-    {
-      id: 1,
-      label: 'Sold',
-      content: <></>
-    }
-  ];
-
   return (
     <div className="w-full">
       <div className="space-y-6">
         {/* Header with Tab Navigation */}
         <div className="flex items-center justify-between">
-          <DirectionAwareTabs
-            tabs={tabs}
-            onChange={(tabId) => {
-              setActiveTab(tabId === 0 ? 'holdings' : 'sold');
-            }}
+          <PillTabs
+            activeTab={activeTab}
+            onChange={setActiveTab}
           />
         </div>
 
