@@ -13,7 +13,7 @@ import { TradeModal, TradeData } from './components/TradeModal';
 import { AnalyticsView } from './components/AnalyticsView';
 import { TransactionsView } from './components/TransactionsView';
 import { BottomNav } from './components/BottomNav';
-import { Login } from './components/Login';
+import { LandingPage } from './components/LandingPage';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
@@ -296,9 +296,9 @@ export default function App() {
     );
   }
 
-  // Show login if not authenticated
+  // Show landing page if not authenticated
   if (!user) {
-    return <Login />;
+    return <LandingPage />;
   }
 
   // Show app loading

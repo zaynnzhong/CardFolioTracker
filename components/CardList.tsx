@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Sport, Currency } from '../types';
-import { TrendingUp, TrendingDown, Image as ImageIcon, ChevronRight, CheckCircle2, Sparkles, Filter, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Image as ImageIcon, ChevronRight, CheckCircle2, Sparkles, Filter, ArrowUpDown, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
+import { DirectionAwareTabs } from './DirectionAwareTabs';
+import { FocusCards } from './FocusCards';
 
 interface CardListProps {
   cards: Card[];
@@ -23,6 +25,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<'holdings' | 'sold'>('holdings');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
 
   // Get unique players for filter dropdown
   const uniquePlayers = useMemo(() => {
@@ -156,41 +159,57 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
     );
   }
 
+  const tabs = [
+    {
+      id: 0,
+      label: 'Holdings',
+      content: <></>
+    },
+    {
+      id: 1,
+      label: 'Sold',
+      content: <></>
+    }
+  ];
+
   return (
     <div className="w-full">
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Header with Tab Navigation */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 glass-card backdrop-blur-sm border border-white/10 rounded-xl p-1">
-            <button
-              onClick={() => setActiveTab('holdings')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'holdings'
-                  ? 'bg-crypto-lime/20 text-crypto-lime'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Holdings
-            </button>
-            <button
-              onClick={() => setActiveTab('sold')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'sold'
-                  ? 'bg-crypto-lime/20 text-crypto-lime'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Sold
-            </button>
-          </div>
+          <DirectionAwareTabs
+            tabs={tabs}
+            onChange={(tabId) => {
+              setActiveTab(tabId === 0 ? 'holdings' : 'sold');
+            }}
+          />
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-6">
           <h3 className="text-white text-xl lg:text-2xl font-bold">
             {activeTab === 'holdings' ? 'Holdings' : 'Sold Cards'}
           </h3>
           <div className="flex items-center gap-3">
             <span className="text-slate-400 text-sm font-medium">{filteredAndSortedCards.length} cards {cardGroups.filter(g => g.isBulkGroup).length > 0 && `(${cardGroups.length} entries)`}</span>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 bg-slate-900/50 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-crypto-lime/20 text-crypto-lime' : 'text-slate-400 hover:text-white'}`}
+                title="List view"
+              >
+                <List size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('gallery')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'gallery' ? 'bg-crypto-lime/20 text-crypto-lime' : 'text-slate-400 hover:text-white'}`}
+                title="Gallery view"
+              >
+                <LayoutGrid size={18} />
+              </button>
+            </div>
+
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2 rounded-lg transition-colors ${showFilters ? 'bg-crypto-lime/10 text-crypto-lime' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
@@ -235,10 +254,22 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
             </div>
           </div>
         )}
-      </div>
+
+      {/* Gallery View */}
+      {viewMode === 'gallery' && (
+        <div className="px-4">
+          <FocusCards
+            cards={filteredAndSortedCards.map(card => ({
+              title: `${card.year} ${card.brand} ${card.player}${card.parallel ? ` - ${card.parallel}` : ''}`,
+              src: card.imageUrl || 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=800&auto=format&fit=crop',
+            }))}
+          />
+        </div>
+      )}
 
       {/* Mobile Card View */}
-      <div className="lg:hidden flex flex-col gap-3 px-4">
+      {viewMode === 'list' && (
+        <div className="lg:hidden flex flex-col gap-3 px-4">
         {cardGroups.map((group) => {
           // Use the first card as representative for the group
           const card = group.cards[0];
@@ -394,9 +425,11 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
           );
         })}
       </div>
+      )}
 
       {/* Desktop Table View */}
-      <div className="hidden lg:block bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl overflow-hidden">
+      {viewMode === 'list' && (
+        <div className="hidden lg:block bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -698,6 +731,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
             </tbody>
           </table>
         </div>
+      </div>
+      )}
       </div>
     </div>
   );
