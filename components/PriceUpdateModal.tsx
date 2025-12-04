@@ -1,27 +1,42 @@
 import React, { useState } from 'react';
-import { Card, Platform } from '../types';
+import { Card, Platform, Currency } from '../types';
 import { X, TrendingUp, Calendar, Info } from 'lucide-react';
 
 interface PriceUpdateModalProps {
   card: Card;
   onSave: (cardId: string, newPrice: number, date: string, platform?: string, parallel?: string, grade?: string, serialNumber?: string) => void;
   onCancel: () => void;
+  convertPrice: (price: number, from: Currency, to: Currency) => number;
 }
 
-export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave, onCancel }) => {
+export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave, onCancel, convertPrice }) => {
   const [newPrice, setNewPrice] = useState<string>(card.currentValue.toString());
   const [priceDate, setPriceDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [platform, setPlatform] = useState<Platform>(Platform.EBAY);
   const [parallel, setParallel] = useState<string>(card.parallel || '');
   const [grade, setGrade] = useState<string>('Raw');
   const [serialNumber, setSerialNumber] = useState<string>('');
+  const [currency, setCurrency] = useState<Currency>(card.currency);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const price = parseFloat(newPrice);
     if (!isNaN(price)) {
-      console.log('[PriceUpdateModal] Submitting:', { cardId: card.id, price, priceDate, platform, parallel, grade, serialNumber });
-      onSave(card.id, price, priceDate, platform, parallel, grade, serialNumber || undefined);
+      // Convert price to card's currency before saving
+      const priceInCardCurrency = convertPrice(price, currency, card.currency);
+      console.log('[PriceUpdateModal] Submitting:', {
+        cardId: card.id,
+        price,
+        currency,
+        priceInCardCurrency,
+        cardCurrency: card.currency,
+        priceDate,
+        platform,
+        parallel,
+        grade,
+        serialNumber
+      });
+      onSave(card.id, priceInCardCurrency, priceDate, platform, parallel, grade, serialNumber || undefined);
     }
   };
 
@@ -128,19 +143,34 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-2">
-                Price ({card.currency})
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                autoFocus
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                placeholder="0.00"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-2xl font-mono text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-              />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-1">
+                <label className="block text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-2">
+                  Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as Currency)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="CNY">CNY (¥)</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-2">
+                  Price ({currency === 'USD' ? '$' : '¥'})
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  autoFocus
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-2xl font-mono text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                />
+              </div>
             </div>
           </div>
 

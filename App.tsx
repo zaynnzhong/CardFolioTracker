@@ -702,6 +702,7 @@ export default function App() {
           card={updatingPriceCard}
           onSave={handleUpdatePrice}
           onCancel={() => setUpdatingPriceCard(null)}
+          convertPrice={convertPrice}
         />
       )}
 
