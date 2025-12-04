@@ -160,7 +160,12 @@ export const db = {
         const newDate = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
 
         console.log('[DB] Creating new price entry with:', { date: newDate, value: newPrice, platform, parallel, grade, serialNumber });
-        history.push({ date: newDate, value: newPrice, platform, parallel, grade, serialNumber });
+        const newEntry: any = { date: newDate, value: newPrice };
+        if (platform !== undefined && platform !== '') newEntry.platform = platform;
+        if (parallel !== undefined && parallel !== '') newEntry.parallel = parallel;
+        if (grade !== undefined && grade !== '') newEntry.grade = grade;
+        if (serialNumber !== undefined && serialNumber !== '') newEntry.serialNumber = serialNumber;
+        history.push(newEntry);
 
         history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -235,14 +240,15 @@ export const db = {
 
         // Update the entry
         const updatedDate = newDate ? new Date(newDate).toISOString() : oldDate;
-        card.priceHistory[entryIndex] = {
+        const updatedEntry: any = {
             date: updatedDate,
-            value: newPrice,
-            platform,
-            parallel,
-            grade,
-            serialNumber
+            value: newPrice
         };
+        if (platform !== undefined && platform !== '') updatedEntry.platform = platform;
+        if (parallel !== undefined && parallel !== '') updatedEntry.parallel = parallel;
+        if (grade !== undefined && grade !== '') updatedEntry.grade = grade;
+        if (serialNumber !== undefined && serialNumber !== '') updatedEntry.serialNumber = serialNumber;
+        card.priceHistory[entryIndex] = updatedEntry;
 
         // Re-sort if date changed
         if (newDate && newDate !== oldDate) {
