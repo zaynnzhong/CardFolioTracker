@@ -342,7 +342,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-slate-400 block">Player / Subject</label>
-                      <input type="text" required value={player} onChange={(e) => setPlayer(e.target.value)} className="form-input" placeholder="e.g. LeBron James" />
+                      <input type="text" required value={player} onChange={(e) => setPlayer(e.target.value)} className="form-input" placeholder="e.g. Michael Jordan" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-slate-400 block">Sport</label>
