@@ -397,12 +397,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
   if (portfolio.length === 0 && watchlist.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <div className="bg-slate-900 p-4 rounded-full mb-4 border border-slate-800">
+      <div className="p-4 lg:p-6 flex flex-col items-center justify-center py-20 px-6 text-center">
+        <div className="glass-card backdrop-blur-sm border border-white/10 p-4 rounded-full mb-4">
            <Layers className="text-slate-600" size={32} />
         </div>
-        <h3 className="text-white font-bold text-lg">No Data to Analyze</h3>
-        <p className="text-slate-500 mt-2">Add assets to your portfolio or watchlist to unlock detailed analytics.</p>
+        <h3 className="text-white font-bold text-xl lg:text-2xl">No Data to Analyze</h3>
+        <p className="text-slate-400 mt-2 text-sm">Add assets to your portfolio or watchlist to unlock detailed analytics.</p>
       </div>
     );
   }
@@ -410,14 +410,20 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
   return (
     <div className="p-4 lg:p-6 space-y-6 animate-fadeIn max-w-[1920px] mx-auto">
 
+      {/* Page Header */}
+      <div className="mb-2">
+        <h2 className="text-2xl lg:text-3xl font-bold text-white">Analytics</h2>
+        <p className="text-sm text-slate-400 mt-1">Detailed insights and performance metrics</p>
+      </div>
+
       {/* Tab Selector */}
       <div>
         <TabGroup index={selectedTab} onIndexChange={setSelectedTab}>
-          <TabList variant="solid" className="bg-slate-900 border border-slate-800 rounded-xl">
-            <Tab className="text-white data-[selected]:bg-emerald-500" icon={Wallet}>
+          <TabList variant="solid" className="glass-card backdrop-blur-sm border border-white/10 rounded-xl">
+            <Tab className="text-white data-[selected]:bg-crypto-lime data-[selected]:text-black font-semibold" icon={Wallet}>
               Portfolio ({portfolio.length})
             </Tab>
-            <Tab className="text-white data-[selected]:bg-indigo-500" icon={Eye}>
+            <Tab className="text-white data-[selected]:bg-purple-500 data-[selected]:text-white font-semibold" icon={Eye}>
               Watchlist ({watchlist.length})
             </Tab>
           </TabList>
@@ -426,43 +432,43 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
             {/* Portfolio Tab */}
             <TabPanel>
               {portfolio.length === 0 ? (
-                <Card className="mt-4 bg-slate-900 border-slate-800">
+                <Card className="mt-6 glass-card backdrop-blur-sm border border-white/10">
                   <Text className="text-center text-slate-500">No portfolio assets yet.</Text>
                 </Card>
               ) : (
-                <div className="space-y-4 mt-4">
+                <div className="space-y-6 mt-6">
                   {/* Overview Metrics */}
                   <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-4">
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor="emerald">
-                      <Text className="text-slate-400">Portfolio Value</Text>
-                      <Metric className="text-white">${portfolioStats.totalValue.toLocaleString()}</Metric>
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="lime">
+                      <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Portfolio Value</Text>
+                      <Metric className="text-white font-extrabold">${portfolioStats.totalValue.toLocaleString()}</Metric>
                     </Card>
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor="blue">
-                      <Text className="text-slate-400">Total Invested</Text>
-                      <Metric className="text-white">${portfolioStats.totalCost.toLocaleString()}</Metric>
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="blue">
+                      <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Total Invested</Text>
+                      <Metric className="text-white font-extrabold">${portfolioStats.totalCost.toLocaleString()}</Metric>
                     </Card>
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor={portfolioStats.totalProfit >= 0 ? "emerald" : "red"}>
-                      <Text className="text-slate-400">Total P/L</Text>
-                      <Metric className={portfolioStats.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"}>
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor={portfolioStats.totalProfit >= 0 ? "lime" : "red"}>
+                      <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Total P/L</Text>
+                      <Metric className={portfolioStats.totalProfit >= 0 ? "text-crypto-lime font-extrabold" : "text-rose-400 font-extrabold"}>
                         {portfolioStats.totalProfit >= 0 ? '+' : ''}${portfolioStats.totalProfit.toLocaleString()}
                       </Metric>
-                      <Text className={portfolioStats.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"}>
+                      <Text className={portfolioStats.totalProfit >= 0 ? "text-crypto-lime/80 font-semibold" : "text-rose-400 font-semibold"}>
                         {portfolioStats.profitPercent >= 0 ? '+' : ''}{portfolioStats.profitPercent.toFixed(1)}%
                       </Text>
                     </Card>
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor="purple">
-                      <Text className="text-slate-400">Highest Asset</Text>
-                      <Metric className="text-white">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="purple">
+                      <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Highest Asset</Text>
+                      <Metric className="text-white font-extrabold">
                         ${portfolioStats.highestValueCard?.currentValue.toLocaleString() || 0}
                       </Metric>
-                      <Text className="text-slate-500 text-xs truncate">
+                      <Text className="text-slate-500 text-xs truncate font-medium">
                         {portfolioStats.highestValueCard?.player || '-'}
                       </Text>
                     </Card>
                   </Grid>
 
                   {/* Grading Composition */}
-                  <Card className="bg-slate-900 border-slate-800">
+                  <Card className="glass-card backdrop-blur-sm border border-white/10">
                     <Flex className="mb-2">
                       <div className="flex items-center gap-2">
                         <Award size={16} className="text-indigo-400" />
@@ -483,7 +489,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                   {/* Sport & Brand Distribution */}
                   <Grid numItems={1} numItemsMd={2} className="gap-4">
-                    <Card className="bg-slate-900 border-slate-800">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10">
                       <Text className="text-slate-300 font-bold mb-4">Value by Sport</Text>
                       <DonutChart
                         data={portfolioStats.sportData}
@@ -494,22 +500,22 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                         className="h-52"
                       />
                     </Card>
-                    <Card className="bg-slate-900 border-slate-800">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10">
                       <Text className="text-slate-300 font-bold mb-4">Top Brands (by count)</Text>
                       <BarList
                         data={portfolioStats.brandData}
                         className="mt-4"
-                        color="emerald"
+                        color="lime"
                       />
                     </Card>
                   </Grid>
 
                   {/* Top Performers */}
                   {portfolioStats.winners.length > 0 && (
-                    <Card className="bg-slate-900 border-slate-800">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10">
                       <div className="flex items-center gap-2 mb-4">
-                        <TrendingUp size={16} className="text-emerald-400" />
-                        <Text className="text-emerald-400 font-bold">Top Performers</Text>
+                        <TrendingUp size={16} className="text-crypto-lime" />
+                        <Text className="text-crypto-lime font-bold">Top Performers</Text>
                       </div>
                       <div className="space-y-3">
                         {portfolioStats.winners.map((card, idx) => (
@@ -519,7 +525,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                               <Text className="text-slate-500 text-xs">{card.year} {card.brand}</Text>
                             </div>
                             <div className="text-right">
-                              <Text className="text-emerald-400 font-bold">+{card.percent.toFixed(1)}%</Text>
+                              <Text className="text-crypto-lime font-bold">+{card.percent.toFixed(1)}%</Text>
                               <Text className="text-emerald-500/60 text-xs">+${card.profit.toFixed(0)}</Text>
                             </div>
                           </Flex>
@@ -530,7 +536,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                   {/* Underperformers */}
                   {portfolioStats.losers.length > 0 && (
-                    <Card className="bg-slate-900 border-slate-800">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10">
                       <div className="flex items-center gap-2 mb-4">
                         <TrendingDown size={16} className="text-rose-400" />
                         <Text className="text-rose-400 font-bold">Needs Improvement</Text>
@@ -557,14 +563,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                     <>
                       {/* Section Header */}
                       <div className="mt-8 mb-4 flex items-center gap-2">
-                        <Activity size={20} className="text-emerald-400" />
+                        <Activity size={20} className="text-crypto-lime" />
                         <h3 className="text-lg font-bold text-white">Advanced Holdings Analysis</h3>
                         <Text className="text-slate-500 text-xs">Protect and grow your money on the table</Text>
                       </div>
 
                       {/* Price Momentum Dashboard */}
                       {holdingsAnalysis.priceTrends.length > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <BarChart3 size={16} className="text-indigo-400" />
                             <Text className="text-slate-300 font-bold">Price Momentum Dashboard</Text>
@@ -583,12 +589,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                   </div>
                                   <div className="text-right">
                                     <div className="flex items-center gap-2 justify-end">
-                                      {card.momentum === 'pumping' && <Badge color="emerald" size="xs">Pumping</Badge>}
+                                      {card.momentum === 'pumping' && <Badge color="lime" size="xs">Pumping</Badge>}
                                       {card.momentum === 'dumping' && <Badge color="rose" size="xs">Dumping</Badge>}
                                       {card.momentum === 'stable' && <Badge color="blue" size="xs">Stable</Badge>}
                                       {card.momentum === 'flat' && <Badge color="slate" size="xs">Flat</Badge>}
                                     </div>
-                                    <Text className={`font-bold ${card.trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    <Text className={`font-bold ${card.trend >= 0 ? 'text-crypto-lime' : 'text-rose-400'}`}>
                                       {card.trend >= 0 ? '+' : ''}{card.trend.toFixed(1)}%
                                     </Text>
                                   </div>
@@ -610,7 +616,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                       {/* Offer Analytics */}
                       {holdingsAnalysis.offerAnalytics.length > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <DollarSign size={16} className="text-amber-400" />
                             <Text className="text-slate-300 font-bold">Offer Activity & Velocity</Text>
@@ -638,7 +644,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                   <Badge color={card.offerVelocity >= 3 ? "emerald" : card.offerVelocity >= 1 ? "amber" : "slate"} size="sm">
                                     {card.offerVelocity} offers/30d
                                   </Badge>
-                                  <Text className={`text-xs mt-1 ${card.offerToValue >= 90 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                  <Text className={`text-xs mt-1 ${card.offerToValue >= 90 ? 'text-crypto-lime' : 'text-slate-500'}`}>
                                     {card.offerToValue.toFixed(0)}% of market
                                   </Text>
                                 </div>
@@ -650,7 +656,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                       {/* Grading Premium Analysis */}
                       {holdingsAnalysis.avgGradedValue > 0 && holdingsAnalysis.avgRawValue > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <Award size={16} className="text-purple-400" />
                             <Text className="text-slate-300 font-bold">Grading Premium Analysis</Text>
@@ -662,7 +668,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                           <Grid numItems={1} numItemsSm={3} className="gap-4">
                             <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
                               <Text className="text-slate-400 text-xs">Avg Graded Value</Text>
-                              <Metric className="text-emerald-400">${holdingsAnalysis.avgGradedValue.toLocaleString()}</Metric>
+                              <Metric className="text-crypto-lime">${holdingsAnalysis.avgGradedValue.toLocaleString()}</Metric>
                             </div>
                             <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
                               <Text className="text-slate-400 text-xs">Avg Raw Value</Text>
@@ -670,7 +676,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                             </div>
                             <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
                               <Text className="text-slate-400 text-xs">Grading Premium</Text>
-                              <Metric className={holdingsAnalysis.gradingPremium > 0 ? "text-emerald-400" : "text-slate-400"}>
+                              <Metric className={holdingsAnalysis.gradingPremium > 0 ? "text-crypto-lime" : "text-slate-400"}>
                                 +{holdingsAnalysis.gradingPremium.toFixed(1)}%
                               </Metric>
                             </div>
@@ -680,7 +686,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                       {/* Risk Analysis */}
                       {holdingsAnalysis.highRisk.length > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <AlertTriangle size={16} className="text-amber-400" />
                             <Text className="text-amber-400 font-bold">High Risk Assets</Text>
@@ -727,29 +733,29 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
             {/* Watchlist Tab */}
             <TabPanel>
               {watchlist.length === 0 ? (
-                <Card className="mt-4 bg-slate-900 border-slate-800">
+                <Card className="mt-6 glass-card backdrop-blur-sm border border-white/10">
                   <Text className="text-center text-slate-500">No watchlist items yet.</Text>
                 </Card>
               ) : (
                 <div className="space-y-4 mt-4">
                   {/* Watchlist Overview */}
                   <Grid numItems={1} numItemsSm={2} numItemsLg={3} className="gap-4">
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor="indigo">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="indigo">
                       <Text className="text-slate-400">Total Items</Text>
                       <Metric className="text-white">{watchlist.length}</Metric>
                     </Card>
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor="blue">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="blue">
                       <Text className="text-slate-400">Avg Target Price</Text>
                       <Metric className="text-white">${watchlistStats.avgTarget.toFixed(0)}</Metric>
                     </Card>
-                    <Card className="bg-slate-900 border-slate-800" decoration="top" decorationColor="purple">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="purple">
                       <Text className="text-slate-400">Total Target Budget</Text>
                       <Metric className="text-white">${watchlistStats.totalTarget.toLocaleString()}</Metric>
                     </Card>
                   </Grid>
 
                   {/* Sport Distribution */}
-                  <Card className="bg-slate-900 border-slate-800">
+                  <Card className="glass-card backdrop-blur-sm border border-white/10">
                     <Text className="text-slate-300 font-bold mb-4">Watchlist by Sport</Text>
                     <DonutChart
                       data={watchlistStats.sportData}
@@ -762,10 +768,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                   {/* Best Opportunities */}
                   {watchlistStats.opportunities.length > 0 && (
-                    <Card className="bg-slate-900 border-slate-800">
+                    <Card className="glass-card backdrop-blur-sm border border-white/10">
                       <div className="flex items-center gap-2 mb-4">
-                        <TrendingDown size={16} className="text-emerald-400" />
-                        <Text className="text-emerald-400 font-bold">Best Buying Opportunities</Text>
+                        <TrendingDown size={16} className="text-crypto-lime" />
+                        <Text className="text-crypto-lime font-bold">Best Buying Opportunities</Text>
                       </div>
                       <Text className="text-slate-500 text-xs mb-4">
                         Cards currently below your target price
@@ -781,7 +787,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                               </Text>
                             </div>
                             <div className="text-right">
-                              <Badge color="emerald" size="sm">
+                              <Badge color="lime" size="sm">
                                 {card.discount.toFixed(0)}% below
                               </Badge>
                             </div>
@@ -802,9 +808,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                       </div>
 
                       {/* Buy Zone Indicator - Traffic Light System */}
-                      <Card className="bg-slate-900 border-slate-800">
+                      <Card className="glass-card backdrop-blur-sm border border-white/10">
                         <div className="flex items-center gap-2 mb-4">
-                          <Target size={16} className="text-emerald-400" />
+                          <Target size={16} className="text-crypto-lime" />
                           <Text className="text-slate-300 font-bold">Buy Zone Indicator</Text>
                         </div>
                         <Text className="text-slate-500 text-xs mb-4">
@@ -813,7 +819,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                         {/* Summary Badges */}
                         <div className="flex gap-3 mb-4">
-                          <Badge color="emerald" size="lg">
+                          <Badge color="lime" size="lg">
                             {watchlistAnalysis.greenZone.length} Green (Buy Now)
                           </Badge>
                           <Badge color="amber" size="lg">
@@ -860,7 +866,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                       {/* Liquidity & Market Activity */}
                       {watchlistAnalysis.liquidityScores.length > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <Activity size={16} className="text-blue-400" />
                             <Text className="text-slate-300 font-bold">Liquidity & Market Activity</Text>
@@ -899,7 +905,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                       {/* Serial Number Tracking & Scarcity */}
                       {watchlistAnalysis.serialTracking.length > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <Hash size={16} className="text-purple-400" />
                             <Text className="text-slate-300 font-bold">Serial Tracking & Scarcity Analysis</Text>
@@ -936,7 +942,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                   className="mt-2"
                                 />
                                 {card.scarcityScore && card.scarcityScore > 70 && (
-                                  <Text className="text-emerald-400 text-xs mt-2 flex items-center gap-1">
+                                  <Text className="text-crypto-lime text-xs mt-2 flex items-center gap-1">
                                     <Zap size={12} /> High scarcity - {(100 - (card.surfacedPercent || 0)).toFixed(0)}% still buried
                                   </Text>
                                 )}
@@ -948,7 +954,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
 
                       {/* Market Timing - Price Velocity */}
                       {watchlistAnalysis.marketTiming.length > 0 && (
-                        <Card className="bg-slate-900 border-slate-800">
+                        <Card className="glass-card backdrop-blur-sm border border-white/10">
                           <div className="flex items-center gap-2 mb-4">
                             <Clock size={16} className="text-amber-400" />
                             <Text className="text-slate-300 font-bold">Market Timing & Price Velocity</Text>
@@ -964,7 +970,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                   <Text className="text-slate-200 font-semibold">{card.player}</Text>
                                   <Text className="text-slate-500 text-xs">{card.year} {card.brand}</Text>
                                   <Text className="text-slate-600 text-xs mt-1 flex items-center gap-1">
-                                    {card.trend === 'falling' && <AlertDown size={12} className="text-emerald-400" />}
+                                    {card.trend === 'falling' && <AlertDown size={12} className="text-crypto-lime" />}
                                     {card.trend === 'rising' && <TrendingUp size={12} className="text-rose-400" />}
                                     {card.signal}
                                   </Text>

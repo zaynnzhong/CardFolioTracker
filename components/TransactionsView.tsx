@@ -100,73 +100,73 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
   }, [cards, displayCurrency, convertPrice]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Transactions</h2>
-        <div className="text-sm text-slate-400">
+    <div className="space-y-4 p-4 lg:p-6">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-2xl lg:text-3xl font-bold text-white">Transactions</h2>
+        <div className="text-xs lg:text-sm text-slate-400 font-medium">
           {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
         </div>
       </div>
 
       {transactions.length === 0 ? (
-        <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl p-12 text-center">
+        <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-12 text-center">
           <p className="text-slate-500">No transactions yet</p>
           <p className="text-xs text-slate-600 mt-2">Sell or trade cards to see transactions here</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {transactions.map((txn) => (
-            <div key={txn.id} className={`bg-slate-900/40 backdrop-blur-sm rounded-xl overflow-hidden ${txn.type === 'trade' ? 'border-2 border-purple-500/30' : 'border-2 border-emerald-500/30'}`}>
+            <div key={txn.id} className={`glass-card backdrop-blur-sm rounded-2xl overflow-hidden ${txn.type === 'trade' ? 'border-2 border-purple-500/30' : 'border-2 border-crypto-lime/30'}`}>
               {/* Transaction Header */}
-              <div className={`px-4 py-3 border-b flex items-center justify-between ${txn.type === 'trade' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-md text-xs font-bold ${txn.type === 'trade' ? 'bg-purple-500/30 text-purple-300 border border-purple-400/50' : 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50'}`}>
+              <div className={`px-4 py-3 border-b flex items-center justify-between ${txn.type === 'trade' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-crypto-lime/10 border-crypto-lime/20'}`}>
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <span className={`px-2 lg:px-3 py-1 rounded-lg text-xs font-bold ${txn.type === 'trade' ? 'bg-purple-500/30 text-purple-300 border border-purple-400/50' : 'bg-crypto-lime/30 text-crypto-lime border border-crypto-lime/50'}`}>
                     {txn.type === 'trade' ? 'TRADE' : 'SALE'}
                   </span>
-                  <span className="text-sm text-slate-300 font-medium">
+                  <span className="text-xs lg:text-sm text-slate-300 font-semibold">
                     {new Date(txn.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               </div>
 
-              {/* Transaction Lines */}
-              <div className="overflow-x-auto">
+              {/* Transaction Lines - Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-800/30">
-                      <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3 w-20">Direction</th>
-                      <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3">Item</th>
-                      <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Booked as</th>
-                      <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3 w-28">Amount (FMV)</th>
-                      <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3 w-28">Cost Basis</th>
-                      <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Realized G/L</th>
+                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-24">Direction</th>
+                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3">Item</th>
+                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Booked as</th>
+                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Amount (FMV)</th>
+                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Cost Basis</th>
+                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-36">Realized G/L</th>
                     </tr>
                   </thead>
                   <tbody>
                     {txn.lines.map((line, idx) => {
                       const isProfit = (line.realizedGainLoss || 0) >= 0;
                       return (
-                        <tr key={idx} className="border-b border-slate-800/20 last:border-b-0 hover:bg-slate-800/20 transition-colors">
+                        <tr key={idx} className="border-b border-slate-800/20 last:border-b-0 hover:bg-white/5 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               {line.direction === 'OUT' ? (
                                 <ArrowUp className="text-rose-400" size={16} />
                               ) : (
-                                <ArrowDown className="text-emerald-400" size={16} />
+                                <ArrowDown className="text-crypto-lime" size={16} />
                               )}
-                              <span className={`text-xs font-semibold ${line.direction === 'OUT' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              <span className={`text-xs font-bold ${line.direction === 'OUT' ? 'text-rose-400' : 'text-crypto-lime'}`}>
                                 {line.direction}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-sm text-slate-300">{line.item}</span>
+                            <span className="text-sm text-white">{line.item}</span>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-slate-400">{line.bookedAs}</span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="font-mono text-sm text-white">
+                            <span className="font-mono text-sm font-semibold text-white">
                               {symbol}{line.amountFMV.toLocaleString()}
                             </span>
                           </td>
@@ -182,8 +182,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                           <td className="px-4 py-3 text-right">
                             {line.realizedGainLoss !== undefined ? (
                               <div className="flex items-center justify-end gap-1.5">
-                                {isProfit ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-rose-400" />}
-                                <span className={`font-mono text-sm font-semibold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {isProfit ? <TrendingUp size={14} className="text-crypto-lime" /> : <TrendingDown size={14} className="text-rose-400" />}
+                                <span className={`font-mono text-sm font-bold ${isProfit ? 'text-crypto-lime' : 'text-rose-400'}`}>
                                   {isProfit ? '+' : ''}{symbol}{Math.abs(line.realizedGainLoss).toLocaleString()}
                                 </span>
                               </div>
@@ -196,6 +196,67 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                     })}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Transaction Lines - Mobile Card View */}
+              <div className="lg:hidden">
+                {txn.lines.map((line, idx) => {
+                  const isProfit = (line.realizedGainLoss || 0) >= 0;
+                  return (
+                    <div key={idx} className="p-4 border-b border-slate-800/20 last:border-b-0 space-y-3">
+                      {/* Direction and Item */}
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {line.direction === 'OUT' ? (
+                            <ArrowUp className="text-rose-400" size={18} />
+                          ) : (
+                            <ArrowDown className="text-crypto-lime" size={18} />
+                          )}
+                          <span className={`text-xs font-bold ${line.direction === 'OUT' ? 'text-rose-400' : 'text-crypto-lime'}`}>
+                            {line.direction}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-white font-medium leading-snug">{line.item}</p>
+                          <p className="text-xs text-slate-400 mt-1">{line.bookedAs}</p>
+                        </div>
+                      </div>
+
+                      {/* Financial Details */}
+                      <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-800/30">
+                        <div>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Amount (FMV)</p>
+                          <p className="font-mono text-sm font-semibold text-white">
+                            {symbol}{line.amountFMV.toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Cost Basis</p>
+                          {line.costBasis !== undefined ? (
+                            <p className="font-mono text-sm text-slate-400">
+                              {symbol}{line.costBasis.toLocaleString()}
+                            </p>
+                          ) : (
+                            <p className="text-slate-600">—</p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Realized G/L</p>
+                          {line.realizedGainLoss !== undefined ? (
+                            <div className="flex items-center gap-1">
+                              {isProfit ? <TrendingUp size={12} className="text-crypto-lime" /> : <TrendingDown size={12} className="text-rose-400" />}
+                              <p className={`font-mono text-sm font-bold ${isProfit ? 'text-crypto-lime' : 'text-rose-400'}`}>
+                                {isProfit ? '+' : ''}{symbol}{Math.abs(line.realizedGainLoss).toLocaleString()}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-slate-600">—</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

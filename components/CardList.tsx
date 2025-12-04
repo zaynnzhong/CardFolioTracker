@@ -158,15 +158,15 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        {/* Tab Navigation */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1 bg-slate-900/60 backdrop-blur-sm border border-slate-800/50 rounded-lg p-1">
+      <div className="space-y-4">
+        {/* Header with Tab Navigation */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 glass-card backdrop-blur-sm border border-white/10 rounded-xl p-1">
             <button
               onClick={() => setActiveTab('holdings')}
-              className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === 'holdings'
-                  ? 'bg-emerald-500/10 text-emerald-400'
+                  ? 'bg-crypto-lime/20 text-crypto-lime'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -174,9 +174,9 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
             </button>
             <button
               onClick={() => setActiveTab('sold')}
-              className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === 'sold'
-                  ? 'bg-emerald-500/10 text-emerald-400'
+                  ? 'bg-crypto-lime/20 text-crypto-lime'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -185,15 +185,15 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
           </div>
         </div>
 
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-white text-lg lg:text-xl font-bold">
+        <div className="flex justify-between items-center">
+          <h3 className="text-white text-xl lg:text-2xl font-bold">
             {activeTab === 'holdings' ? 'Holdings' : 'Sold Cards'}
           </h3>
           <div className="flex items-center gap-3">
             <span className="text-slate-400 text-sm font-medium">{filteredAndSortedCards.length} cards {cardGroups.filter(g => g.isBulkGroup).length > 0 && `(${cardGroups.length} entries)`}</span>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-lg transition-colors ${showFilters ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+              className={`p-2 rounded-lg transition-colors ${showFilters ? 'bg-crypto-lime/10 text-crypto-lime' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               <Filter size={18} />
             </button>
@@ -201,7 +201,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
         </div>
 
         {showFilters && (
-          <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 mb-3 lg:flex lg:gap-4 space-y-3 lg:space-y-0">
+          <div className="glass-card backdrop-blur-sm border border-white/10 rounded-xl p-4 lg:flex lg:gap-4 space-y-3 lg:space-y-0">
             <div className="flex-1">
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 block">
                 Filter by Player
@@ -209,7 +209,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
               <select
                 value={filterPlayer}
                 onChange={(e) => setFilterPlayer(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
               >
                 <option value="">All Players</option>
                 {uniquePlayers.map(player => (
@@ -225,7 +225,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
               >
                 <option value="price-high">Price: High to Low</option>
                 <option value="price-low">Price: Low to High</option>

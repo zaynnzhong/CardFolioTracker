@@ -312,13 +312,13 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative bg-slate-950 text-slate-200 font-sans overflow-hidden flex">
+    <div className="min-h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
 
       {/* Sidebar Navigation - Desktop Only */}
-      <aside className="hidden lg:flex lg:flex-col w-64 bg-slate-900/50 border-r border-slate-800/50 backdrop-blur-xl fixed left-0 top-0 bottom-0 z-40">
+      <aside className="hidden lg:flex lg:flex-col w-64 bg-black/95 border-r border-white/10 backdrop-blur-xl fixed left-0 top-0 bottom-0 z-40">
         {/* Logo */}
-        <div className="p-6 border-b border-slate-800/50">
-          <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-lg" style={{ width: '140px', height: 'auto' }} />
+        <div className="p-6 border-b border-white/10">
+          <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-2xl" style={{ width: '140px', height: 'auto' }} />
         </div>
 
         {/* Navigation Items */}
@@ -326,57 +326,57 @@ export default function App() {
           <div className="space-y-2">
             <button
               onClick={() => setActiveTab('portfolio')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
                 activeTab === 'portfolio'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <Home size={20} />
-              <span className="font-medium">Portfolio</span>
+              <span>Portfolio</span>
             </button>
 
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
                 activeTab === 'analytics'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <BarChart3 size={20} />
-              <span className="font-medium">Analytics</span>
+              <span>Analytics</span>
             </button>
 
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
                 activeTab === 'transactions'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <Receipt size={20} />
-              <span className="font-medium">Transactions</span>
+              <span>Transactions</span>
             </button>
 
             <div className="pt-4 space-y-3">
               <button
                 onClick={() => { setEditingCard(null); setIsFormOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-all"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl crypto-gradient text-black font-bold transition-all hover:scale-105 glow-lime"
               >
                 <Plus size={20} />
                 <span>Add Card</span>
               </button>
 
               {/* Currency Toggle */}
-              <div className="bg-slate-900/40 rounded-lg p-1 border border-slate-800/50">
+              <div className="glass-card rounded-xl p-1 border border-white/10">
                 <div className="grid grid-cols-2 gap-1">
                   <button
                     onClick={() => setDisplayCurrency('USD')}
-                    className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
+                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
                       displayCurrency === 'USD'
-                        ? 'bg-slate-700 text-white'
+                        ? 'bg-crypto-lime text-black'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -384,9 +384,9 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setDisplayCurrency('CNY')}
-                    className={`px-3 py-2 rounded-md text-sm font-semibold transition-all ${
+                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
                       displayCurrency === 'CNY'
-                        ? 'bg-slate-700 text-white'
+                        ? 'bg-crypto-lime text-black'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -398,7 +398,7 @@ export default function App() {
           </div>
 
           {/* Bottom Section - Export CSV and User Profile */}
-          <div className="mt-auto pt-4 border-t border-slate-800/50">
+          <div className="mt-auto pt-4 border-t border-white/10">
             <div className="flex items-center gap-2 px-4 py-3">
               {/* Export CSV Button */}
               <button
@@ -413,13 +413,13 @@ export default function App() {
               <div className="relative">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
-                  className="flex items-center justify-center p-1 rounded-lg hover:bg-slate-800/50 transition-all"
+                  className="flex items-center justify-center p-1 rounded-lg hover:bg-white/5 transition-all"
                 >
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-emerald-500/30" />
+                    <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-crypto-lime/50" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
-                      <User size={20} className="text-emerald-400" />
+                    <div className="w-10 h-10 rounded-full bg-crypto-lime/20 flex items-center justify-center border-2 border-crypto-lime/50">
+                      <User size={20} className="text-crypto-lime" />
                     </div>
                   )}
                 </button>
@@ -452,17 +452,17 @@ export default function App() {
       {/* Main Content Area - Full Width on Desktop */}
       <div className="flex-1 lg:ml-64">
         {/* Top Bar - Mobile Only */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900/80 backdrop-blur-xl z-30 px-4 py-3 flex justify-between items-center border-b border-slate-800/50">
+        <header className="lg:hidden fixed top-0 left-0 right-0 glass-card backdrop-blur-xl z-30 px-4 py-3 flex justify-between items-center border-b border-white/10">
           <img src="/logo.png" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
           <div className="flex items-center gap-2">
             {/* Currency Toggle - Mobile */}
-            <div className="bg-slate-900/60 rounded-lg p-0.5 border border-slate-800/50">
+            <div className="glass-card rounded-lg p-0.5 border border-white/10">
               <div className="flex gap-0.5">
                 <button
                   onClick={() => setDisplayCurrency('USD')}
-                  className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
                     displayCurrency === 'USD'
-                      ? 'bg-slate-700 text-white'
+                      ? 'bg-crypto-lime text-black'
                       : 'text-slate-400'
                   }`}
                 >
@@ -470,9 +470,9 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setDisplayCurrency('CNY')}
-                  className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
                     displayCurrency === 'CNY'
-                      ? 'bg-slate-700 text-white'
+                      ? 'bg-crypto-lime text-black'
                       : 'text-slate-400'
                   }`}
                 >
@@ -489,10 +489,10 @@ export default function App() {
                 className="p-1"
               >
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-emerald-500/30" />
+                  <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-crypto-lime/50" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500/30">
-                    <User size={16} className="text-emerald-400" />
+                  <div className="w-8 h-8 rounded-full bg-crypto-lime/20 flex items-center justify-center border-2 border-crypto-lime/50">
+                    <User size={16} className="text-crypto-lime" />
                   </div>
                 )}
               </button>
@@ -521,10 +521,27 @@ export default function App() {
         </header>
 
         {/* Main Scrollable Area - Full Width */}
-        <main className="relative pt-16 lg:pt-0 pb-32 lg:pb-0 min-h-screen bg-slate-950">
+        <main className="relative pt-16 lg:pt-0 pb-32 lg:pb-0 min-h-screen bg-crypto-dark">
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
               <DashboardStats stats={stats} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+
+              {/* Transactions Button - Mobile Only */}
+              <button
+                onClick={() => setActiveTab('transactions')}
+                className="lg:hidden w-full flex items-center justify-between glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4 hover:bg-white/5 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-crypto-lime/10 rounded-lg group-hover:bg-crypto-lime/20 transition-colors">
+                    <Receipt size={20} className="text-crypto-lime" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-semibold text-sm">Transaction History</p>
+                    <p className="text-slate-400 text-xs">View all buys, sells & trades</p>
+                  </div>
+                </div>
+                <ArrowRightLeft size={18} className="text-slate-500 group-hover:text-crypto-lime transition-colors" />
+              </button>
 
               {/* Owned Assets */}
               <CardList cards={portfolioCards} onSelect={setSelectedCard} displayCurrency={displayCurrency} convertPrice={convertPrice} />
@@ -721,6 +738,7 @@ export default function App() {
           card={soldModalCard}
           onSave={handleMarkAsSold}
           onCancel={() => setSoldModalCard(null)}
+          convertPrice={convertPrice}
         />
       )}
 

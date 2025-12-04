@@ -7,18 +7,35 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Prism Portfolio</title>
     <link rel="icon" type="image/png" href="/prism-fav.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
+              crypto: {
+                lime: '#9aea62',
+                purple: '#46288c',
+                dark: '#070506',
+                darker: '#000000',
+              },
               slate: {
-                950: '#020617', // Deeper black for investment app feel
+                950: '#020617',
               }
             },
             fontFamily: {
+              sans: ['Manrope', 'ui-sans-serif', 'system-ui'],
+              body: ['Inter', 'ui-sans-serif', 'system-ui'],
               mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            },
+            borderRadius: {
+              '2xl': '24px',
+            },
+            backdropBlur: {
+              'xs': '2px',
             }
           }
         }
@@ -35,7 +52,33 @@
       }
       body {
         -webkit-tap-highlight-color: transparent;
-        background-color: #000000;
+        background: linear-gradient(180deg, #000000 0%, #070506 100%);
+        min-height: 100vh;
+      }
+
+      /* Glassmorphic card effect */
+      .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+      }
+
+      /* Crypto gradient accents */
+      .crypto-gradient {
+        background: linear-gradient(135deg, #9aea62 0%, #6bc96f 100%);
+      }
+
+      .crypto-gradient-radial {
+        background: radial-gradient(circle at top right, rgba(154, 234, 98, 0.05) 0%, rgba(0, 0, 0, 0.95) 50%);
+      }
+
+      /* Glow effects */
+      .glow-lime {
+        box-shadow: 0 0 20px rgba(154, 234, 98, 0.3);
+      }
+
+      .glow-purple {
+        box-shadow: 0 0 20px rgba(70, 40, 140, 0.4);
       }
     </style>
   <script type="importmap">
@@ -51,7 +94,7 @@
 }
 </script>
 </head>
-  <body class="bg-black text-slate-200 antialiased selection:bg-emerald-500/30">
+  <body class="bg-crypto-darker text-slate-100 antialiased selection:bg-crypto-lime/30 font-sans">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
