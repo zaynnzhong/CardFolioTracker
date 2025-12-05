@@ -20,6 +20,70 @@ const imagekit = new ImageKit({
     urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || '',
 });
 
+// Separate handler for ImageKit upload (uses formidable, no default body parser)
+async function handleImageKitUpload(req: VercelRequest, res: VercelResponse) {
+    console.log('[API] POST /imagekit/upload');
+
+    // Verify authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    const decodedToken = await verifyAuthToken(token);
+
+    if (!decodedToken) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    }
+
+    try {
+        // Parse multipart form data
+        const form = formidable({ multiples: false });
+
+        const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
+            form.parse(req as any, (err, fields, files) => {
+                if (err) reject(err);
+                else resolve([fields, files]);
+            });
+        });
+
+        const file = Array.isArray(files.file) ? files.file[0] : files.file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        const fileName = (Array.isArray(fields.fileName) ? fields.fileName[0] : fields.fileName) || file.originalFilename || 'upload';
+
+        // Read file buffer
+        const fileBuffer = fs.readFileSync(file.filepath);
+
+        // Upload to ImageKit
+        const result = await imagekit.upload({
+            file: fileBuffer,
+            fileName: fileName,
+            folder: '/cards',
+            useUniqueFileName: true,
+            tags: ['card-image']
+        });
+
+        console.log('[API] Image uploaded to ImageKit:', result.fileId);
+
+        // Clean up temp file
+        fs.unlinkSync(file.filepath);
+
+        return res.status(200).json({
+            url: result.url,
+            fileId: result.fileId,
+            name: result.name
+        });
+    } catch (error: any) {
+        console.error('[API] ImageKit upload error:', error);
+        return res.status(500).json({ error: 'Failed to upload image', message: error.message });
+    }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         // Enable CORS
@@ -35,6 +99,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const path = url?.replace('/api', '') || '';
 
         console.log(`[API] ${method} ${path}`);
+
+        // Handle ImageKit upload separately (needs formidable for multipart)
+        if (method === 'POST' && path === '/imagekit/upload') {
+            return handleImageKitUpload(req, res);
+        }
 
         // Verify authentication
         const authHeader = req.headers.authorization;
@@ -101,52 +170,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 console.log('[API] GET /imagekit/auth');
                 const authenticationParameters = imagekit.getAuthenticationParameters();
                 return res.status(200).json(authenticationParameters);
-            }
-
-            // POST /api/imagekit/upload
-            if (method === 'POST' && path === '/imagekit/upload') {
-                console.log('[API] POST /imagekit/upload');
-
-                // Parse multipart form data
-                const form = formidable({ multiples: false });
-
-                const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
-                    form.parse(req as any, (err, fields, files) => {
-                        if (err) reject(err);
-                        else resolve([fields, files]);
-                    });
-                });
-
-                const file = Array.isArray(files.file) ? files.file[0] : files.file;
-
-                if (!file) {
-                    return res.status(400).json({ error: 'No file provided' });
-                }
-
-                const fileName = (Array.isArray(fields.fileName) ? fields.fileName[0] : fields.fileName) || file.originalFilename || 'upload';
-
-                // Read file buffer
-                const fileBuffer = fs.readFileSync(file.filepath);
-
-                // Upload to ImageKit
-                const result = await imagekit.upload({
-                    file: fileBuffer,
-                    fileName: fileName,
-                    folder: '/cards',
-                    useUniqueFileName: true,
-                    tags: ['card-image']
-                });
-
-                console.log('[API] Image uploaded to ImageKit:', result.fileId);
-
-                // Clean up temp file
-                fs.unlinkSync(file.filepath);
-
-                return res.status(200).json({
-                    url: result.url,
-                    fileId: result.fileId,
-                    name: result.name
-                });
             }
 
             console.log('[API] Route not found');
