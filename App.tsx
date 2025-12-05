@@ -685,9 +685,7 @@ export default function App() {
                 </p>
                 <p className="text-lg font-semibold text-white mb-2">{selectedCard.player}</p>
                 {selectedCard.graded && (
-                  <span className="px-2 py-0.5 bg-emerald-500/10 text-xs font-bold rounded border border-emerald-500/20">
-                    <GradeTag card={selectedCard} />
-                  </span>
+                  <GradeTag card={selectedCard} />
                 )}
               </div>
             </div>

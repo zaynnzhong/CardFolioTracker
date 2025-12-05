@@ -75,7 +75,7 @@ export const GradingInput: React.FC<GradingInputProps> = ({
                     onGradeTypeChange('card-only');
                   }
                 }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               >
                 <option value="PSA">PSA</option>
                 <option value="BGS">BGS</option>
@@ -90,7 +90,7 @@ export const GradingInput: React.FC<GradingInputProps> = ({
               <select
                 value={gradeType}
                 onChange={(e) => onGradeTypeChange(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               >
                 {gradeCompany === 'PSA' && (
                   <>
@@ -124,7 +124,7 @@ export const GradingInput: React.FC<GradingInputProps> = ({
                         type="text"
                         value={gradeValue}
                         onChange={(e) => onGradeValueChange(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                         placeholder="10"
                       />
                     </div>
@@ -134,7 +134,7 @@ export const GradingInput: React.FC<GradingInputProps> = ({
                         type="text"
                         value={autoGrade}
                         onChange={(e) => onAutoGradeChange(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                         placeholder="10"
                       />
                     </div>
@@ -146,7 +146,7 @@ export const GradingInput: React.FC<GradingInputProps> = ({
                       type="text"
                       value={autoGrade}
                       onChange={(e) => onAutoGradeChange(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                       placeholder="10"
                     />
                   </div>
@@ -157,7 +157,7 @@ export const GradingInput: React.FC<GradingInputProps> = ({
                       type="text"
                       value={gradeValue}
                       onChange={(e) => onGradeValueChange(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                       placeholder="10"
                     />
                   </div>
@@ -171,12 +171,38 @@ export const GradingInput: React.FC<GradingInputProps> = ({
                   type="text"
                   value={certNumber}
                   onChange={(e) => onCertNumberChange(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                   placeholder="Optional"
                 />
               </div>
             )}
           </div>
+
+          {/* BGS Black Label Option */}
+          {gradeCompany === 'BGS' && gradeValue === '10' && gradeType !== 'authentic' && gradeType !== 'dna-auth' && (
+            <div className="mt-3 p-3 bg-gradient-to-r from-amber-500/10 to-black/30 border border-amber-500/30 rounded-lg">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={gradeValue?.toLowerCase().includes('black')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onGradeValueChange('Black Label 10');
+                    } else {
+                      onGradeValueChange('10');
+                    }
+                  }}
+                  className="w-4 h-4 bg-slate-900 border-2 border-amber-500 rounded text-amber-500 focus:ring-2 focus:ring-amber-500 focus:ring-offset-0"
+                />
+                <span className="text-sm font-semibold text-amber-400">
+                  BGS Black Label (Pristine 10)
+                </span>
+              </label>
+              <p className="text-xs text-slate-400 mt-1 ml-6">
+                The highest grade achievable - all four subgrades must be 10
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -120,7 +120,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
                 <select
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value as Platform)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                 >
                   {Object.values(Platform).map(p => (
                     <option key={p} value={p}>{p}</option>
@@ -136,7 +136,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
                   type="date"
                   value={priceDate}
                   onChange={(e) => setPriceDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
                 />
               </div>
             </div>
@@ -150,7 +150,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
                 value={parallel}
                 onChange={(e) => setParallel(e.target.value)}
                 placeholder="e.g., Silver, Purple Ice"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               />
             </div>
 
@@ -163,7 +163,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
                 value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
                 placeholder="e.g., 15/99, 1/1"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               />
             </div>
 
@@ -191,7 +191,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as Currency)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none h-[58px]"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none h-[58px]"
                 >
                   <option value="USD">USD ($)</option>
                   <option value="CNY">CNY (¥)</option>
@@ -208,7 +208,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
                   value={newPrice}
                   onChange={(e) => setNewPrice(e.target.value)}
                   placeholder="0.00"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-2xl font-mono text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-2xl font-mono text-white focus:ring-0 focus:border-slate-500 outline-none"
                 />
               </div>
             </div>

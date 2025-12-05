@@ -224,7 +224,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
               <select
                 value={filterPlayer}
                 onChange={(e) => setFilterPlayer(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               >
                 <option value="">All Players</option>
                 {uniquePlayers.map(player => (
@@ -240,7 +240,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               >
                 <option value="price-high">Price: High to Low</option>
                 <option value="price-low">Price: Low to High</option>
@@ -340,9 +340,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         {card.player}
                       </span>
                       {!group.isBulkGroup && card.graded && (
-                        <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                          <GradeTag card={card} />
-                        </span>
+                        <GradeTag card={card} />
                       )}
                       {isBreakOrSelfRip && (
                         <span className="text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md font-semibold">

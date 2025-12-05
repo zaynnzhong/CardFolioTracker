@@ -86,9 +86,7 @@ export const WatchList: React.FC<WatchListProps> = ({ cards, onSelect, onConvert
 
                   {/* Grade badge and Prices in one row */}
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] font-semibold">
-                      <GradeTag card={card} />
-                    </span>
+                    <GradeTag card={card} />
 
                     {/* Divider */}
                     <span className="text-slate-700 text-sm">|</span>

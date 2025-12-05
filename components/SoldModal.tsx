@@ -80,7 +80,7 @@ export const SoldModal: React.FC<SoldModalProps> = ({ card, onSave, onCancel, co
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
               >
                 <option value="USD">USD ($)</option>
                 <option value="CNY">CNY (¥)</option>
@@ -91,7 +91,7 @@ export const SoldModal: React.FC<SoldModalProps> = ({ card, onSave, onCancel, co
                 required
                 value={soldPrice}
                 onChange={(e) => setSoldPrice(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg font-mono text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg font-mono text-white focus:ring-0 focus:border-slate-500 outline-none"
                 placeholder="0.00"
                 autoFocus
               />
