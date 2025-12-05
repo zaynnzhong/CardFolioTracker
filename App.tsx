@@ -15,6 +15,9 @@ import { TransactionsView } from './components/TransactionsView';
 import { BottomNav } from './components/BottomNav';
 import { LandingPage } from './components/LandingPage';
 import { GradeTag } from './components/GradeTag';
+import { PWAUpdateNotification } from './components/PWAUpdateNotification';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
@@ -835,6 +838,11 @@ export default function App() {
           convertPrice={convertPrice}
         />
       )}
+
+      {/* PWA Components */}
+      <PWAUpdateNotification />
+      <PWAInstallPrompt />
+      <OfflineIndicator />
     </div>
   );
 }
