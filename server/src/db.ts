@@ -23,7 +23,7 @@ export interface Card {
     soldVia?: 'sale' | 'trade';
     graded?: boolean;
     gradeCompany?: string;
-    gradeValue?: number;
+    gradeValue?: string;
     autoGrade?: string;
     certNumber?: string;
     notes?: string;
@@ -71,7 +71,7 @@ const CardSchema = new Schema({
     soldVia: { type: String, enum: ['sale', 'trade'] },
     graded: Boolean,
     gradeCompany: String,
-    gradeValue: Number,
+    gradeValue: String,
     autoGrade: String,
     certNumber: String,
     notes: String,
@@ -133,6 +133,14 @@ export const db = {
         await connectToDb();
         // Ensure userId is set
         const cardWithUser = { ...card, userId };
+
+        // Explicitly convert undefined to null for MongoDB
+        if (cardWithUser.gradeValue === undefined) {
+            (cardWithUser as any).gradeValue = null;
+        }
+        if (cardWithUser.autoGrade === undefined) {
+            (cardWithUser as any).autoGrade = null;
+        }
 
         // Upsert: Update if exists for this user, Insert if not
         const result = await CardModel.findOneAndUpdate(

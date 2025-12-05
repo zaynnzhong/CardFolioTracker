@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Sport } from '../types';
 import { TrendingUp, TrendingDown, Edit2, Trash2, Activity, CheckCircle2, Image as ImageIcon, StickyNote } from 'lucide-react';
+import { GradeTag } from './GradeTag';
 
 interface CardTableProps {
   cards: Card[];
@@ -93,13 +94,9 @@ export const CardTable: React.FC<CardTableProps> = ({ cards, onUpdatePrice, onEd
                          {card.serialNumber}
                        </span>
                     )}
-                    {card.graded ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-600 font-mono">
-                        {card.gradeCompany} {card.gradeValue}
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-500 border border-slate-700">RAW</span>
-                    )}
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 border border-slate-600 font-mono">
+                      <GradeTag card={card} />
+                    </span>
                   </div>
                 </td>
                 <td className="p-4 text-right">

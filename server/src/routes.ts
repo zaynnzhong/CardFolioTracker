@@ -45,11 +45,16 @@ router.get('/cards', authMiddleware, async (req, res) => {
 
 // Save/Update card (user-specific)
 router.post('/cards', authMiddleware, async (req, res) => {
-    console.log('[Local API] POST /cards', req.body);
+    console.log('[Local API] POST /cards - grading info:', {
+        graded: req.body.graded,
+        gradeCompany: req.body.gradeCompany,
+        gradeValue: req.body.gradeValue,
+        autoGrade: req.body.autoGrade
+    });
     try {
         const userId = (req as any).userId;
         const card = await db.saveCard(req.body, userId);
-        console.log('[Local API] Card saved:', card.id);
+        console.log('[Local API] Card saved:', card.id, 'with gradeValue:', card.gradeValue, 'autoGrade:', card.autoGrade);
         res.json(card);
     } catch (error: any) {
         console.error('[Local API] Error saving card:', error);

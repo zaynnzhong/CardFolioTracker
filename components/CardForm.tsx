@@ -331,13 +331,18 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       }
     }
 
+    const finalGradeValue = graded && gradeType !== 'authentic' && gradeType !== 'dna-auth' ? gradeValue : undefined;
+    const finalAutoGrade = graded && gradeType === 'card-auto' ? autoGrade : undefined;
+
     console.log('[CardForm] Save Debug:', {
       graded,
       gradeType,
       gradeCompany,
       gradeValue,
       autoGrade,
-      willSaveAutoGrade: graded && gradeType === 'card-auto' ? autoGrade : undefined
+      finalGradeValue,
+      finalAutoGrade,
+      willExcludeGradeValue: gradeType === 'authentic' || gradeType === 'dna-auth'
     });
 
     const newCard: Card = {
@@ -354,8 +359,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       serialNumber,
       graded,
       gradeCompany: graded ? gradeCompany : undefined,
-      gradeValue: graded ? gradeValue : undefined,
-      autoGrade: graded && gradeType === 'card-auto' ? autoGrade : undefined,
+      gradeValue: finalGradeValue,
+      autoGrade: finalAutoGrade,
       certNumber: graded ? certNumber : undefined,
       currency,
       purchasePrice: pPrice,

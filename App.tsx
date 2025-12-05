@@ -14,6 +14,7 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { TransactionsView } from './components/TransactionsView';
 import { BottomNav } from './components/BottomNav';
 import { LandingPage } from './components/LandingPage';
+import { GradeTag } from './components/GradeTag';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
@@ -615,8 +616,8 @@ export default function App() {
                 </p>
                 <p className="text-lg font-semibold text-white mb-2">{selectedCard.player}</p>
                 {selectedCard.graded && (
-                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded border border-emerald-500/20">
-                    {selectedCard.gradeCompany} {selectedCard.gradeValue}
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-xs font-bold rounded border border-emerald-500/20">
+                    <GradeTag card={selectedCard} />
                   </span>
                 )}
               </div>

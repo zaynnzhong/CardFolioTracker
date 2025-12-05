@@ -3,6 +3,7 @@ import { Card, Sport, Currency } from '../types';
 import { TrendingUp, TrendingDown, Image as ImageIcon, ChevronRight, CheckCircle2, Sparkles, Filter, ArrowUpDown, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import { PillTabs } from './PillTabs';
 import { FocusCards } from './FocusCards';
+import { GradeTag } from './GradeTag';
 
 interface CardListProps {
   cards: Card[];
@@ -329,8 +330,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         {card.player}
                       </span>
                       {!group.isBulkGroup && card.graded && (
-                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-semibold">
-                          {card.gradeCompany} {card.gradeValue}{card.autoGrade ? `/${card.autoGrade}` : ''}
+                        <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                          <GradeTag card={card} />
                         </span>
                       )}
                       {isBreakOrSelfRip && (
@@ -389,7 +390,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       <span className="text-slate-300 text-xs">
                         {groupCard.parallel && <span className="text-slate-400">{groupCard.parallel}</span>}
                         {groupCard.serialNumber && <span className="ml-2 text-slate-500">#{groupCard.serialNumber}</span>}
-                        {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}{groupCard.autoGrade ? `/${groupCard.autoGrade}` : ''}</span>}
+                        {groupCard.graded && <span className="ml-2"><GradeTag card={groupCard} /></span>}
                       </span>
                     </div>
 
@@ -520,8 +521,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                           {card.serialNumber && ` • #${card.serialNumber}`}
                         </div>
                         {card.graded && (
-                          <div className="text-xs text-emerald-400 mt-1 font-semibold">
-                            {card.gradeCompany} {card.gradeValue}{card.autoGrade ? `/${card.autoGrade}` : ''}
+                          <div className="text-xs mt-1">
+                            <GradeTag card={card} className="font-semibold" />
                           </div>
                         )}
                         {isBreakOrSelfRip && (
@@ -643,7 +644,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                             <div className="text-xs text-slate-500">
                               {groupCard.parallel && <span className="text-slate-400">{groupCard.parallel}</span>}
                               {groupCard.serialNumber && <span className="ml-2 text-slate-500">#{groupCard.serialNumber}</span>}
-                              {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}{groupCard.autoGrade ? `/${groupCard.autoGrade}` : ''}</span>}
+                              {groupCard.graded && <span className="ml-2"><GradeTag card={groupCard} /></span>}
                             </div>
                           </div>
                         </td>
