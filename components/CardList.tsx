@@ -10,6 +10,7 @@ interface CardListProps {
   onSelect: (card: Card) => void;
   displayCurrency: Currency;
   convertPrice: (price: number, from: Currency, to: Currency) => number;
+  onTabChange?: (tab: 'holdings' | 'sold') => void;
 }
 
 type SortOption = 'price-high' | 'price-low' | 'trend-up' | 'trend-down';
@@ -20,13 +21,19 @@ interface CardGroup {
   isBulkGroup: boolean;
 }
 
-export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurrency, convertPrice }) => {
+export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurrency, convertPrice, onTabChange }) => {
   const [filterPlayer, setFilterPlayer] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<'holdings' | 'sold'>('holdings');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
+
+  // Notify parent when tab changes
+  const handleTabChange = (tab: 'holdings' | 'sold') => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
 
   // Get unique players for filter dropdown
   const uniquePlayers = useMemo(() => {
@@ -37,6 +44,9 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
   // Filter and sort cards
   const filteredAndSortedCards = useMemo(() => {
     let filtered = [...cards];
+
+    // Exclude watchlist items from both tabs
+    filtered = filtered.filter(c => !c.watchlist);
 
     // Filter by tab (holdings or sold)
     filtered = filtered.filter(c => activeTab === 'holdings' ? !c.sold : c.sold);
@@ -167,7 +177,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
         <div className="flex items-center justify-between">
           <PillTabs
             activeTab={activeTab}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
           />
         </div>
 

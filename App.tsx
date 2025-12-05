@@ -34,6 +34,7 @@ export default function App() {
   const [analyzingCard, setAnalyzingCard] = useState<Card | null>(null);
   const [soldModalCard, setSoldModalCard] = useState<Card | null>(null);
   const [tradeModalCard, setTradeModalCard] = useState<Card | null>(null);
+  const [portfolioTab, setPortfolioTab] = useState<'holdings' | 'sold'>('holdings');
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function App() {
   }, [user, getIdToken]);
 
   const portfolioCards = cards.filter(c => !c.watchlist);
-  const watchlistCards = cards.filter(c => c.watchlist);
+  const watchlistCards = cards.filter(c => c.watchlist && !c.sold);
 
   // Currency conversion utility (1 USD = 7 CNY)
   const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
@@ -555,10 +556,16 @@ export default function App() {
               </button>
 
               {/* Owned Assets */}
-              <CardList cards={portfolioCards} onSelect={setSelectedCard} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+              <CardList
+                cards={portfolioCards}
+                onSelect={setSelectedCard}
+                displayCurrency={displayCurrency}
+                convertPrice={convertPrice}
+                onTabChange={setPortfolioTab}
+              />
 
-              {/* Watchlist Section */}
-              {watchlistCards.length > 0 && (
+              {/* Watchlist Section - Only show on Holdings tab */}
+              {watchlistCards.length > 0 && portfolioTab === 'holdings' && (
                 <WatchList
                   cards={watchlistCards}
                   onSelect={setSelectedCard}
