@@ -55,7 +55,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
         </div>
 
         {/* Right: Quick Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
           <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4 relative">
             <div className="flex flex-col">
               <div className="flex items-center gap-1 mb-1.5">

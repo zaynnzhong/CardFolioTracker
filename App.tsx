@@ -25,6 +25,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics' | 'transactions'>('portfolio');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+
+  // Check screen width
+  useEffect(() => {
+    const checkScreenWidth = () => {
+      setIsNarrowScreen(window.innerWidth < 1180);
+    };
+
+    checkScreenWidth();
+    window.addEventListener('resize', checkScreenWidth);
+    return () => window.removeEventListener('resize', checkScreenWidth);
+  }, []);
 
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -327,10 +340,20 @@ export default function App() {
     <div className="min-h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
 
       {/* Sidebar Navigation - Desktop Only */}
-      <aside className="hidden lg:flex lg:flex-col w-64 bg-black/95 border-r border-white/10 backdrop-blur-xl fixed left-0 top-0 bottom-0 z-40">
+      <aside
+        className={`hidden lg:flex lg:flex-col bg-black/95 border-r border-white/10 backdrop-blur-xl fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 ${
+          (isNarrowScreen && !sidebarHovered) ? 'w-20' : 'w-64'
+        }`}
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
+      >
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
-          <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-2xl" style={{ width: '140px', height: 'auto' }} />
+        <div className={`p-6 border-b border-white/10 transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'px-4' : ''}`}>
+          {(isNarrowScreen && !sidebarHovered) ? (
+            <img src="/prism-fav.png" alt="Prism Icon" className="object-contain drop-shadow-2xl" style={{ width: '40px', height: 'auto' }} />
+          ) : (
+            <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-2xl" style={{ width: '140px', height: 'auto' }} />
+          )}
         </div>
 
         {/* Navigation Items */}
@@ -338,131 +361,170 @@ export default function App() {
           <div className="space-y-2">
             <button
               onClick={() => setActiveTab('portfolio')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
+              className={`w-full flex items-center rounded-xl transition-all duration-300 font-semibold ${
                 activeTab === 'portfolio'
                   ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
             >
-              <Home size={20} />
-              <span>Portfolio</span>
+              <Home size={24} className="flex-shrink-0" />
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Portfolio</span>}
             </button>
 
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
+              className={`w-full flex items-center rounded-xl transition-all duration-300 font-semibold ${
                 activeTab === 'analytics'
                   ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
             >
-              <BarChart3 size={20} />
-              <span>Analytics</span>
+              <BarChart3 size={24} className="flex-shrink-0" />
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Analytics</span>}
             </button>
 
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
+              className={`w-full flex items-center rounded-xl transition-all duration-300 font-semibold ${
                 activeTab === 'transactions'
                   ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
             >
-              <Receipt size={20} />
-              <span>Transactions</span>
+              <Receipt size={24} className="flex-shrink-0" />
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Transactions</span>}
             </button>
 
             <div className="pt-4 space-y-3">
               <button
                 onClick={() => { setEditingCard(null); setIsFormOpen(true); }}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl crypto-gradient text-black font-bold transition-all hover:scale-105 glow-lime"
+                className={`w-full flex items-center justify-center rounded-xl crypto-gradient text-black font-bold transition-all duration-300 hover:scale-105 glow-lime ${
+                  (isNarrowScreen && !sidebarHovered) ? 'p-3' : 'gap-3 px-4 py-3'
+                }`}
               >
-                <Plus size={20} />
-                <span>Add Card</span>
+                <Plus size={24} className="flex-shrink-0" />
+                {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Add Card</span>}
               </button>
 
               {/* Currency Toggle */}
-              <div className="glass-card rounded-xl p-1 border border-white/10">
-                <div className="grid grid-cols-2 gap-1">
-                  <button
-                    onClick={() => setDisplayCurrency('USD')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
-                      displayCurrency === 'USD'
-                        ? 'bg-crypto-lime text-black'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    USD $
-                  </button>
-                  <button
-                    onClick={() => setDisplayCurrency('CNY')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
-                      displayCurrency === 'CNY'
-                        ? 'bg-crypto-lime text-black'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    CNY ¥
-                  </button>
+              {(!isNarrowScreen || sidebarHovered) ? (
+                <div className="glass-card rounded-xl p-1 border border-white/10">
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={() => setDisplayCurrency('USD')}
+                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                        displayCurrency === 'USD'
+                          ? 'bg-crypto-lime text-black'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      USD $
+                    </button>
+                    <button
+                      onClick={() => setDisplayCurrency('CNY')}
+                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                        displayCurrency === 'CNY'
+                          ? 'bg-crypto-lime text-black'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      CNY ¥
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <button
+                  onClick={() => setDisplayCurrency(displayCurrency === 'USD' ? 'CNY' : 'USD')}
+                  className="w-full flex items-center justify-center p-3 rounded-xl glass-card border border-white/10 text-crypto-lime font-bold transition-all hover:bg-white/5"
+                >
+                  <DollarSign size={24} className="flex-shrink-0" />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Bottom Section - Export CSV and User Profile */}
           <div className="mt-auto pt-4 border-t border-white/10">
-            <div className="flex items-center gap-2 px-4 py-3">
-              {/* Export CSV Button */}
-              <button
-                onClick={exportToCSV}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg hover:bg-slate-800/50 transition-all text-slate-300"
-              >
-                <Download size={18} />
-                <span className="text-sm font-medium">Export CSV</span>
-              </button>
+            {(!isNarrowScreen || sidebarHovered) ? (
+              <div className="flex items-center gap-2 px-4 py-3">
+                {/* Export CSV Button */}
+                <button
+                  onClick={exportToCSV}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-slate-800/50 transition-all text-slate-300"
+                >
+                  <Download size={20} className="flex-shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap overflow-hidden">Export CSV</span>
+                </button>
 
-              {/* User Profile */}
-              <div className="relative">
+                {/* User Profile */}
+                <div className="relative flex-shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                    className="flex items-center justify-center rounded-lg hover:bg-white/5 transition-all"
+                  >
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-crypto-lime/50 object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-crypto-lime/20 flex items-center justify-center border-2 border-crypto-lime/50">
+                        <User size={24} className="text-crypto-lime" />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Desktop Dropdown Menu */}
+                  {showUserMenu && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute bottom-full right-0 mb-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
+                    >
+                      <div className="px-4 py-3 border-b border-slate-800/50">
+                        <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
+                        <p className="text-slate-500 text-xs truncate">{user.email}</p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
+                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
+                      >
+                        <LogOut size={20} />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3 px-2 py-3">
+                {/* Export CSV Icon */}
+                <button
+                  onClick={exportToCSV}
+                  className="w-full flex items-center justify-center p-3 rounded-lg hover:bg-slate-800/50 transition-all text-slate-300"
+                  title="Export CSV"
+                >
+                  <Download size={24} className="flex-shrink-0" />
+                </button>
+
+                {/* User Profile Icon */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
-                  className="flex items-center justify-center p-1 rounded-lg hover:bg-white/5 transition-all"
+                  className="flex items-center justify-center rounded-lg hover:bg-white/5 transition-all"
+                  title={user.displayName || 'User menu'}
                 >
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-crypto-lime/50" />
+                    <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border-2 border-crypto-lime/50 object-cover" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-crypto-lime/20 flex items-center justify-center border-2 border-crypto-lime/50">
-                      <User size={20} className="text-crypto-lime" />
+                      <User size={24} className="text-crypto-lime" />
                     </div>
                   )}
                 </button>
-
-                {/* Desktop Dropdown Menu */}
-                {showUserMenu && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-full right-0 mb-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
-                  >
-                    <div className="px-4 py-3 border-b border-slate-800/50">
-                      <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
-                      <p className="text-slate-500 text-xs truncate">{user.email}</p>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
-                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
-                    >
-                      <LogOut size={18} />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                )}
               </div>
-            </div>
+            )}
           </div>
         </nav>
       </aside>
 
       {/* Main Content Area - Full Width on Desktop */}
-      <div className="flex-1 lg:ml-64">
+      <div className={`flex-1 transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Bar - Mobile Only */}
         <header className="lg:hidden fixed top-0 left-0 right-0 glass-card backdrop-blur-xl z-30 px-4 py-3 flex justify-between items-center border-b border-white/10">
           <img src="/logo.png" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
