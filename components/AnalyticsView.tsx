@@ -441,16 +441,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                   <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-4">
                     <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="lime">
                       <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Portfolio Value</Text>
-                      <Metric className="text-white font-extrabold">${portfolioStats.totalValue.toLocaleString()}</Metric>
+                      <Metric className="text-white font-extrabold">${portfolioStats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Metric>
                     </Card>
                     <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="blue">
                       <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Total Invested</Text>
-                      <Metric className="text-white font-extrabold">${portfolioStats.totalCost.toLocaleString()}</Metric>
+                      <Metric className="text-white font-extrabold">${portfolioStats.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Metric>
                     </Card>
                     <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor={portfolioStats.totalProfit >= 0 ? "lime" : "red"}>
                       <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Total P/L</Text>
                       <Metric className={portfolioStats.totalProfit >= 0 ? "text-crypto-lime font-extrabold" : "text-rose-400 font-extrabold"}>
-                        {portfolioStats.totalProfit >= 0 ? '+' : ''}${portfolioStats.totalProfit.toLocaleString()}
+                        {portfolioStats.totalProfit >= 0 ? '+' : ''}${portfolioStats.totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </Metric>
                       <Text className={portfolioStats.totalProfit >= 0 ? "text-crypto-lime/80 font-semibold" : "text-rose-400 font-semibold"}>
                         {portfolioStats.profitPercent >= 0 ? '+' : ''}{portfolioStats.profitPercent.toFixed(1)}%
@@ -459,7 +459,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                     <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="purple">
                       <Text className="text-slate-400 text-xs font-bold uppercase tracking-wide">Highest Asset</Text>
                       <Metric className="text-white font-extrabold">
-                        ${portfolioStats.highestValueCard?.currentValue.toLocaleString() || 0}
+                        ${portfolioStats.highestValueCard?.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0}
                       </Metric>
                       <Text className="text-slate-500 text-xs truncate font-medium">
                         {portfolioStats.highestValueCard?.player || '-'}
@@ -496,7 +496,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                         category="value"
                         index="name"
                         colors={COLORS}
-                        valueFormatter={(value) => `$${value.toLocaleString()}`}
+                        valueFormatter={(value) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         className="h-52"
                       />
                     </Card>
@@ -633,7 +633,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                   <Text className="text-slate-500 text-xs">{card.year} {card.brand}</Text>
                                   <div className="flex items-center gap-3 mt-1">
                                     <Text className="text-slate-600 text-xs">
-                                      Highest: ${card.highestOffer.toLocaleString()}
+                                      Highest: ${card.highestOffer.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </Text>
                                     <Text className="text-slate-600 text-xs">
                                       Avg: ${card.avgOffer.toFixed(0)}
@@ -668,11 +668,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                           <Grid numItems={1} numItemsSm={3} className="gap-4">
                             <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
                               <Text className="text-slate-400 text-xs">Avg Graded Value</Text>
-                              <Metric className="text-crypto-lime">${holdingsAnalysis.avgGradedValue.toLocaleString()}</Metric>
+                              <Metric className="text-crypto-lime">${holdingsAnalysis.avgGradedValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Metric>
                             </div>
                             <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
                               <Text className="text-slate-400 text-xs">Avg Raw Value</Text>
-                              <Metric className="text-slate-400">${holdingsAnalysis.avgRawValue.toLocaleString()}</Metric>
+                              <Metric className="text-slate-400">${holdingsAnalysis.avgRawValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Metric>
                             </div>
                             <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
                               <Text className="text-slate-400 text-xs">Grading Premium</Text>
@@ -707,7 +707,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                     <Text className="text-slate-200 font-semibold">{card.player}</Text>
                                     <Text className="text-slate-500 text-xs">{card.year} {card.brand}</Text>
                                     <Text className="text-slate-600 text-xs mt-1">
-                                      Cost: ${card.purchasePrice.toLocaleString()} → Now: ${value.toLocaleString()}
+                                      Cost: ${card.purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} → Now: ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </Text>
                                   </div>
                                   <div className="text-right">
@@ -715,7 +715,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                       {lossPercent.toFixed(1)}%
                                     </Badge>
                                     <Text className="text-rose-400 text-xs mt-1">
-                                      -${Math.abs(loss).toLocaleString()}
+                                      -${Math.abs(loss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </Text>
                                   </div>
                                 </Flex>
@@ -750,7 +750,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                     </Card>
                     <Card className="glass-card backdrop-blur-sm border border-white/10" decoration="top" decorationColor="purple">
                       <Text className="text-slate-400">Total Target Budget</Text>
-                      <Metric className="text-white">${watchlistStats.totalTarget.toLocaleString()}</Metric>
+                      <Metric className="text-white">${watchlistStats.totalTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Metric>
                     </Card>
                   </Grid>
 
@@ -855,7 +855,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ cards }) => {
                                     </Badge>
                                   )}
                                   <Text className="text-slate-500 text-xs mt-1">
-                                    ${card.market?.toLocaleString() || '?'} / ${card.target.toLocaleString()}
+                                    ${card.market?.toLocaleString() || '?'} / ${card.target.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </Text>
                                 </div>
                               </Flex>

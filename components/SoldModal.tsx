@@ -66,7 +66,7 @@ export const SoldModal: React.FC<SoldModalProps> = ({ card, onSave, onCancel, co
             <div className="flex justify-between items-center">
               <span className="text-xs text-slate-400 font-medium">Cost Basis</span>
               <span className="text-sm font-mono font-semibold text-slate-300">
-                {symbol}{card.purchasePrice.toLocaleString()}
+                {symbol}{card.purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>

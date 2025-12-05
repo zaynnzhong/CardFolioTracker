@@ -352,7 +352,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                   ) : (
                     <>
                       <span className={`font-mono font-bold text-lg ${card.sold ? 'text-slate-400' : 'text-white'}`}>
-                        {symbol}{groupCurrentValue.toLocaleString()}
+                        {symbol}{groupCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
 
                       <div className={`flex items-center gap-1 ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -395,7 +395,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
                       <span className="font-mono font-bold text-sm text-white">
-                        {symbol}{cardCurrentValue.toLocaleString()}
+                        {symbol}{cardCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <div className={`flex items-center gap-1 ${cardIsProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                         <span className="text-xs font-semibold">
@@ -538,7 +538,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className="font-mono text-sm text-slate-400">
-                              {symbol}{groupBasis.toLocaleString()}
+                              {symbol}{groupBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                             <div className="text-[10px] text-slate-600 mt-0.5">
                               {new Date(card.purchaseDate).toLocaleDateString()}
@@ -550,7 +550,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className="font-mono text-sm font-semibold text-white">
-                              {symbol}{groupCurrentValue.toLocaleString()}
+                              {symbol}{groupCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                             <div className="text-[10px] text-slate-600 mt-0.5">
                               {card.soldDate ? new Date(card.soldDate).toLocaleDateString() : '—'}
@@ -562,7 +562,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className={`font-mono text-sm font-semibold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {isProfit ? '+' : ''}{symbol}{Math.abs(groupProfit).toLocaleString()}
+                              {isProfit ? '+' : ''}{symbol}{Math.abs(groupProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
                         </td>
@@ -583,7 +583,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className="font-mono text-sm text-slate-400">
-                              {symbol}{groupBasis.toLocaleString()}
+                              {symbol}{groupBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
                         </td>
@@ -592,7 +592,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className={`font-mono text-sm font-semibold ${card.sold ? 'text-slate-400' : 'text-white'}`}>
-                              {symbol}{groupCurrentValue.toLocaleString()}
+                              {symbol}{groupCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
                         </td>
@@ -601,7 +601,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         <td className="px-4 py-4">
                           <div className="text-right">
                             <div className={`font-mono text-sm font-semibold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {isProfit ? '+' : ''}{symbol}{Math.abs(groupProfit).toLocaleString()}
+                              {isProfit ? '+' : ''}{symbol}{Math.abs(groupProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
                         </td>
@@ -656,18 +656,18 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                           <>
                             <td className="px-4 py-4">
                               <div className="text-right font-mono text-sm text-slate-400">
-                                {symbol}{cardBasis.toLocaleString()}
+                                {symbol}{cardBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="text-right font-mono text-sm text-white">
-                                {symbol}{cardCurrentValue.toLocaleString()}
+                                {symbol}{cardCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="text-right">
                                 <div className={`font-mono text-sm ${cardIsProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  {cardIsProfit ? '+' : ''}{symbol}{Math.abs(cardProfit).toLocaleString()}
+                                  {cardIsProfit ? '+' : ''}{symbol}{Math.abs(cardProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                               </div>
                             </td>
@@ -683,18 +683,18 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                           <>
                             <td className="px-4 py-4">
                               <div className="text-right font-mono text-sm text-slate-400">
-                                {symbol}{cardBasis.toLocaleString()}
+                                {symbol}{cardBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="text-right font-mono text-sm text-white">
-                                {symbol}{cardCurrentValue.toLocaleString()}
+                                {symbol}{cardCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="text-right">
                                 <div className={`font-mono text-sm ${cardIsProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  {cardIsProfit ? '+' : ''}{symbol}{Math.abs(cardProfit).toLocaleString()}
+                                  {cardIsProfit ? '+' : ''}{symbol}{Math.abs(cardProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                               </div>
                             </td>

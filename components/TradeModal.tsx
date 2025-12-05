@@ -253,7 +253,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                       onClick={() => setCardGivenFMV(lastComp.toString())}
                       className="ml-2 text-purple-400 hover:text-purple-300 text-[10px]"
                     >
-                      (Use last comp: {symbol}{lastComp.toLocaleString()})
+                      (Use last comp: {symbol}{lastComp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                     </button>
                   )}
                 </label>
@@ -271,7 +271,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Your Original Cost Basis</label>
                 <div className="px-3 py-2 bg-slate-900/30 border border-slate-700/30 rounded-lg text-slate-400 text-sm">
-                  {symbol}{cardCostBasis.toLocaleString()}
+                  {symbol}{cardCostBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -281,7 +281,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 <p className="text-xs text-slate-400">
                   Realized {realizedGain >= 0 ? 'Gain' : 'Loss'}:{' '}
                   <span className={realizedGain >= 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold'}>
-                    {realizedGain >= 0 ? '+' : ''}{symbol}{Math.abs(realizedGain).toLocaleString()}
+                    {realizedGain >= 0 ? '+' : ''}{symbol}{Math.abs(realizedGain).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </p>
               </div>
@@ -542,37 +542,37 @@ export const TradeModal: React.FC<TradeModalProps> = ({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Cards Received FMV:</span>
-                  <span className="text-white font-mono">{symbol}{totalReceivedFMV.toLocaleString()}</span>
+                  <span className="text-white font-mono">{symbol}{totalReceivedFMV.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 {tradeType === 'received-cash' && cashAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Cash Received:</span>
-                    <span className="text-emerald-400 font-mono">+{symbol}{cashAmount.toLocaleString()}</span>
+                    <span className="text-emerald-400 font-mono">+{symbol}{cashAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 {tradeType === 'paid-cash' && cashAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Cash Paid:</span>
-                    <span className="text-rose-400 font-mono">-{symbol}{cashAmount.toLocaleString()}</span>
+                    <span className="text-rose-400 font-mono">-{symbol}{cashAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 <div className="border-t border-slate-700/50 pt-2 mt-2">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Amount Realized:</span>
                     <span className="text-white font-mono font-semibold">
-                      {symbol}{amountRealized.toLocaleString()}
+                      {symbol}{amountRealized.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between mt-1 text-xs text-slate-500">
                     <span>Cost Basis (Card Given):</span>
                     <span className="font-mono">
-                      {symbol}{cardCostBasis.toLocaleString()}
+                      {symbol}{cardCostBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between mt-2 pt-2 border-t border-slate-700/50">
                     <span className="text-slate-400">Realized {realizedGain >= 0 ? 'Gain' : 'Loss'}:</span>
                     <span className={`font-mono font-semibold ${realizedGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {realizedGain >= 0 ? '+' : ''}{symbol}{Math.abs(realizedGain).toLocaleString()}
+                      {realizedGain >= 0 ? '+' : ''}{symbol}{Math.abs(realizedGain).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>

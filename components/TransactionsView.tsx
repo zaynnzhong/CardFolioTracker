@@ -167,13 +167,13 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                           </td>
                           <td className="px-4 py-3 text-right">
                             <span className="font-mono text-sm font-semibold text-white">
-                              {symbol}{line.amountFMV.toLocaleString()}
+                              {symbol}{line.amountFMV.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             {line.costBasis !== undefined ? (
                               <span className="font-mono text-sm text-slate-400">
-                                {symbol}{line.costBasis.toLocaleString()}
+                                {symbol}{line.costBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             ) : (
                               <span className="text-slate-600">—</span>
@@ -184,7 +184,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                               <div className="flex items-center justify-end gap-1.5">
                                 {isProfit ? <TrendingUp size={14} className="text-crypto-lime" /> : <TrendingDown size={14} className="text-rose-400" />}
                                 <span className={`font-mono text-sm font-bold ${isProfit ? 'text-crypto-lime' : 'text-rose-400'}`}>
-                                  {isProfit ? '+' : ''}{symbol}{Math.abs(line.realizedGainLoss).toLocaleString()}
+                                  {isProfit ? '+' : ''}{symbol}{Math.abs(line.realizedGainLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               </div>
                             ) : (
@@ -227,14 +227,14 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                         <div>
                           <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Amount (FMV)</p>
                           <p className="font-mono text-sm font-semibold text-white">
-                            {symbol}{line.amountFMV.toLocaleString()}
+                            {symbol}{line.amountFMV.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
                         <div>
                           <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Cost Basis</p>
                           {line.costBasis !== undefined ? (
                             <p className="font-mono text-sm text-slate-400">
-                              {symbol}{line.costBasis.toLocaleString()}
+                              {symbol}{line.costBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           ) : (
                             <p className="text-slate-600">—</p>
@@ -246,7 +246,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                             <div className="flex items-center gap-1">
                               {isProfit ? <TrendingUp size={12} className="text-crypto-lime" /> : <TrendingDown size={12} className="text-rose-400" />}
                               <p className={`font-mono text-sm font-bold ${isProfit ? 'text-crypto-lime' : 'text-rose-400'}`}>
-                                {isProfit ? '+' : ''}{symbol}{Math.abs(line.realizedGainLoss).toLocaleString()}
+                                {isProfit ? '+' : ''}{symbol}{Math.abs(line.realizedGainLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </p>
                             </div>
                           ) : (

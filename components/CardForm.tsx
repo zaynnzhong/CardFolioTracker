@@ -191,6 +191,23 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
         const variantCurrentValue = parseFloat(variant.currentValue) || 0;
 
         for (let i = 0; i < variant.quantity; i++) {
+          // Build price history: Start with purchase price, then add current value if different
+          const priceHistory: PricePoint[] = [];
+
+          // Always log the purchase price first (cost basis)
+          priceHistory.push({
+            date: purchaseDate,
+            value: variantPurchasePrice
+          });
+
+          // If current value is different and not -1 (unknown), add it as well
+          if (variantCurrentValue !== -1 && variantCurrentValue !== variantPurchasePrice) {
+            priceHistory.push({
+              date: new Date().toISOString(),
+              value: variantCurrentValue
+            });
+          }
+
           const newCard: Card = {
             id: crypto.randomUUID(),
             watchlist: isWatchlist,
@@ -219,10 +236,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
             offers: [],
             notes,
             bulkGroupId, // Link all cards in this bulk entry
-            priceHistory: [{
-              date: new Date().toISOString(),
-              value: variantCurrentValue
-            }]
+            priceHistory
           };
 
           onSave(newCard);
@@ -235,6 +249,31 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
     }
 
     // Regular single card save
+
+    // Build price history for new cards
+    let priceHistory: PricePoint[];
+    if (initialData) {
+      // Editing existing card: keep existing price history
+      priceHistory = initialData.priceHistory;
+    } else {
+      // Creating new card: Start with purchase price, then add current value if different
+      priceHistory = [];
+
+      // Always log the purchase price first (cost basis)
+      priceHistory.push({
+        date: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate,
+        value: pPrice
+      });
+
+      // If current value is different and not -1 (unknown), add it as well
+      if (cValue !== -1 && cValue !== pPrice) {
+        priceHistory.push({
+          date: new Date().toISOString(),
+          value: cValue
+        });
+      }
+    }
+
     const newCard: Card = {
       id: initialData ? initialData.id : crypto.randomUUID(),
       watchlist: isWatchlist,
@@ -262,10 +301,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       soldPrice: sold ? sPrice : undefined,
       offers,
       notes,
-      priceHistory: initialData ? initialData.priceHistory : [{
-        date: new Date().toISOString(),
-        value: cValue
-      }]
+      priceHistory
     };
 
     onSave(newCard);

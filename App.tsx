@@ -82,6 +82,8 @@ export default function App() {
     const realizedProfit = { ...initial };
     const soldTotal = { ...initial };
     const cash = { ...initial };
+    const totalCostBasisOwned = { ...initial };
+    const tradeCashBoots = { ...initial };
     let cardCount = 0;
 
     portfolioCards.forEach(card => {
@@ -98,11 +100,19 @@ export default function App() {
         const soldPrice = card.soldPrice || 0;
         soldTotal[cur] += soldPrice;
 
+        // Track cash boots from trades
+        if (card.tradeCashBoot) {
+          tradeCashBoots[cur] += card.tradeCashBoot;
+        }
+
         // Calculate realized P/L using appropriate basis
         const profit = soldPrice - basis;
         realizedProfit[cur] += profit;
       } else {
         cardCount++;
+
+        // Count cost basis of all owned cards
+        totalCostBasisOwned[cur] += basis;
 
         // Only count investment for non-break/self-rip cards
         if (!isBreakOrSelfRip) {
@@ -121,9 +131,9 @@ export default function App() {
       }
     });
 
-    // Calculate cash position: Total Invested + Realized P/L (net cash flow)
-    cash.USD = totalInvested.USD + realizedProfit.USD;
-    cash.CNY = totalInvested.CNY + realizedProfit.CNY;
+    // Cash in the Game = (Total received from sales + cash boots from trades) - (Total cost basis of owned cards)
+    cash.USD = soldTotal.USD + tradeCashBoots.USD - totalCostBasisOwned.USD;
+    cash.CNY = soldTotal.CNY + tradeCashBoots.CNY - totalCostBasisOwned.CNY;
 
     return { totalInvested, currentPortfolioValue, unrealizedProfit, realizedProfit, soldTotal, cash, cardCount };
   }, [portfolioCards]);

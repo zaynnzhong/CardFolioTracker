@@ -360,14 +360,14 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, allCards, onCl
                                 {variant.serialNumber || '-'}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-mono text-slate-400">
-                                {symbol}{basis.toLocaleString()}
+                                {symbol}{basis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-white">
-                                {symbol}{currentValue.toLocaleString()}
+                                {symbol}{currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td className="px-4 py-3 text-sm text-right">
                                 <div className={`font-mono font-semibold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  {isProfit ? '+' : ''}{symbol}{Math.abs(profit).toLocaleString()}
+                                  {isProfit ? '+' : ''}{symbol}{Math.abs(profit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                                 <div className={`text-xs ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
                                   {isProfit ? '+' : ''}{profitPercent.toFixed(1)}%
