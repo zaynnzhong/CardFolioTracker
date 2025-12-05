@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Sport, Currency, AcquisitionSource, Offer, PricePoint } from '../types';
 import { X, Upload, Image as ImageIcon, Eye, Wallet, Plus, Trash2 } from 'lucide-react';
+import { GradingInput } from './GradingInput';
 
 interface CardFormProps {
   initialData?: Card | null;
@@ -304,6 +305,9 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
         } else if (gradeType === 'card-auto') {
           // Card + Auto grading (e.g., "PSA 10/10", "BGS 9.5/10")
           gradeForHistory = `${gradeCompany} ${gradeValue}/${autoGrade}`;
+        } else if (gradeType === 'auto-only') {
+          // Auto only (e.g., "PSA Auto 10")
+          gradeForHistory = `${gradeCompany} Auto ${autoGrade}`;
         } else {
           // Card only (e.g., "PSA 10", "BGS 9.5")
           gradeForHistory = `${gradeCompany} ${gradeValue}`;
@@ -331,8 +335,8 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       }
     }
 
-    const finalGradeValue = graded && gradeType !== 'authentic' && gradeType !== 'dna-auth' ? gradeValue : undefined;
-    const finalAutoGrade = graded && gradeType === 'card-auto' ? autoGrade : undefined;
+    const finalGradeValue = graded && gradeType !== 'authentic' && gradeType !== 'dna-auth' && gradeType !== 'auto-only' ? gradeValue : undefined;
+    const finalAutoGrade = graded && (gradeType === 'card-auto' || gradeType === 'auto-only') ? autoGrade : undefined;
 
     console.log('[CardForm] Save Debug:', {
       graded,
@@ -720,85 +724,31 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     </div>
                   )}
 
-                  {graded && !isBulkMode && (
-                    <div className="space-y-4 p-4 bg-slate-900/40 rounded-xl border border-slate-800/50">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-400 block">Company</label>
-                          <select value={gradeCompany} onChange={(e) => {
-                            setGradeCompany(e.target.value);
-                            // Only reset gradeType if switching from PSA to non-PSA and currently on dna-auth
-                            if (e.target.value !== 'PSA' && gradeType === 'dna-auth') {
-                              setGradeType('card-only');
-                            }
-                          }} className="form-input">
-                            <option value="PSA">PSA</option>
-                            <option value="BGS">BGS</option>
-                            <option value="SGC">SGC</option>
-                            <option value="CGC">CGC</option>
-                            <option value="CSA">CSA</option>
-                            <option value="TAG">TAG</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-400 block">Grade Type</label>
-                          <select value={gradeType} onChange={(e) => {
-                            console.log('[CardForm] Grade Type Changed:', e.target.value);
-                            setGradeType(e.target.value);
-                            // Clear autoGrade when switching to a type that doesn't use it
-                            if (e.target.value !== 'card-auto') {
-                              setAutoGrade('10');
-                            }
-                          }} className="form-input">
-                            {gradeCompany === 'PSA' && (
-                              <>
-                                <option value="card-auto">Graded (card + auto)</option>
-                                <option value="card-only">Graded (card only)</option>
-                                <option value="authentic">Authentic (no numerical grade)</option>
-                                <option value="dna-auth">DNA Auth only (sticker)</option>
-                              </>
-                            )}
-                            {(gradeCompany === 'BGS' || gradeCompany === 'SGC' || gradeCompany === 'CGC' || gradeCompany === 'CSA' || gradeCompany === 'TAG') && (
-                              <>
-                                <option value="card-auto">Graded (card + auto)</option>
-                                <option value="card-only">Graded (card only)</option>
-                                <option value="authentic">Authentic</option>
-                              </>
-                            )}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Show grade inputs only if NOT authentic/dna-auth */}
-                        {gradeType !== 'authentic' && gradeType !== 'dna-auth' && (
-                          <>
-                            {gradeType === 'card-auto' ? (
-                              // Card + Auto: Show two separate inputs
-                              <>
-                                <div className="space-y-2">
-                                  <label className="text-xs font-medium text-slate-400 block">Card Grade</label>
-                                  <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-xs font-medium text-slate-400 block">Auto Grade</label>
-                                  <input type="text" value={autoGrade} onChange={(e) => setAutoGrade(e.target.value)} className="form-input" placeholder="10" />
-                                </div>
-                              </>
-                            ) : (
-                              // Card Only: Show single grade input
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium text-slate-400 block">Grade</label>
-                                <input type="text" value={gradeValue} onChange={(e) => setGradeValue(e.target.value)} className="form-input" placeholder="10" />
-                              </div>
-                            )}
-                          </>
-                        )}
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-slate-400 block">Cert #</label>
-                          <input type="text" value={certNumber} onChange={(e) => setCertNumber(e.target.value)} className="form-input" placeholder="Optional" />
-                        </div>
-                      </div>
-                    </div>
+                  {!isBulkMode && (
+                    <GradingInput
+                      graded={graded}
+                      gradeCompany={gradeCompany}
+                      gradeType={gradeType}
+                      gradeValue={gradeValue}
+                      autoGrade={autoGrade}
+                      certNumber={certNumber}
+                      onGradedChange={() => {}}
+                      onGradeCompanyChange={setGradeCompany}
+                      onGradeTypeChange={(type) => {
+                        console.log('[CardForm] Grade Type Changed:', type);
+                        setGradeType(type);
+                        // Clear autoGrade when switching to a type that doesn't use it
+                        if (type !== 'card-auto' && type !== 'auto-only') {
+                          setAutoGrade('10');
+                        }
+                      }}
+                      onGradeValueChange={setGradeValue}
+                      onAutoGradeChange={setAutoGrade}
+                      onCertNumberChange={setCertNumber}
+                      showToggle={false}
+                      showCertNumber={true}
+                      compact={false}
+                    />
                   )}
                 </div>
 

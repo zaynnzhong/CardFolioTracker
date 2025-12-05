@@ -15,15 +15,18 @@ export const GradeTag: React.FC<GradeTagProps> = ({ card, className = '' }) => {
   let gradeText = card.gradeCompany || '';
 
   if (card.gradeValue) {
-    // Has a numerical grade value
+    // Has a numerical card grade value
     gradeText += ` ${card.gradeValue}`;
 
     // Add auto grade if it exists (for card+auto grading)
     if (card.autoGrade) {
       gradeText += `/${card.autoGrade}`;
     }
+  } else if (card.autoGrade) {
+    // Auto grade only (no card grade)
+    gradeText += ` Auto ${card.autoGrade}`;
   } else {
-    // No numerical grade value - check price history for special grades (Authentic, DNA Auth)
+    // No numerical grades - check price history for special grades (Authentic, DNA Auth)
     if (card.priceHistory && card.priceHistory.length > 0) {
       const lastGrade = card.priceHistory[card.priceHistory.length - 1].grade;
       if (lastGrade) {
@@ -32,6 +35,12 @@ export const GradeTag: React.FC<GradeTagProps> = ({ card, className = '' }) => {
           gradeText += ' DNA Auth';
         } else if (lastGrade.includes('Authentic') && !lastGrade.includes('DNA')) {
           gradeText += ' Authentic';
+        } else if (lastGrade.includes('Auto') && !lastGrade.includes('/')) {
+          // Auto-only grade from price history
+          const autoMatch = lastGrade.match(/Auto\s+(\S+)/);
+          if (autoMatch) {
+            gradeText += ` Auto ${autoMatch[1]}`;
+          }
         }
       }
     }

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Card, Platform, Currency } from '../types';
 import { X, TrendingUp, Calendar, Info } from 'lucide-react';
+import { GradingInput } from './GradingInput';
+import { GradeTag } from './GradeTag';
 
 interface PriceUpdateModalProps {
   card: Card;
@@ -35,6 +37,8 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
           gradeForHistory = gradeType === 'dna-auth' ? `${gradeCompany} DNA Auth` : `${gradeCompany} Authentic`;
         } else if (gradeType === 'card-auto') {
           gradeForHistory = `${gradeCompany} ${gradeValue}/${autoGrade}`;
+        } else if (gradeType === 'auto-only') {
+          gradeForHistory = `${gradeCompany} Auto ${autoGrade}`;
         } else {
           gradeForHistory = `${gradeCompany} ${gradeValue}`;
         }
@@ -75,10 +79,27 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="glass-card backdrop-blur-sm border border-white/10 p-4 rounded-xl">
-            <p className="text-slate-500 text-xs uppercase font-bold mb-1.5 tracking-wide">Card</p>
-            <p className="text-white font-semibold text-sm">{card.year} {card.brand} {card.player}</p>
-            {card.series && <p className="text-slate-400 text-xs mt-0.5">{card.series}</p>}
-            {card.parallel && <p className="text-crypto-lime text-xs mt-0.5 font-semibold">My Parallel: {card.parallel}</p>}
+            <p className="text-slate-500 text-xs uppercase font-bold mb-2 tracking-wide">Card Details</p>
+            <div className="space-y-1.5">
+              <p className="text-white font-semibold text-base">{card.year} {card.brand} {card.player}</p>
+              {card.series && <p className="text-slate-300 text-xs">{card.series}</p>}
+              {card.insert && <p className="text-slate-400 text-xs">{card.insert}</p>}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {card.parallel && (
+                  <span className="px-2 py-0.5 bg-crypto-lime/10 border border-crypto-lime/30 rounded text-crypto-lime text-xs font-semibold">
+                    {card.parallel}
+                  </span>
+                )}
+                {card.serialNumber && (
+                  <span className="px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 rounded text-purple-300 text-xs font-semibold">
+                    #{card.serialNumber}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs font-semibold">
+                  <GradeTag card={card} />
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-start gap-2 bg-blue-500/10 p-3 rounded-xl text-blue-300 text-xs border border-blue-500/20">
@@ -147,120 +168,20 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({ card, onSave
             </div>
 
             {/* Grading Section */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                  Grading
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setGraded(!graded)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-crypto-lime focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                    graded ? 'bg-emerald-500' : 'bg-slate-700'
-                  }`}
-                  role="switch"
-                  aria-checked={graded}
-                  aria-label="Toggle graded card"
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      graded ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {graded && (
-                <div className="mt-3 space-y-3 p-3 bg-slate-950 rounded-xl border border-slate-700">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">Company</label>
-                      <select
-                        value={gradeCompany}
-                        onChange={(e) => {
-                          setGradeCompany(e.target.value);
-                          setGradeType('card-only');
-                        }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
-                      >
-                        <option value="PSA">PSA</option>
-                        <option value="BGS">BGS</option>
-                        <option value="SGC">SGC</option>
-                        <option value="CGC">CGC</option>
-                        <option value="CSA">CSA</option>
-                        <option value="TAG">TAG</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">Grade Type</label>
-                      <select
-                        value={gradeType}
-                        onChange={(e) => setGradeType(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
-                      >
-                        {gradeCompany === 'PSA' && (
-                          <>
-                            <option value="card-auto">Graded (card + auto)</option>
-                            <option value="card-only">Graded (card only)</option>
-                            <option value="authentic">Authentic</option>
-                            <option value="dna-auth">DNA Auth</option>
-                          </>
-                        )}
-                        {gradeCompany !== 'PSA' && (
-                          <>
-                            <option value="card-auto">Graded (card + auto)</option>
-                            <option value="card-only">Graded (card only)</option>
-                            <option value="authentic">Authentic</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {gradeType !== 'authentic' && gradeType !== 'dna-auth' && (
-                      <>
-                        {gradeType === 'card-auto' ? (
-                          <>
-                            <div>
-                              <label className="block text-xs font-medium text-slate-400 mb-1.5">Card Grade</label>
-                              <input
-                                type="text"
-                                value={gradeValue}
-                                onChange={(e) => setGradeValue(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
-                                placeholder="10"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-slate-400 mb-1.5">Auto Grade</label>
-                              <input
-                                type="text"
-                                value={autoGrade}
-                                onChange={(e) => setAutoGrade(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
-                                placeholder="10"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Grade</label>
-                            <input
-                              type="text"
-                              value={gradeValue}
-                              onChange={(e) => setGradeValue(e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime focus:border-crypto-lime outline-none"
-                              placeholder="10"
-                            />
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <GradingInput
+              graded={graded}
+              gradeCompany={gradeCompany}
+              gradeType={gradeType}
+              gradeValue={gradeValue}
+              autoGrade={autoGrade}
+              onGradedChange={setGraded}
+              onGradeCompanyChange={setGradeCompany}
+              onGradeTypeChange={setGradeType}
+              onGradeValueChange={setGradeValue}
+              onAutoGradeChange={setAutoGrade}
+              showToggle={true}
+              compact={true}
+            />
 
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-1">
