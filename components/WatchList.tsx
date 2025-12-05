@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, Sport } from '../types';
 import { Eye, Bell, ShoppingBag, TrendingDown, TrendingUp, Activity, CheckCircle2 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { GradeTag } from './GradeTag';
 
 interface WatchListProps {
   cards: Card[];
@@ -54,14 +55,37 @@ export const WatchList: React.FC<WatchListProps> = ({ cards, onSelect, onConvert
                         {card.imageUrl && <img src={card.imageUrl} className="w-full h-full object-cover opacity-80" />}
                     </div>
 
-                    <div>
-                        <div className="flex items-center gap-2">
-                             <h4 className="font-bold text-slate-200 text-sm">{card.player}</h4>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                             <h4 className="font-bold text-slate-200 text-sm">{card.year} {card.brand} {card.player}</h4>
                              {isTargetMet && <span className="text-[10px] bg-emerald-500 text-black px-1.5 rounded font-bold">BUY ZONE</span>}
                         </div>
-                        <p className="text-xs text-slate-500">{card.year} {card.brand}</p>
-                        
-                        <div className="flex items-center gap-3 mt-2">
+
+                        {/* Series and Insert */}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2">
+                          {card.series && <span>{card.series}</span>}
+                          {card.series && card.insert && <span>•</span>}
+                          {card.insert && <span>{card.insert}</span>}
+                        </div>
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {card.parallel && (
+                            <span className="px-2 py-0.5 bg-crypto-lime/10 border border-crypto-lime/30 rounded text-crypto-lime text-[10px] font-semibold">
+                              {card.parallel}
+                            </span>
+                          )}
+                          {card.serialNumber && (
+                            <span className="px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 rounded text-purple-300 text-[10px] font-semibold">
+                              #{card.serialNumber}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] font-semibold">
+                            <GradeTag card={card} />
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-slate-500 uppercase">Current</span>
                                 <span className="text-sm font-mono text-white font-bold">{symbol}{card.currentValue}</span>

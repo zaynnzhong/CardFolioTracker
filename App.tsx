@@ -644,17 +644,10 @@ export default function App() {
 
             <div className="space-y-3">
               <div className="grid grid-cols-4 gap-3">
-                {selectedCard.watchlist ? (
-                  <button onClick={() => handleConvertToAsset(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
-                    <Wallet className="text-emerald-400" size={22} />
-                    <span className="text-[10px] font-medium text-slate-300">Buy</span>
-                  </button>
-                ) : (
-                  <button onClick={() => setUpdatingPriceCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
-                    <TrendingUp className="text-emerald-400" size={22} />
-                    <span className="text-[10px] font-medium text-slate-300">Log Price</span>
-                  </button>
-                )}
+                <button onClick={() => setUpdatingPriceCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 active:scale-95 transition-all">
+                  <TrendingUp className="text-emerald-400" size={22} />
+                  <span className="text-[10px] font-medium text-slate-300">Log Price</span>
+                </button>
 
                 <button onClick={() => setAnalyzingCard(selectedCard)} className="flex flex-col items-center gap-1.5 p-3 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/50 hover:bg-indigo-500/10 hover:border-indigo-500/30 active:scale-95 transition-all">
                   <Activity className="text-indigo-400" size={22} />
@@ -669,6 +662,17 @@ export default function App() {
                   <span className="text-[10px] font-medium text-slate-300">Delete</span>
                 </button>
               </div>
+
+              {/* Buy button for watchlist items */}
+              {selectedCard.watchlist && (
+                <button
+                  onClick={() => handleConvertToAsset(selectedCard)}
+                  className="w-full flex items-center justify-center gap-2 p-3 bg-emerald-500/10 backdrop-blur-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 active:scale-95 transition-all"
+                >
+                  <Wallet className="text-emerald-400" size={20} />
+                  <span className="text-sm font-semibold text-emerald-300">I Bought This</span>
+                </button>
+              )}
 
               {/* Mark as Sold and Log Trade Buttons - Only show if card is not sold and not in watchlist */}
               {!selectedCard.watchlist && !selectedCard.sold && (
