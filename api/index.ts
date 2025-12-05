@@ -13,12 +13,24 @@ try {
     console.error('[API] Failed to initialize Firebase Admin:', error);
 }
 
-// Initialize ImageKit
-const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
-    privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || '',
-});
+// Initialize ImageKit lazily to prevent crashes if env vars are missing
+let imagekit: ImageKit | null = null;
+
+function getImageKit(): ImageKit {
+    if (!imagekit) {
+        try {
+            imagekit = new ImageKit({
+                publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
+                privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',
+                urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || '',
+            });
+        } catch (error) {
+            console.error('[API] Failed to initialize ImageKit:', error);
+            throw new Error('ImageKit is not configured properly');
+        }
+    }
+    return imagekit;
+}
 
 // Separate handler for ImageKit upload (uses formidable, no default body parser)
 async function handleImageKitUpload(req: VercelRequest, res: VercelResponse) {
@@ -60,7 +72,8 @@ async function handleImageKitUpload(req: VercelRequest, res: VercelResponse) {
         const fileBuffer = fs.readFileSync(file.filepath);
 
         // Upload to ImageKit
-        const result = await imagekit.upload({
+        const ik = getImageKit();
+        const result = await ik.upload({
             file: fileBuffer,
             fileName: fileName,
             folder: '/cards',
@@ -168,7 +181,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GET /api/imagekit/auth
             if (method === 'GET' && path === '/imagekit/auth') {
                 console.log('[API] GET /imagekit/auth');
-                const authenticationParameters = imagekit.getAuthenticationParameters();
+                const ik = getImageKit();
+                const authenticationParameters = ik.getAuthenticationParameters();
                 return res.status(200).json(authenticationParameters);
             }
 
