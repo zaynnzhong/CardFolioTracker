@@ -86,10 +86,27 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setGradeCompany(initialData.gradeCompany || 'PSA');
       setGradeValue(initialData.gradeValue || '10');
       setAutoGrade(initialData.autoGrade || '10');
-      const detectedGradeType = initialData.autoGrade ? 'card-auto' : 'card-only';
+
+      // Detect grade type based on autoGrade presence
+      let detectedGradeType = 'card-only';
+      if (initialData.autoGrade) {
+        detectedGradeType = 'card-auto';
+      } else if (initialData.graded && initialData.priceHistory && initialData.priceHistory.length > 0) {
+        // Check the most recent price history grade to detect authentic/dna-auth
+        const lastGrade = initialData.priceHistory[initialData.priceHistory.length - 1].grade;
+        if (lastGrade) {
+          if (lastGrade.includes('DNA Auth')) {
+            detectedGradeType = 'dna-auth';
+          } else if (lastGrade.includes('Authentic')) {
+            detectedGradeType = 'authentic';
+          }
+        }
+      }
+
       console.log('[CardForm] Init Debug:', {
         hasAutoGrade: !!initialData.autoGrade,
         autoGrade: initialData.autoGrade,
+        lastPriceGrade: initialData.priceHistory?.[initialData.priceHistory.length - 1]?.grade,
         settingGradeType: detectedGradeType
       });
       setGradeType(detectedGradeType);
@@ -723,6 +740,10 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                           <select value={gradeType} onChange={(e) => {
                             console.log('[CardForm] Grade Type Changed:', e.target.value);
                             setGradeType(e.target.value);
+                            // Clear autoGrade when switching to a type that doesn't use it
+                            if (e.target.value !== 'card-auto') {
+                              setAutoGrade('10');
+                            }
                           }} className="form-input">
                             {gradeCompany === 'PSA' && (
                               <>
