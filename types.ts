@@ -77,6 +77,7 @@ export interface Card {
   graded: boolean;
   gradeCompany?: string; // PSA, BGS, SGC, CGC
   gradeValue?: string;   // 10, 9.5
+  autoGrade?: string;    // Auto grade for card+auto (10, 9, etc)
   certNumber?: string;
 
   // Economics

@@ -330,7 +330,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       </span>
                       {!group.isBulkGroup && card.graded && (
                         <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-semibold">
-                          {card.gradeCompany} {card.gradeValue}
+                          {card.gradeCompany} {card.gradeValue}{card.autoGrade ? `/${card.autoGrade}` : ''}
                         </span>
                       )}
                       {isBreakOrSelfRip && (
@@ -389,7 +389,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       <span className="text-slate-300 text-xs">
                         {groupCard.parallel && <span className="text-slate-400">{groupCard.parallel}</span>}
                         {groupCard.serialNumber && <span className="ml-2 text-slate-500">#{groupCard.serialNumber}</span>}
-                        {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}</span>}
+                        {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}{groupCard.autoGrade ? `/${groupCard.autoGrade}` : ''}</span>}
                       </span>
                     </div>
 
@@ -521,7 +521,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                         </div>
                         {card.graded && (
                           <div className="text-xs text-emerald-400 mt-1 font-semibold">
-                            {card.gradeCompany} {card.gradeValue}
+                            {card.gradeCompany} {card.gradeValue}{card.autoGrade ? `/${card.autoGrade}` : ''}
                           </div>
                         )}
                         {isBreakOrSelfRip && (
@@ -643,7 +643,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                             <div className="text-xs text-slate-500">
                               {groupCard.parallel && <span className="text-slate-400">{groupCard.parallel}</span>}
                               {groupCard.serialNumber && <span className="ml-2 text-slate-500">#{groupCard.serialNumber}</span>}
-                              {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}</span>}
+                              {groupCard.graded && <span className="ml-2 text-emerald-400">{groupCard.gradeCompany} {groupCard.gradeValue}{groupCard.autoGrade ? `/${groupCard.autoGrade}` : ''}</span>}
                             </div>
                           </div>
                         </td>

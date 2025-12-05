@@ -24,6 +24,7 @@ export interface Card {
     graded?: boolean;
     gradeCompany?: string;
     gradeValue?: number;
+    autoGrade?: string;
     certNumber?: string;
     notes?: string;
     serialNumber?: string;
@@ -71,6 +72,7 @@ const CardSchema = new Schema({
     graded: Boolean,
     gradeCompany: String,
     gradeValue: Number,
+    autoGrade: String,
     certNumber: String,
     notes: String,
     serialNumber: String,

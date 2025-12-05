@@ -85,6 +85,14 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       setGraded(initialData.graded);
       setGradeCompany(initialData.gradeCompany || 'PSA');
       setGradeValue(initialData.gradeValue || '10');
+      setAutoGrade(initialData.autoGrade || '10');
+      const detectedGradeType = initialData.autoGrade ? 'card-auto' : 'card-only';
+      console.log('[CardForm] Init Debug:', {
+        hasAutoGrade: !!initialData.autoGrade,
+        autoGrade: initialData.autoGrade,
+        settingGradeType: detectedGradeType
+      });
+      setGradeType(detectedGradeType);
       setCertNumber(initialData.certNumber || '');
 
       setCurrency(initialData.currency);
@@ -194,17 +202,28 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
           // Build price history: Start with purchase price, then add current value if different
           const priceHistory: PricePoint[] = [];
 
-          // Always log the purchase price first (cost basis)
+          // Format grade for price history - bulk mode only supports simple grading
+          const gradeForHistory = variant.graded
+            ? `${variant.gradeCompany} ${variant.gradeValue}`
+            : 'Raw';
+
+          // Always log the purchase price first (cost basis) with metadata
           priceHistory.push({
             date: purchaseDate,
-            value: variantPurchasePrice
+            value: variantPurchasePrice,
+            parallel: parallel || undefined,
+            grade: gradeForHistory,
+            serialNumber: serialNumber || undefined
           });
 
           // If current value is different and not -1 (unknown), add it as well
           if (variantCurrentValue !== -1 && variantCurrentValue !== variantPurchasePrice) {
             priceHistory.push({
               date: new Date().toISOString(),
-              value: variantCurrentValue
+              value: variantCurrentValue,
+              parallel: parallel || undefined,
+              grade: gradeForHistory,
+              serialNumber: serialNumber || undefined
             });
           }
 
@@ -259,20 +278,50 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       // Creating new card: Start with purchase price, then add current value if different
       priceHistory = [];
 
-      // Always log the purchase price first (cost basis)
+      // Format grade for price history with detailed grading info
+      let gradeForHistory = 'Raw';
+      if (graded) {
+        if (gradeType === 'authentic' || gradeType === 'dna-auth') {
+          // Authentic or DNA Auth - no numerical grade
+          gradeForHistory = gradeType === 'dna-auth' ? `${gradeCompany} DNA Auth` : `${gradeCompany} Authentic`;
+        } else if (gradeType === 'card-auto') {
+          // Card + Auto grading (e.g., "PSA 10/10", "BGS 9.5/10")
+          gradeForHistory = `${gradeCompany} ${gradeValue}/${autoGrade}`;
+        } else {
+          // Card only (e.g., "PSA 10", "BGS 9.5")
+          gradeForHistory = `${gradeCompany} ${gradeValue}`;
+        }
+      }
+
+      // Always log the purchase price first (cost basis) with metadata
       priceHistory.push({
         date: isWatchlist ? new Date().toISOString().split('T')[0] : purchaseDate,
-        value: pPrice
+        value: pPrice,
+        parallel: parallel || undefined,
+        grade: gradeForHistory,
+        serialNumber: serialNumber || undefined
       });
 
       // If current value is different and not -1 (unknown), add it as well
       if (cValue !== -1 && cValue !== pPrice) {
         priceHistory.push({
           date: new Date().toISOString(),
-          value: cValue
+          value: cValue,
+          parallel: parallel || undefined,
+          grade: gradeForHistory,
+          serialNumber: serialNumber || undefined
         });
       }
     }
+
+    console.log('[CardForm] Save Debug:', {
+      graded,
+      gradeType,
+      gradeCompany,
+      gradeValue,
+      autoGrade,
+      willSaveAutoGrade: graded && gradeType === 'card-auto' ? autoGrade : undefined
+    });
 
     const newCard: Card = {
       id: initialData ? initialData.id : crypto.randomUUID(),
@@ -289,6 +338,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
       graded,
       gradeCompany: graded ? gradeCompany : undefined,
       gradeValue: graded ? gradeValue : undefined,
+      autoGrade: graded && gradeType === 'card-auto' ? autoGrade : undefined,
       certNumber: graded ? certNumber : undefined,
       currency,
       purchasePrice: pPrice,
@@ -451,16 +501,25 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-4">Grading</h3>
 
                     {!isBulkMode && (
-                      <button
-                        type="button"
-                        onClick={() => setGraded(!graded)}
-                        className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all border ${graded
-                            ? 'bg-emerald-500 border-emerald-500 text-white'
-                            : 'bg-slate-900/40 border-slate-800/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-300">Mark as Graded</span>
+                        <button
+                          type="button"
+                          onClick={() => setGraded(!graded)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-crypto-lime focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                            graded ? 'bg-emerald-500' : 'bg-slate-700'
                           }`}
-                      >
-                        {graded ? '✓ Graded Card' : 'Mark as Graded'}
-                      </button>
+                          role="switch"
+                          aria-checked={graded}
+                          aria-label="Toggle graded card"
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              graded ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -644,7 +703,13 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-xs font-medium text-slate-400 block">Company</label>
-                          <select value={gradeCompany} onChange={(e) => { setGradeCompany(e.target.value); setGradeType('card-only'); }} className="form-input">
+                          <select value={gradeCompany} onChange={(e) => {
+                            setGradeCompany(e.target.value);
+                            // Only reset gradeType if switching from PSA to non-PSA and currently on dna-auth
+                            if (e.target.value !== 'PSA' && gradeType === 'dna-auth') {
+                              setGradeType('card-only');
+                            }
+                          }} className="form-input">
                             <option value="PSA">PSA</option>
                             <option value="BGS">BGS</option>
                             <option value="SGC">SGC</option>
@@ -655,7 +720,10 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-medium text-slate-400 block">Grade Type</label>
-                          <select value={gradeType} onChange={(e) => setGradeType(e.target.value)} className="form-input">
+                          <select value={gradeType} onChange={(e) => {
+                            console.log('[CardForm] Grade Type Changed:', e.target.value);
+                            setGradeType(e.target.value);
+                          }} className="form-input">
                             {gradeCompany === 'PSA' && (
                               <>
                                 <option value="card-auto">Graded (card + auto)</option>
