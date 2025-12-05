@@ -2,6 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../server/src/db.js';
 import { getMarketInsight } from '../server/src/gemini.js';
 import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin.js';
+import ImageKit from 'imagekit';
+import formidable from 'formidable';
+import fs from 'fs';
 
 // Initialize Firebase Admin on cold start
 try {
@@ -9,6 +12,13 @@ try {
 } catch (error) {
     console.error('[API] Failed to initialize Firebase Admin:', error);
 }
+
+// Initialize ImageKit
+const imagekit = new ImageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || '',
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
@@ -84,6 +94,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 console.log('[API] Getting insight for card');
                 const insight = await getMarketInsight(req.body.card);
                 return res.status(200).json({ insight });
+            }
+
+            // GET /api/imagekit/auth
+            if (method === 'GET' && path === '/imagekit/auth') {
+                console.log('[API] GET /imagekit/auth');
+                const authenticationParameters = imagekit.getAuthenticationParameters();
+                return res.status(200).json(authenticationParameters);
+            }
+
+            // POST /api/imagekit/upload
+            if (method === 'POST' && path === '/imagekit/upload') {
+                console.log('[API] POST /imagekit/upload');
+
+                // Parse multipart form data
+                const form = formidable({ multiples: false });
+
+                const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
+                    form.parse(req as any, (err, fields, files) => {
+                        if (err) reject(err);
+                        else resolve([fields, files]);
+                    });
+                });
+
+                const file = Array.isArray(files.file) ? files.file[0] : files.file;
+
+                if (!file) {
+                    return res.status(400).json({ error: 'No file provided' });
+                }
+
+                const fileName = (Array.isArray(fields.fileName) ? fields.fileName[0] : fields.fileName) || file.originalFilename || 'upload';
+
+                // Read file buffer
+                const fileBuffer = fs.readFileSync(file.filepath);
+
+                // Upload to ImageKit
+                const result = await imagekit.upload({
+                    file: fileBuffer,
+                    fileName: fileName,
+                    folder: '/cards',
+                    useUniqueFileName: true,
+                    tags: ['card-image']
+                });
+
+                console.log('[API] Image uploaded to ImageKit:', result.fileId);
+
+                // Clean up temp file
+                fs.unlinkSync(file.filepath);
+
+                return res.status(200).json({
+                    url: result.url,
+                    fileId: result.fileId,
+                    name: result.name
+                });
             }
 
             console.log('[API] Route not found');
