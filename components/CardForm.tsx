@@ -3,11 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, Sport, Currency, AcquisitionSource, Offer, PricePoint } from '../types';
 import { X, Upload, Image as ImageIcon, Eye, Wallet, Plus, Trash2 } from 'lucide-react';
 import { GradingInput } from './GradingInput';
+import { uploadImage } from '../services/imagekit';
 
 interface CardFormProps {
   initialData?: Card | null;
   onSave: (card: Card) => void;
   onCancel: () => void;
+  getIdToken: () => Promise<string>;
 }
 
 interface CardVariant {
@@ -21,13 +23,14 @@ interface CardVariant {
   currentValue: string; // Individual current value for this variant
 }
 
-export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCancel }) => {
+export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCancel, getIdToken }) => {
   // Mode
   const [isWatchlist, setIsWatchlist] = useState(false);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
   // Visual
   const [imageUrl, setImageUrl] = useState<string>('');
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Bulk entry variants
   const [variants, setVariants] = useState<CardVariant[]>([
@@ -161,18 +164,41 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
     setVariants(variants.map(v => v.id === id ? { ...v, [field]: value } : v));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      setImageUploading(true);
+
+      // Create a resized version of the image
+      const resizedFile = await resizeImage(file, 400);
+
+      // Upload to ImageKit
+      const fileName = `${player || 'card'}_${year}_${brand}_${Date.now()}`.replace(/\s+/g, '_');
+      const result = await uploadImage(resizedFile, fileName, getIdToken);
+
+      // Set the ImageKit URL
+      setImageUrl(result.url);
+      console.log('[CardForm] Image uploaded to ImageKit:', result.url);
+    } catch (error) {
+      console.error('[CardForm] Image upload failed:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  // Helper function to resize image before uploading
+  const resizeImage = (file: File, maxSize: number): Promise<File> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-          // Resize image to max 400px width/height to save storage
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const maxSize = 400;
 
           if (width > height) {
             if (width > maxSize) {
@@ -190,13 +216,25 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          setImageUrl(dataUrl);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const resizedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(resizedFile);
+            } else {
+              reject(new Error('Failed to resize image'));
+            }
+          }, 'image/jpeg', 0.8);
         };
+        img.onerror = () => reject(new Error('Failed to load image'));
         img.src = event.target?.result as string;
       };
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -418,10 +456,15 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
               {/* Image Section - Left Column */}
               <div className="md:col-span-4 space-y-4">
                 <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`aspect-[3/4] bg-slate-950 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-all overflow-hidden relative group ${isWatchlist ? 'border-indigo-500/30 hover:border-indigo-500' : 'border-slate-700 hover:border-emerald-500'}`}
+                  onClick={() => !imageUploading && fileInputRef.current?.click()}
+                  className={`aspect-[3/4] bg-slate-950 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-all overflow-hidden relative group ${isWatchlist ? 'border-indigo-500/30 hover:border-indigo-500' : 'border-slate-700 hover:border-emerald-500'} ${imageUploading ? 'opacity-50 cursor-wait' : ''}`}
                 >
-                  {imageUrl ? (
+                  {imageUploading ? (
+                    <div className="text-slate-400 text-center p-4">
+                      <div className="w-12 h-12 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3"></div>
+                      <span className="text-sm font-medium">Uploading to ImageKit...</span>
+                    </div>
+                  ) : imageUrl ? (
                     <>
                       <img src={imageUrl} alt="Card Preview" className="w-full h-full object-contain" />
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -441,6 +484,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     className="hidden"
                     accept="image/*"
                     onChange={handleImageUpload}
+                    disabled={imageUploading}
                   />
                 </div>
               </div>

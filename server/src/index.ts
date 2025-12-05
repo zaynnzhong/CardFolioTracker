@@ -1,10 +1,14 @@
-import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import apiRoutes from './routes';
 
+// Load server-specific .env file first (MUST be before other imports)
+dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load root .env.local for fallback variables
 dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+
+import express from 'express';
+import cors from 'cors';
+import apiRoutes from './routes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

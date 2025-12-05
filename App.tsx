@@ -733,6 +733,7 @@ export default function App() {
           initialData={editingCard}
           onSave={handleSaveCard}
           onCancel={() => setIsFormOpen(false)}
+          getIdToken={getIdToken}
         />
       )}
 

@@ -1,9 +1,19 @@
 import express from 'express';
+import ImageKit from 'imagekit';
+import multer from 'multer';
 import { db } from './db';
 import { getMarketInsight } from './gemini';
 import { verifyAuthToken } from './firebaseAdmin';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Initialize ImageKit (server-side only)
+const imagekit = new ImageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || '',
+});
 
 // Middleware to extract and verify auth token
 const authMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -125,6 +135,49 @@ router.put('/cards/:id/price/:priceDate', authMiddleware, async (req, res) => {
     } catch (error: any) {
         console.error('[Local API] Error editing price entry:', error);
         res.status(500).json({ error: 'Failed to edit price entry', details: error.message });
+    }
+});
+
+// ImageKit Authentication Endpoint (authenticated)
+router.get('/imagekit/auth', authMiddleware, async (req, res) => {
+    console.log('[Local API] GET /imagekit/auth');
+    try {
+        const authenticationParameters = imagekit.getAuthenticationParameters();
+        console.log('[Local API] ImageKit auth params generated');
+        res.json(authenticationParameters);
+    } catch (error: any) {
+        console.error('[Local API] Error generating ImageKit auth:', error);
+        res.status(500).json({ error: 'Failed to generate auth parameters', details: error.message });
+    }
+});
+
+// ImageKit Upload Endpoint (server-side upload to bypass CORS)
+router.post('/imagekit/upload', authMiddleware, upload.single('file'), async (req, res) => {
+    console.log('[Local API] POST /imagekit/upload');
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        const fileName = req.body.fileName || req.file.originalname;
+
+        const result = await imagekit.upload({
+            file: req.file.buffer,
+            fileName: fileName,
+            folder: '/cards',
+            useUniqueFileName: true,
+            tags: ['card-image']
+        });
+
+        console.log('[Local API] Image uploaded to ImageKit:', result.fileId);
+        res.json({
+            url: result.url,
+            fileId: result.fileId,
+            name: result.name
+        });
+    } catch (error: any) {
+        console.error('[Local API] Error uploading to ImageKit:', error);
+        res.status(500).json({ error: 'Failed to upload image', details: error.message });
     }
 });
 
