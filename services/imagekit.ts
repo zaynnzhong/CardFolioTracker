@@ -2,6 +2,7 @@
 const IMAGEKIT_PUBLIC_KEY = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY || '';
 const IMAGEKIT_URL_ENDPOINT = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT || '';
 const IMAGEKIT_AUTH_ENDPOINT = import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT || 'http://localhost:3001/api/imagekit/auth';
+const IMAGEKIT_UPLOAD_ENDPOINT = import.meta.env.VITE_IMAGEKIT_UPLOAD_ENDPOINT || 'http://localhost:3001/api/imagekit/upload';
 
 export interface UploadResponse {
   url: string;
@@ -57,7 +58,7 @@ export const uploadImage = async (
     formData.append('fileName', fileName || file.name);
 
     // Upload via server endpoint (bypasses CORS issues)
-    const response = await fetch('http://localhost:3001/api/imagekit/upload', {
+    const response = await fetch(IMAGEKIT_UPLOAD_ENDPOINT, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
