@@ -51,6 +51,17 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, allCards, onCl
 
   // Handler functions
   const handleDelete = async (priceDate: string) => {
+    // Find if this is the oldest (basis) entry
+    const sortedHistory = [...card.priceHistory].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const isFirstEntry = sortedHistory.length > 0 && sortedHistory[0].date === priceDate;
+
+    if (isFirstEntry) {
+      alert('Cannot delete the initial purchase price (basis). This is the first entry when you added the card and is needed for profit/loss calculations.\n\nTo change it, use the Edit button instead.');
+      return;
+    }
+
     if (window.confirm('Delete this price entry? This action cannot be undone.')) {
       await onDeleteEntry(card.id, priceDate);
     }
