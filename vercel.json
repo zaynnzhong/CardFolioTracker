@@ -13,7 +13,7 @@
     ],
     "headers": [
         {
-            "source": "/sw.js",
+            "source": "/(sw|workbox-.*)\\.js",
             "headers": [
                 {
                     "key": "Cache-Control",
@@ -22,15 +22,6 @@
                 {
                     "key": "Service-Worker-Allowed",
                     "value": "/"
-                }
-            ]
-        },
-        {
-            "source": "/workbox-*.js",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=0, must-revalidate"
                 }
             ]
         }
