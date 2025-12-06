@@ -224,7 +224,13 @@ export const db = {
             );
             if (matchingEntries.length > 0) {
                 card.currentValue = matchingEntries[matchingEntries.length - 1].value;
+            } else {
+                // No matching entries, use basis or 0
+                card.currentValue = card.basis || 0;
             }
+        } else {
+            // No price history left, reset to basis or 0
+            card.currentValue = card.basis || 0;
         }
 
         await card.save();
