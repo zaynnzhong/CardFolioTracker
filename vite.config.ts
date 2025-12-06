@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'prompt',
-        includeAssets: ['prism-fav.png', 'logo.png', 'apple-touch-icon.png'],
+        includeAssets: ['prism-fav.png', 'app-icon.png', 'apple-touch-icon.png'],
         manifest: {
           name: 'Prism Portfolio - Card Tracker',
           short_name: 'Prism',
