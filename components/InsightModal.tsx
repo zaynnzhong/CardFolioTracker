@@ -520,6 +520,12 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, allCards, onCl
                     {filteredHistory.map((entry, index) => {
                       const isEditing = editingDate === entry.date;
 
+                      // Check if this is the oldest (basis) entry
+                      const sortedByDate = [...card.priceHistory].sort((a, b) =>
+                        new Date(a.date).getTime() - new Date(b.date).getTime()
+                      );
+                      const isBasisEntry = sortedByDate.length > 0 && sortedByDate[0].date === entry.date;
+
                       return isEditing ? (
                         <tr key={index} className="bg-slate-800/50">
                           <td className="px-4 py-3">
@@ -623,13 +629,23 @@ export const InsightModal: React.FC<InsightModalProps> = ({ card, allCards, onCl
                               >
                                 <Edit2 size={16} />
                               </button>
-                              <button
-                                onClick={() => handleDelete(entry.date)}
-                                className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {isBasisEntry ? (
+                                <button
+                                  disabled
+                                  className="p-1.5 text-slate-600 cursor-not-allowed rounded opacity-50"
+                                  title="Cannot delete initial purchase price (basis). Use Edit to change it."
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleDelete(entry.date)}
+                                  className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
