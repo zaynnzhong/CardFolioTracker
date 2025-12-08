@@ -18,6 +18,7 @@ import { GradeTag } from './components/GradeTag';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { NotificationPermission } from './components/NotificationPermission';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
@@ -843,6 +844,7 @@ export default function App() {
       <PWAUpdateNotification />
       <PWAInstallPrompt />
       <OfflineIndicator />
+      <NotificationPermission />
     </div>
   );
 }

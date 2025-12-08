@@ -52,3 +52,55 @@ export const verifyAuthToken = async (token: string): Promise<admin.auth.Decoded
     return null;
   }
 };
+
+// Send FCM notification to specific device tokens
+export const sendNotification = async (
+  tokens: string[],
+  title: string,
+  body: string,
+  data?: Record<string, string>
+): Promise<{ successCount: number; failureCount: number }> => {
+  try {
+    // Ensure Firebase Admin is initialized
+    if (admin.apps.length === 0) {
+      console.log('[Firebase Admin] Not initialized, initializing now...');
+      initializeFirebaseAdmin();
+    }
+
+    if (tokens.length === 0) {
+      console.log('[FCM] No tokens to send to');
+      return { successCount: 0, failureCount: 0 };
+    }
+
+    const message = {
+      notification: {
+        title,
+        body
+      },
+      data: data || {},
+      tokens: tokens
+    };
+
+    console.log('[FCM] Sending notification to', tokens.length, 'devices');
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    console.log('[FCM] Successfully sent:', response.successCount);
+    console.log('[FCM] Failed:', response.failureCount);
+
+    if (response.failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          console.error(`[FCM] Failed to send to token ${idx}:`, resp.error);
+        }
+      });
+    }
+
+    return {
+      successCount: response.successCount,
+      failureCount: response.failureCount
+    };
+  } catch (error: any) {
+    console.error('[FCM] Error sending notification:', error.message);
+    throw error;
+  }
+};

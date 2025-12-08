@@ -3,7 +3,7 @@ import ImageKit from 'imagekit';
 import multer from 'multer';
 import { db } from './db';
 import { getMarketInsight } from './gemini';
-import { verifyAuthToken } from './firebaseAdmin';
+import { verifyAuthToken, sendNotification } from './firebaseAdmin';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -190,6 +190,71 @@ router.post('/gemini/insight', authMiddleware, async (req, res) => {
     } catch (error: any) {
         console.error('[Local API] Error getting insight:', error);
         res.status(500).json({ error: 'Failed to get insight', details: error.message });
+    }
+});
+
+// Save FCM Token (authenticated)
+router.post('/fcm-token', authMiddleware, async (req, res) => {
+    console.log('[Local API] POST /fcm-token');
+    try {
+        const userId = (req as any).userId;
+        const { fcmToken } = req.body;
+
+        if (!fcmToken) {
+            return res.status(400).json({ error: 'FCM token is required' });
+        }
+
+        const user = await db.saveFCMToken(userId, fcmToken);
+        res.json({ success: true, user });
+    } catch (error: any) {
+        console.error('[Local API] Error saving FCM token:', error);
+        res.status(500).json({ error: 'Failed to save FCM token', details: error.message });
+    }
+});
+
+// Remove FCM Token (authenticated)
+router.delete('/fcm-token', authMiddleware, async (req, res) => {
+    console.log('[Local API] DELETE /fcm-token');
+    try {
+        const userId = (req as any).userId;
+        const { fcmToken } = req.body;
+
+        if (!fcmToken) {
+            return res.status(400).json({ error: 'FCM token is required' });
+        }
+
+        const user = await db.removeFCMToken(userId, fcmToken);
+        res.json({ success: true, user });
+    } catch (error: any) {
+        console.error('[Local API] Error removing FCM token:', error);
+        res.status(500).json({ error: 'Failed to remove FCM token', details: error.message });
+    }
+});
+
+// Send notification to user (authenticated) - For testing/admin use
+router.post('/send-notification', authMiddleware, async (req, res) => {
+    console.log('[Local API] POST /send-notification');
+    try {
+        const userId = (req as any).userId;
+        const { title, body, data } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ error: 'Title and body are required' });
+        }
+
+        // Get user's FCM tokens
+        const tokens = await db.getFCMTokens(userId);
+
+        if (tokens.length === 0) {
+            return res.status(404).json({ error: 'No FCM tokens found for user' });
+        }
+
+        // Send notification
+        const result = await sendNotification(tokens, title, body, data);
+        res.json({ success: true, result });
+    } catch (error: any) {
+        console.error('[Local API] Error sending notification:', error);
+        res.status(500).json({ error: 'Failed to send notification', details: error.message });
     }
 });
 

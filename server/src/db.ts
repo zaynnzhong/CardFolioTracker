@@ -93,6 +93,23 @@ const CardSchema = new Schema({
 // Use a global variable to prevent recompiling model in serverless hot-reloads
 const CardModel = mongoose.models.Card || mongoose.model<Card & Document>('Card', CardSchema);
 
+// User Model for FCM Tokens
+export interface User {
+    userId: string; // Firebase user ID
+    fcmTokens: string[]; // Array of FCM tokens (user may have multiple devices)
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const UserSchema = new Schema({
+    userId: { type: String, required: true, unique: true, index: true },
+    fcmTokens: [{ type: String }],
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+const UserModel = mongoose.models.User || mongoose.model<User & Document>('User', UserSchema);
+
 // 4. Connection Logic
 let isConnected = false;
 export const connectToDb = async () => {
@@ -281,5 +298,73 @@ export const db = {
         await card.save();
         console.log('[DB] Price entry edited successfully');
         return card.toObject();
+    },
+
+    async saveFCMToken(userId: string, fcmToken: string): Promise<User | null> {
+        await connectToDb();
+        console.log('[DB] saveFCMToken called with:', { userId, token: fcmToken.substring(0, 20) + '...' });
+
+        try {
+            // Find or create user
+            let user = await UserModel.findOne({ userId });
+
+            if (!user) {
+                // Create new user with token
+                user = new UserModel({
+                    userId,
+                    fcmTokens: [fcmToken],
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+            } else {
+                // Add token if not already present
+                if (!user.fcmTokens.includes(fcmToken)) {
+                    user.fcmTokens.push(fcmToken);
+                    user.updatedAt = new Date();
+                }
+            }
+
+            await user.save();
+            console.log('[DB] FCM token saved successfully, total tokens:', user.fcmTokens.length);
+            return user.toObject();
+        } catch (error) {
+            console.error('[DB] Error saving FCM token:', error);
+            return null;
+        }
+    },
+
+    async removeFCMToken(userId: string, fcmToken: string): Promise<User | null> {
+        await connectToDb();
+        console.log('[DB] removeFCMToken called with:', { userId });
+
+        try {
+            const user = await UserModel.findOne({ userId });
+            if (!user) {
+                console.log('[DB] User not found:', userId);
+                return null;
+            }
+
+            user.fcmTokens = user.fcmTokens.filter(token => token !== fcmToken);
+            user.updatedAt = new Date();
+
+            await user.save();
+            console.log('[DB] FCM token removed successfully, remaining tokens:', user.fcmTokens.length);
+            return user.toObject();
+        } catch (error) {
+            console.error('[DB] Error removing FCM token:', error);
+            return null;
+        }
+    },
+
+    async getFCMTokens(userId: string): Promise<string[]> {
+        await connectToDb();
+
+        try {
+            const user = await UserModel.findOne({ userId });
+            return user ? user.fcmTokens : [];
+        } catch (error) {
+            console.error('[DB] Error getting FCM tokens:', error);
+            return [];
+        }
     }
 };
