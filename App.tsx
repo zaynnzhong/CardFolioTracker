@@ -318,7 +318,7 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
-        <img src="/logo.png" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
+        <img src="/white-type.svg" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
         <Loader2 size={32} className="animate-spin text-emerald-500" />
       </div>
     );
@@ -333,7 +333,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
-        <img src="/logo.png" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
+        <img src="/white-type.svg" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
         <Loader2 size={32} className="animate-spin text-emerald-500" />
       </div>
     );
@@ -355,7 +355,7 @@ export default function App() {
           {(isNarrowScreen && !sidebarHovered) ? (
             <img src="/prism-fav.png" alt="Prism Icon" className="object-contain drop-shadow-2xl" style={{ width: '40px', height: 'auto' }} />
           ) : (
-            <img src="/logo.png" alt="Prism Logo" className="object-contain drop-shadow-2xl" style={{ width: '140px', height: 'auto' }} />
+            <img src="/white-type.svg" alt="Prism Logo" className="object-contain drop-shadow-2xl" style={{ width: '140px', height: 'auto' }} />
           )}
         </div>
 
@@ -530,7 +530,7 @@ export default function App() {
       <div className={`flex-1 transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Bar - Mobile Only */}
         <header className="lg:hidden fixed top-0 left-0 right-0 glass-card backdrop-blur-xl z-30 px-4 py-3 flex justify-between items-center border-b border-white/10">
-          <img src="/logo.png" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
+          <img src="/white-type.svg" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
           <div className="flex items-center gap-2">
             {/* Currency Toggle - Mobile */}
             <div className="glass-card rounded-lg p-0.5 border border-white/10">

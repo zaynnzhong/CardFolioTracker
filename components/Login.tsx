@@ -30,7 +30,7 @@ export const Login: React.FC = () => {
         {/* Logo */}
         <div className="text-center mb-12 animate-fadeIn">
           <img
-            src="/logo.png"
+            src="/white-type.svg"
             alt="Prism"
             className="mx-auto mb-8 drop-shadow-2xl"
             style={{ width: '200px', height: 'auto' }}

@@ -101,7 +101,7 @@ export const LandingPage: React.FC = () => {
                 className="mb-6 lg:mb-8"
               >
                 <img
-                  src="/logo.png"
+                  src="/white-type.svg"
                   alt="Prism Portfolio"
                   className="mx-auto lg:mx-0 drop-shadow-2xl"
                   style={{ width: '180px', height: 'auto' }}
