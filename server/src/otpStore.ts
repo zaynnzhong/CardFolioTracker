@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { connectToDb } from './db.js';
 
 export interface OTPDocument extends Document {
     email: string;
@@ -19,6 +20,7 @@ const OTPModel = mongoose.model<OTPDocument>('OTP', OTPSchema);
 
 export const otpStore = {
     async set(email: string, code: string, expiry: number): Promise<void> {
+        await connectToDb();
         await OTPModel.findOneAndUpdate(
             { email },
             { email, code, expiry: new Date(expiry) },
@@ -27,6 +29,7 @@ export const otpStore = {
     },
 
     async get(email: string): Promise<{ code: string; expiry: number } | null> {
+        await connectToDb();
         const otp = await OTPModel.findOne({ email });
         if (!otp) return null;
 
@@ -43,6 +46,7 @@ export const otpStore = {
     },
 
     async delete(email: string): Promise<void> {
+        await connectToDb();
         await OTPModel.deleteOne({ email });
     }
 };
