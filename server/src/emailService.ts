@@ -1,5 +1,5 @@
-// Use require with default export for nodemailer CommonJS compatibility
-const nodemailer = require('nodemailer').default || require('nodemailer');
+// Use plain JavaScript wrapper to avoid TypeScript compilation issues with nodemailer
+const nodemailer = require('./nodemailerWrapper');
 
 // Email service for sending custom authentication emails
 // You'll need to configure this with your SMTP provider (SendGrid, Mailgun, etc.)
