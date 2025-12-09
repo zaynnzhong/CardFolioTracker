@@ -3,6 +3,7 @@ import { db } from '../server/src/db.js';
 import { getMarketInsight } from '../server/src/gemini.js';
 import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin.js';
 import { sendOTPEmail } from '../server/src/emailService.js';
+import { otpStore } from '../server/src/otpStore.js';
 import admin from 'firebase-admin';
 import ImageKit from 'imagekit';
 import formidable from 'formidable';
@@ -33,19 +34,6 @@ function getImageKit(): ImageKit {
     }
     return imagekit;
 }
-
-// In-memory OTP storage (Map: email -> {code, expiry})
-const otpStore = new Map<string, { code: string; expiry: number }>();
-
-// Clean up expired OTPs every 5 minutes
-setInterval(() => {
-    const now = Date.now();
-    for (const [email, data] of otpStore.entries()) {
-        if (data.expiry < now) {
-            otpStore.delete(email);
-        }
-    }
-}, 5 * 60 * 1000);
 
 // Separate handler for ImageKit upload (uses formidable, no default body parser)
 async function handleImageKitUpload(req: VercelRequest, res: VercelResponse) {
@@ -146,9 +134,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // Generate random 6-digit code
                 const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // Store code with 5-minute expiry
+                // Store code with 5-minute expiry in MongoDB
                 const expiry = Date.now() + 5 * 60 * 1000;
-                otpStore.set(email, { code, expiry });
+                await otpStore.set(email, code, expiry);
 
                 // Try to send code via email
                 try {
@@ -179,16 +167,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(400).json({ error: 'Email and code are required' });
                 }
 
-                // Check if OTP exists
-                const storedData = otpStore.get(email);
+                // Check if OTP exists in MongoDB
+                const storedData = await otpStore.get(email);
                 if (!storedData) {
                     return res.status(400).json({ error: 'Invalid or expired OTP code' });
-                }
-
-                // Check if OTP is expired
-                if (storedData.expiry < Date.now()) {
-                    otpStore.delete(email);
-                    return res.status(400).json({ error: 'OTP code has expired' });
                 }
 
                 // Verify code matches
@@ -196,8 +178,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(400).json({ error: 'Invalid OTP code' });
                 }
 
-                // Delete used OTP
-                otpStore.delete(email);
+                // Delete used OTP from MongoDB
+                await otpStore.delete(email);
 
                 // Create or get user by email
                 let userRecord;
