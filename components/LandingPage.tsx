@@ -1,48 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Sparkles, BarChart3, Shield, ArrowRight, LineChart, Loader2, Mail } from 'lucide-react';
+import { TrendingUp, Sparkles, BarChart3, Shield, ArrowRight, LineChart } from 'lucide-react';
 import Spline from '@splinetool/react-spline';
-import { useAuth } from '../contexts/AuthContext';
+import { Login } from './Login';
 
 export const LandingPage: React.FC = () => {
-  const { signInWithGoogle, sendEmailLink } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showLogin, setShowLogin] = useState(false);
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
-    setEmailLoading(true);
-    setError(null);
-    try {
-      await sendEmailLink(email);
-      setEmailSent(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send email link');
-    } finally {
-      setEmailLoading(false);
-    }
-  };
+  // Show login page if user clicked Start
+  if (showLogin) {
+    return <Login />;
+  }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -165,122 +134,19 @@ export const LandingPage: React.FC = () => {
                 The most advanced portfolio tracker for trading cards. Monitor values, analyze trends, and maximize your returns with institutional-grade analytics.
               </motion.p>
 
-              {/* Error Message */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm max-w-md mx-auto lg:mx-0"
-                >
-                  {error}
-                </motion.div>
-              )}
-
-              {/* Auth Section */}
-              {emailSent ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="max-w-md mx-auto lg:mx-0 p-6 bg-crypto-lime/10 border border-crypto-lime/30 rounded-2xl backdrop-blur-xl"
-                >
-                  <Mail className="w-12 h-12 mb-3 text-crypto-lime" />
-                  <h3 className="text-xl font-bold text-white mb-2">Check your email!</h3>
-                  <p className="text-slate-300 text-sm mb-3">
-                    We sent a sign-in link to <span className="font-semibold text-crypto-lime">{email}</span>
-                  </p>
-                  <p className="text-slate-400 text-xs mb-4">
-                    Click the link in the email to complete your sign-in.
-                  </p>
-                  <button
-                    onClick={() => { setEmailSent(false); setEmail(''); }}
-                    className="text-crypto-lime text-sm hover:underline"
-                  >
-                    Use a different email
-                  </button>
-                </motion.div>
-              ) : (
-                <div className="max-w-md mx-auto lg:mx-0">
-                  {/* Email Form */}
-                  <motion.form
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    onSubmit={handleEmailSignIn}
-                    className="mb-4"
-                  >
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      className="w-full px-5 py-4 bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all mb-3 text-base"
-                      disabled={emailLoading}
-                    />
-                    <button
-                      type="submit"
-                      disabled={emailLoading || !email}
-                      className="w-full group relative px-8 py-4 crypto-gradient rounded-xl text-black font-bold text-base shadow-2xl glow-lime inline-flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
-                    >
-                      {emailLoading ? (
-                        <>
-                          <Loader2 className="animate-spin" size={20} />
-                          <span>Sending link...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Mail size={20} />
-                          <span>Send me a sign-in link</span>
-                        </>
-                      )}
-                    </button>
-                  </motion.form>
-
-                  {/* Divider */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.45 }}
-                    className="relative my-5"
-                  >
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-700/50"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-4 bg-crypto-darker text-slate-400">Or continue with</span>
-                    </div>
-                  </motion.div>
-
-                  {/* Google Button */}
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    whileHover={{ scale: loading ? 1 : 1.05 }}
-                    whileTap={{ scale: loading ? 1 : 0.95 }}
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="w-full group relative px-8 py-4 bg-white hover:bg-gray-50 rounded-xl text-gray-900 font-semibold text-base shadow-xl inline-flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="animate-spin" size={20} />
-                        <span>Signing in...</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        <span>Continue with Google</span>
-                      </>
-                    )}
-                  </motion.button>
-                </div>
-              )}
+              {/* Start Button */}
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowLogin(true)}
+                className="group relative px-10 py-5 crypto-gradient rounded-2xl text-black font-bold text-xl shadow-2xl glow-lime inline-flex items-center gap-3 transition-all"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="transition-transform group-hover:translate-x-1" size={24} />
+              </motion.button>
             </motion.div>
 
             {/* Right: 3D Spline Card */}
