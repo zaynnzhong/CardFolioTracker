@@ -129,10 +129,15 @@ export const ConfirmEmail: React.FC = () => {
             <div className="py-4">
               <div className="text-center mb-6">
                 <Mail className="w-12 h-12 mx-auto mb-3 text-crypto-lime" />
-                <h2 className="text-2xl font-bold text-white mb-2">Confirm your email</h2>
-                <p className="text-slate-400 text-sm">
-                  Please enter the email address you used to request the sign-in link.
+                <h2 className="text-2xl font-bold text-white mb-2">Complete sign-in</h2>
+                <p className="text-slate-400 text-sm mb-3">
+                  To complete signing in, please enter the email address where you received this link.
                 </p>
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-left">
+                  <p className="text-blue-300 text-xs">
+                    <strong>Tip:</strong> This step is needed because you opened the link on a different device. Simply enter the same email address you used when requesting the sign-in link.
+                  </p>
+                </div>
               </div>
 
               {error && (

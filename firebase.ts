@@ -30,11 +30,15 @@ export const googleProvider = new GoogleAuthProvider();
 // Email link auth configuration
 // Use production URL if available, otherwise fall back to current origin
 const getRedirectUrl = () => {
+  // If VITE_APP_URL is explicitly set, use it
   const prodUrl = import.meta.env.VITE_APP_URL;
   if (prodUrl) {
     return prodUrl + '/confirm-email';
   }
-  // For local development
+
+  // Auto-detect production vs local
+  // If we're on localhost or 127.0.0.1, use current origin
+  // Otherwise, assume we're in production and use the current origin (which should be the deployed URL)
   return window.location.origin + '/confirm-email';
 };
 
