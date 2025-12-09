@@ -1,5 +1,11 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink
+} from 'firebase/auth';
 
 // Firebase configuration
 // Replace these with your actual Firebase project config values
@@ -20,3 +26,9 @@ export const auth = getAuth(app);
 
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
+
+// Email link auth configuration
+export const actionCodeSettings = {
+  url: window.location.origin + '/confirm-email',
+  handleCodeInApp: true,
+};

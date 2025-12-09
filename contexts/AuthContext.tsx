@@ -3,14 +3,20 @@ import {
   User,
   signInWithPopup,
   signOut as firebaseSignOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink
 } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, actionCodeSettings } from '../firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  sendEmailLink: (email: string) => Promise<void>;
+  confirmEmailLink: (email: string, url: string) => Promise<void>;
+  isEmailLinkValid: (url: string) => boolean;
   signOut: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
 }
@@ -39,6 +45,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const sendEmailLink = async (email: string) => {
+    try {
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      // Save email to localStorage for later verification
+      window.localStorage.setItem('emailForSignIn', email);
+    } catch (error) {
+      console.error('Error sending email link:', error);
+      throw error;
+    }
+  };
+
+  const confirmEmailLink = async (email: string, url: string) => {
+    try {
+      await signInWithEmailLink(auth, email, url);
+      // Clear email from localStorage after successful sign-in
+      window.localStorage.removeItem('emailForSignIn');
+    } catch (error) {
+      console.error('Error confirming email link:', error);
+      throw error;
+    }
+  };
+
+  const isEmailLinkValid = (url: string): boolean => {
+    return isSignInWithEmailLink(auth, url);
+  };
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -62,6 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     signInWithGoogle,
+    sendEmailLink,
+    confirmEmailLink,
+    isEmailLinkValid,
     signOut,
     getIdToken
   };

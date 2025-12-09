@@ -20,16 +20,23 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { CardStackLoader } from './components/CardStackLoader';
 import { LoaderPreview } from './components/LoaderPreview';
+import { ConfirmEmail } from './components/ConfirmEmail';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
 export default function App() {
-  // Check if we're in preview mode
+  // Check URL routing
   const urlParams = new URLSearchParams(window.location.search);
+  const pathname = window.location.pathname;
   const isPreview = urlParams.get('preview') === 'loader';
+  const isConfirmEmail = pathname === '/confirm-email';
 
   if (isPreview) {
     return <LoaderPreview />;
+  }
+
+  if (isConfirmEmail) {
+    return <ConfirmEmail />;
   }
 
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();
