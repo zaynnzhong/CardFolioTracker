@@ -28,6 +28,10 @@ export const ConfirmEmail: React.FC = () => {
         try {
           await confirmEmailLink(savedEmail, url);
           setStatus('success');
+          // Auto-redirect to homepage after 1.5 seconds
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
         } catch (err: any) {
           setStatus('error');
           setError(err.message || 'Failed to sign in. Please try again.');
@@ -55,6 +59,10 @@ export const ConfirmEmail: React.FC = () => {
       const url = window.location.href;
       await confirmEmailLink(email, url);
       setStatus('success');
+      // Auto-redirect to homepage after 1.5 seconds
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Make sure you entered the correct email address.');
     } finally {

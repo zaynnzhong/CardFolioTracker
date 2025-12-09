@@ -28,7 +28,17 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Email link auth configuration
+// Use production URL if available, otherwise fall back to current origin
+const getRedirectUrl = () => {
+  const prodUrl = import.meta.env.VITE_APP_URL;
+  if (prodUrl) {
+    return prodUrl + '/confirm-email';
+  }
+  // For local development
+  return window.location.origin + '/confirm-email';
+};
+
 export const actionCodeSettings = {
-  url: window.location.origin + '/confirm-email',
+  url: getRedirectUrl(),
   handleCodeInApp: true,
 };
