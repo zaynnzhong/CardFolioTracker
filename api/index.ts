@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../server/src/db.js';
 import { getMarketInsight } from '../server/src/gemini.js';
 import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin.js';
+import { sendOTPEmail } from '../server/src/emailService.js';
+import admin from 'firebase-admin';
 import ImageKit from 'imagekit';
 import formidable from 'formidable';
 import fs from 'fs';
@@ -31,6 +33,19 @@ function getImageKit(): ImageKit {
     }
     return imagekit;
 }
+
+// In-memory OTP storage (Map: email -> {code, expiry})
+const otpStore = new Map<string, { code: string; expiry: number }>();
+
+// Clean up expired OTPs every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [email, data] of otpStore.entries()) {
+        if (data.expiry < now) {
+            otpStore.delete(email);
+        }
+    }
+}, 5 * 60 * 1000);
 
 // Separate handler for ImageKit upload (uses formidable, no default body parser)
 async function handleImageKitUpload(req: VercelRequest, res: VercelResponse) {
@@ -116,6 +131,102 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Handle ImageKit upload separately (needs formidable for multipart)
         if (method === 'POST' && path === '/imagekit/upload') {
             return handleImageKitUpload(req, res);
+        }
+
+        // Handle OTP authentication endpoints (no auth required)
+        if (method === 'POST' && path === '/auth/otp/send') {
+            console.log('[API] POST /auth/otp/send');
+            try {
+                const { email } = req.body;
+
+                if (!email || !email.includes('@')) {
+                    return res.status(400).json({ error: 'Invalid email address' });
+                }
+
+                // Generate random 6-digit code
+                const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+                // Store code with 5-minute expiry
+                const expiry = Date.now() + 5 * 60 * 1000;
+                otpStore.set(email, { code, expiry });
+
+                // Try to send code via email
+                try {
+                    await sendOTPEmail(email, code);
+                    console.log(`[API] OTP sent to ${email}`);
+                } catch (emailError: any) {
+                    console.error(`[API] Failed to send email, but OTP is still valid`);
+                    console.log(`[DEV MODE] OTP Code for ${email}: ${code}`);
+                    console.log(`[DEV MODE] Code expires in 5 minutes`);
+                }
+
+                return res.status(200).json({ success: true, message: 'OTP code sent to your email' });
+            } catch (error: any) {
+                console.error('[API] Error sending OTP:', error);
+                return res.status(500).json({ error: 'Failed to send OTP', details: error.message });
+            }
+        }
+
+        if (method === 'POST' && path === '/auth/otp/verify') {
+            console.log('[API] POST /auth/otp/verify');
+            try {
+                const { email, code } = req.body;
+
+                if (!email || !code) {
+                    return res.status(400).json({ error: 'Email and code are required' });
+                }
+
+                // Check if OTP exists
+                const storedData = otpStore.get(email);
+                if (!storedData) {
+                    return res.status(400).json({ error: 'Invalid or expired OTP code' });
+                }
+
+                // Check if OTP is expired
+                if (storedData.expiry < Date.now()) {
+                    otpStore.delete(email);
+                    return res.status(400).json({ error: 'OTP code has expired' });
+                }
+
+                // Verify code matches
+                if (storedData.code !== code) {
+                    return res.status(400).json({ error: 'Invalid OTP code' });
+                }
+
+                // Delete used OTP
+                otpStore.delete(email);
+
+                // Create or get user by email
+                let userRecord;
+                try {
+                    userRecord = await admin.auth().getUserByEmail(email);
+                    console.log(`[API] Existing user found: ${userRecord.uid}`);
+                } catch (error: any) {
+                    if (error.code === 'auth/user-not-found') {
+                        // Create new user
+                        userRecord = await admin.auth().createUser({
+                            email: email,
+                            emailVerified: true, // OTP verification counts as email verification
+                        });
+                        console.log(`[API] New user created: ${userRecord.uid}`);
+                    } else {
+                        throw error;
+                    }
+                }
+
+                // Generate custom token
+                const customToken = await admin.auth().createCustomToken(userRecord.uid);
+
+                console.log(`[API] Custom token generated for ${email}`);
+                return res.status(200).json({
+                    customToken,
+                    uid: userRecord.uid,
+                    email: userRecord.email
+                });
+            } catch (error: any) {
+                console.error('[API] Error verifying OTP:', error);
+                return res.status(500).json({ error: 'Failed to verify OTP', details: error.message });
+            }
         }
 
         // Verify authentication
