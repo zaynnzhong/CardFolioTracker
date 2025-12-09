@@ -18,10 +18,20 @@ import { GradeTag } from './components/GradeTag';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { CardStackLoader } from './components/CardStackLoader';
+import { LoaderPreview } from './components/LoaderPreview';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
 export default function App() {
+  // Check if we're in preview mode
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPreview = urlParams.get('preview') === 'loader';
+
+  if (isPreview) {
+    return <LoaderPreview />;
+  }
+
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -316,12 +326,7 @@ export default function App() {
 
   // Show loading screen while checking auth
   if (authLoading) {
-    return (
-      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
-        <img src="/white-type.svg" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
-        <Loader2 size={32} className="animate-spin text-emerald-500" />
-      </div>
-    );
+    return <CardStackLoader />;
   }
 
   // Show landing page if not authenticated
@@ -331,12 +336,7 @@ export default function App() {
 
   // Show app loading
   if (loading) {
-    return (
-      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
-        <img src="/white-type.svg" alt="Prism" className="mb-6 animate-pulse" style={{ width: '168px', height: 'auto' }} />
-        <Loader2 size={32} className="animate-spin text-emerald-500" />
-      </div>
-    );
+    return <CardStackLoader />;
   }
 
   return (
