@@ -15,7 +15,12 @@ export const sendOTPEmail = async (email: string, code: string): Promise<void> =
   const msg = {
     to: email,
     from: process.env.EMAIL_FROM || 'noreply@prism-cards.com',
-    subject: '🔐 Your Prism Portfolio Sign-In Code',
+    replyTo: process.env.EMAIL_FROM || 'noreply@prism-cards.com',
+    subject: 'Your Prism Portfolio Sign-In Code',
+    categories: ['authentication', 'otp'],
+    customArgs: {
+      type: 'otp-authentication'
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -40,9 +45,9 @@ export const sendOTPEmail = async (email: string, code: string): Promise<void> =
                   <!-- Content -->
                   <tr>
                     <td style="padding: 40px;">
-                      <h2 style="margin: 0 0 20px; color: #fff; font-size: 24px; font-weight: bold;">Your Sign-In Code</h2>
+                      <h2 style="margin: 0 0 20px; color: #fff; font-size: 24px; font-weight: bold;">Sign-In Verification</h2>
                       <p style="margin: 0 0 30px; color: #94a3b8; font-size: 16px; line-height: 1.6;">
-                        Enter this code to sign in to your Prism Portfolio account. This code will expire in 5 minutes.
+                        You requested to sign in to Prism Portfolio. Please use the verification code below to complete your sign-in. This code expires in 5 minutes.
                       </p>
 
                       <!-- OTP Code Display -->
@@ -80,6 +85,9 @@ export const sendOTPEmail = async (email: string, code: string): Promise<void> =
                       </p>
                       <p style="margin: 10px 0 0; color: #475569; font-size: 11px; text-align: center;">
                         Track your cards like crypto assets
+                      </p>
+                      <p style="margin: 10px 0 0; color: #475569; font-size: 10px; text-align: center;">
+                        This is a transactional email for account authentication.
                       </p>
                     </td>
                   </tr>
@@ -192,6 +200,9 @@ export const sendCustomEmailLink = async (email: string, link: string): Promise<
                       </p>
                       <p style="margin: 10px 0 0; color: #475569; font-size: 11px; text-align: center;">
                         Track your cards like crypto assets
+                      </p>
+                      <p style="margin: 10px 0 0; color: #475569; font-size: 10px; text-align: center;">
+                        This is a transactional email for account authentication.
                       </p>
                     </td>
                   </tr>
