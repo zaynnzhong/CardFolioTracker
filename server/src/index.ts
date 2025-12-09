@@ -13,7 +13,19 @@ import apiRoutes from './routes';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// CORS configuration - allow your domain and localhost for development
+const corsOptions = {
+  origin: [
+    'https://prism-cards.com',
+    'https://www.prism-cards.com',
+    'https://prism-cards.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // API Routes
