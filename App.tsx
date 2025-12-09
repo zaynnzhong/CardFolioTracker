@@ -23,6 +23,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { CardStackLoader } from './components/CardStackLoader';
 import { LoaderPreview } from './components/LoaderPreview';
 import { ConfirmEmail } from './components/ConfirmEmail';
+import { ProfileSettings } from './components/ProfileSettings';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
 
@@ -32,6 +33,7 @@ export default function App() {
   const pathname = window.location.pathname;
   const isPreview = urlParams.get('preview') === 'loader';
   const isConfirmEmail = pathname === '/confirm-email';
+  const isProfileSettings = pathname === '/profile' || pathname === '/settings';
 
   if (isPreview) {
     return <LoaderPreview />;
@@ -47,9 +49,22 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics' | 'transactions'>('portfolio');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
+  const [displayCurrency, setDisplayCurrency] = useState<Currency>(() => {
+    // Load from localStorage, default to USD
+    const saved = localStorage.getItem('displayCurrency') as Currency;
+    return (saved === 'USD' || saved === 'CNY') ? saved : 'USD';
+  });
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+
+  // Listen for currency changes from ProfileSettings
+  useEffect(() => {
+    const handleCurrencyChange = (event: CustomEvent<Currency>) => {
+      setDisplayCurrency(event.detail);
+    };
+    window.addEventListener('currencyChange', handleCurrencyChange as EventListener);
+    return () => window.removeEventListener('currencyChange', handleCurrencyChange as EventListener);
+  }, []);
 
   // Check screen width
   useEffect(() => {
@@ -367,6 +382,15 @@ export default function App() {
     window.history.replaceState({}, '', '/');
   }
 
+  // Handle profile settings route
+  if (isProfileSettings) {
+    return (
+      <div className="min-h-screen bg-crypto-darker text-slate-100 p-6">
+        <ProfileSettings />
+      </div>
+    );
+  }
+
   // Show app loading
   if (loading) {
     return <CardStackLoader />;
@@ -442,40 +466,6 @@ export default function App() {
                 {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Add Card</span>}
               </button>
 
-              {/* Currency Toggle */}
-              {(!isNarrowScreen || sidebarHovered) ? (
-                <div className="glass-card rounded-xl p-1 border border-white/10">
-                  <div className="grid grid-cols-2 gap-1">
-                    <button
-                      onClick={() => setDisplayCurrency('USD')}
-                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
-                        displayCurrency === 'USD'
-                          ? 'bg-crypto-lime text-black'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      USD $
-                    </button>
-                    <button
-                      onClick={() => setDisplayCurrency('CNY')}
-                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
-                        displayCurrency === 'CNY'
-                          ? 'bg-crypto-lime text-black'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      CNY ¥
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDisplayCurrency(displayCurrency === 'USD' ? 'CNY' : 'USD')}
-                  className="w-full flex items-center justify-center p-3 rounded-xl glass-card border border-white/10 text-crypto-lime font-bold transition-all hover:bg-white/5"
-                >
-                  <DollarSign size={24} className="flex-shrink-0" />
-                </button>
-              )}
             </div>
           </div>
 
@@ -524,6 +514,13 @@ export default function App() {
                         )}
                       </div>
                       <button
+                        onClick={(e) => { e.stopPropagation(); window.location.href = '/profile'; }}
+                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-slate-300 font-medium"
+                      >
+                        <Settings size={20} />
+                        <span>Settings</span>
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
                         className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
                       >
@@ -571,31 +568,6 @@ export default function App() {
         <header className="lg:hidden fixed top-0 left-0 right-0 glass-card backdrop-blur-xl z-30 px-4 py-3 flex justify-between items-center border-b border-white/10">
           <img src="/white-type.svg" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
           <div className="flex items-center gap-2">
-            {/* Currency Toggle - Mobile */}
-            <div className="glass-card rounded-lg p-0.5 border border-white/10">
-              <div className="flex gap-0.5">
-                <button
-                  onClick={() => setDisplayCurrency('USD')}
-                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
-                    displayCurrency === 'USD'
-                      ? 'bg-crypto-lime text-black'
-                      : 'text-slate-400'
-                  }`}
-                >
-                  $
-                </button>
-                <button
-                  onClick={() => setDisplayCurrency('CNY')}
-                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
-                    displayCurrency === 'CNY'
-                      ? 'bg-crypto-lime text-black'
-                      : 'text-slate-400'
-                  }`}
-                >
-                  ¥
-                </button>
-              </div>
-            </div>
             <button onClick={exportToCSV} className="p-2 text-slate-400 hover:text-white">
               <Download size={20} />
             </button>
@@ -629,6 +601,13 @@ export default function App() {
                       </div>
                     )}
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); window.location.href = '/profile'; }}
+                    className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-slate-300 font-medium"
+                  >
+                    <Settings size={18} />
+                    <span>Settings</span>
+                  </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
                     className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
