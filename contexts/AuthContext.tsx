@@ -47,12 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sendEmailLink = async (email: string) => {
     try {
+      console.log('Attempting to send email link to:', email);
+      console.log('Action code settings:', actionCodeSettings);
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      console.log('Email link sent successfully!');
       // Save email to localStorage for later verification
       window.localStorage.setItem('emailForSignIn', email);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending email link:', error);
-      throw error;
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      throw new Error(`Failed to send email: ${error.message || 'Unknown error'}`);
     }
   };
 

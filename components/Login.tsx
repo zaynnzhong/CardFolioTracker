@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft } from 'lucide-react';
 
-export const Login: React.FC = () => {
+interface LoginProps {
+  onBack?: () => void;
+}
+
+export const Login: React.FC<LoginProps> = ({ onBack }) => {
+  console.log('Login component mounted, onBack:', !!onBack);
   const { signInWithGoogle, sendEmailLink } = useAuth();
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+
+  console.log('Login render - emailSent:', emailSent, 'email:', email);
+
+  const loadingImages = [
+    '/loading-1.webp',
+    '/loading-2.webp',
+    '/loading-3.webp'
+  ];
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -42,48 +55,254 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-slate-200 flex items-center justify-center relative overflow-hidden">
-      {/* Animated Background Gradient */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-blue-500/5 to-purple-500/5 animate-pulse" style={{ animationDuration: '8s' }} />
-      </div>
+    <div className="min-h-screen bg-crypto-darker text-slate-200 flex relative overflow-hidden">
+      {/* Back Button - Fixed position */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="fixed top-6 left-6 z-20 flex items-center gap-2 text-slate-400 hover:text-crypto-lime transition-colors"
+        >
+          <ArrowLeft size={20} />
+          <span>Back</span>
+        </button>
+      )}
 
-      <div className="relative z-10 max-w-md w-full mx-auto px-6">
-        {/* Logo */}
-        <div className="text-center mb-12 animate-fadeIn">
-          <img
-            src="/white-type.svg"
-            alt="Prism"
-            className="mx-auto mb-8 drop-shadow-2xl"
-            style={{ width: '200px', height: 'auto' }}
-          />
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-3">
-            Welcome to Prism
-          </h1>
-          <p className="text-slate-400 text-lg">
-            Track, analyze, and grow your card collection portfolio
-          </p>
+      {/* Left Side - Animated Content */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden items-center justify-center p-8">
+        {/* Animated Background Gradients - Multiple layers */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-black" />
+        <div className="absolute inset-0 bg-gradient-to-br from-crypto-lime/10 via-purple-500/10 to-blue-500/10" style={{ animation: 'gradient-shift 8s ease-in-out infinite' }} />
+        <div className="absolute inset-0 bg-gradient-to-tl from-rose-500/5 via-transparent to-crypto-lime/5" style={{ animation: 'gradient-shift-reverse 10s ease-in-out infinite' }} />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/10 to-crypto-lime/5" style={{ animation: 'gradient-pulse 12s ease-in-out infinite' }} />
+
+        {/* Bento Grid Layout - 3 Cards Balanced */}
+        <div className="relative z-10 w-full h-full flex items-center justify-center px-12">
+          <div className="flex gap-6 items-center justify-center">
+            {/* Image 1 - Left Card */}
+            <div
+              className="rounded-lg overflow-hidden shadow-2xl transition-all duration-500 hover:scale-105"
+              style={{
+                animation: 'float-smooth 6s ease-in-out infinite, glow-subtle-lime 3s ease-in-out infinite',
+                animationDelay: '0s',
+                width: '200px',
+                aspectRatio: '2.5 / 3.5',
+              }}
+            >
+              <img
+                src={loadingImages[0]}
+                alt="Preview 1"
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Image 2 - Center Card */}
+            <div
+              className="rounded-lg overflow-hidden shadow-2xl transition-all duration-500 hover:scale-105"
+              style={{
+                animation: 'float-smooth 7s ease-in-out infinite, glow-subtle-purple 3.5s ease-in-out infinite',
+                animationDelay: '1s',
+                width: '200px',
+                aspectRatio: '2.5 / 3.5',
+              }}
+            >
+              <img
+                src={loadingImages[1]}
+                alt="Preview 2"
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Image 3 - Right Card */}
+            <div
+              className="rounded-lg overflow-hidden shadow-2xl transition-all duration-500 hover:scale-105"
+              style={{
+                animation: 'float-smooth 8s ease-in-out infinite, glow-subtle-blue 4s ease-in-out infinite',
+                animationDelay: '2s',
+                width: '200px',
+                aspectRatio: '2.5 / 3.5',
+              }}
+            >
+              <img
+                src={loadingImages[2]}
+                alt="Preview 3"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Sign In Card */}
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Sign In</h2>
+        {/* Floating Particles with enhanced animations */}
+        {[...Array(30)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: `${Math.random() * 4 + 2}px`,
+              height: `${Math.random() * 4 + 2}px`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              background: `rgba(${Math.random() > 0.5 ? '163, 230, 53' : '139, 92, 246'}, ${Math.random() * 0.5 + 0.3})`,
+              animation: `float-particle ${Math.random() * 6 + 5}s ease-in-out infinite, fade-in-out ${Math.random() * 3 + 2}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 4}s`,
+              boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(${Math.random() > 0.5 ? '163, 230, 53' : '139, 92, 246'}, 0.5)`,
+            }}
+          />
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes float-smooth {
+          0%, 100% {
+            transform: translateY(0) translateX(0) rotate(0deg);
+          }
+          25% {
+            transform: translateY(-15px) translateX(10px) rotate(1deg);
+          }
+          50% {
+            transform: translateY(-8px) translateX(-8px) rotate(-1deg);
+          }
+          75% {
+            transform: translateY(12px) translateX(8px) rotate(0.5deg);
+          }
+        }
+
+        @keyframes float-particle {
+          0%, 100% {
+            transform: translateY(0) translateX(0);
+            opacity: 0.3;
+          }
+          25% {
+            transform: translateY(-30px) translateX(15px);
+            opacity: 0.7;
+          }
+          50% {
+            transform: translateY(-15px) translateX(-20px);
+            opacity: 1;
+          }
+          75% {
+            transform: translateY(20px) translateX(10px);
+            opacity: 0.5;
+          }
+        }
+
+        @keyframes fade-in-out {
+          0%, 100% {
+            opacity: 0.2;
+          }
+          50% {
+            opacity: 0.8;
+          }
+        }
+
+        @keyframes gradient-shift {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.1) rotate(5deg);
+          }
+        }
+
+        @keyframes gradient-shift-reverse {
+          0%, 100% {
+            opacity: 0.8;
+            transform: scale(1) rotate(0deg);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.15) rotate(-5deg);
+          }
+        }
+
+        @keyframes gradient-pulse {
+          0%, 100% {
+            opacity: 0.6;
+            transform: translateX(0) scale(1);
+          }
+          33% {
+            opacity: 0.9;
+            transform: translateX(10%) scale(1.08);
+          }
+          66% {
+            opacity: 0.7;
+            transform: translateX(-10%) scale(1.05);
+          }
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% {
+            opacity: 0.2;
+            filter: blur(40px);
+          }
+          50% {
+            opacity: 0.4;
+            filter: blur(60px);
+          }
+        }
+
+        @keyframes glow-subtle-lime {
+          0%, 100% {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 40px rgba(163, 230, 53, 0.1);
+          }
+          50% {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 60px rgba(163, 230, 53, 0.15);
+          }
+        }
+
+        @keyframes glow-subtle-purple {
+          0%, 100% {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+          }
+          50% {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.15);
+          }
+        }
+
+        @keyframes glow-subtle-blue {
+          0%, 100% {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 40px rgba(59, 130, 246, 0.1);
+          }
+          50% {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 60px rgba(59, 130, 246, 0.15);
+          }
+        }
+      `}</style>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 xl:w-2/5 bg-crypto-darker flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          {/* Logo for mobile */}
+          <div className="lg:hidden text-center mb-8">
+            <img
+              src="/white-type.svg"
+              alt="Prism"
+              className="mx-auto mb-4 drop-shadow-2xl"
+              style={{ width: '160px', height: 'auto' }}
+            />
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-2">Sign In</h2>
+            <p className="text-slate-400 text-sm lg:text-base">Welcome back to Prism Portfolio</p>
+          </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-sm">
+            <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
               {error}
             </div>
           )}
 
           {emailSent ? (
             <div className="mb-6 p-6 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl text-center">
-              <Mail className="w-12 h-12 mx-auto mb-3 text-crypto-lime" />
-              <h3 className="text-lg font-semibold text-white mb-2">Check your email!</h3>
+              <Mail className="w-16 h-16 mx-auto mb-4 text-crypto-lime" />
+              <h3 className="text-xl font-semibold text-white mb-2">Check your email!</h3>
               <p className="text-slate-300 text-sm mb-4">
                 We sent a sign-in link to <span className="font-semibold text-crypto-lime">{email}</span>
               </p>
               <p className="text-slate-400 text-xs">
-                Click the link in the email to complete your sign-in. You can close this page.
+                Click the link in the email to complete your sign-in.
               </p>
               <button
                 onClick={() => { setEmailSent(false); setEmail(''); }}
@@ -95,8 +314,8 @@ export const Login: React.FC = () => {
           ) : (
             <>
               {/* Email Link Sign In */}
-              <form onSubmit={handleEmailSignIn} className="mb-4">
-                <div className="mb-4">
+              <form onSubmit={handleEmailSignIn} className="mb-6">
+                <div className="mb-5">
                   <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
                     Email address
                   </label>
@@ -106,21 +325,21 @@ export const Login: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
+                    className="w-full px-4 py-3 text-base bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
                     disabled={emailLoading}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={emailLoading || !email}
-                  className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {emailLoading ? (
-                    <Loader2 className="animate-spin" size={24} />
+                    <Loader2 className="animate-spin" size={20} />
                   ) : (
                     <>
                       <Mail size={20} />
-                      <span>Send me a sign-in link</span>
+                      <span>Send sign-in link</span>
                     </>
                   )}
                 </button>
@@ -129,10 +348,10 @@ export const Login: React.FC = () => {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-700"></div>
+                  <div className="w-full border-t border-slate-700/50"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-slate-900/80 text-slate-400">Or continue with</span>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-3 bg-crypto-darker text-slate-500 uppercase tracking-wider">Or continue with</span>
                 </div>
               </div>
 
@@ -140,13 +359,13 @@ export const Login: React.FC = () => {
               <button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-white hover:bg-gray-50 text-gray-900 font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <Loader2 className="animate-spin" size={24} />
+                  <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <>
-                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -171,25 +390,9 @@ export const Login: React.FC = () => {
             </>
           )}
 
-          <p className="text-slate-500 text-xs text-center mt-6">
-            By signing in, you agree to our Terms of Service and Privacy Policy
+          <p className="text-slate-500 text-xs text-center mt-8">
+            By signing in, you agree to our <span className="text-slate-400 hover:text-crypto-lime cursor-pointer">Terms</span> and <span className="text-slate-400 hover:text-crypto-lime cursor-pointer">Privacy Policy</span>
           </p>
-        </div>
-
-        {/* Features */}
-        <div className="mt-12 grid grid-cols-3 gap-4 text-center">
-          <div className="p-4">
-            <div className="text-2xl mb-2">📊</div>
-            <p className="text-slate-400 text-xs">Portfolio Analytics</p>
-          </div>
-          <div className="p-4">
-            <div className="text-2xl mb-2">🤖</div>
-            <p className="text-slate-400 text-xs">AI Insights</p>
-          </div>
-          <div className="p-4">
-            <div className="text-2xl mb-2">💎</div>
-            <p className="text-slate-400 text-xs">Track Value</p>
-          </div>
         </div>
       </div>
     </div>

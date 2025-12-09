@@ -2,16 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Sparkles, BarChart3, Shield, ArrowRight, LineChart } from 'lucide-react';
 import Spline from '@splinetool/react-spline';
-import { Login } from './Login';
 
 export const LandingPage: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [showLogin, setShowLogin] = useState(false);
-
-  // Show login page if user clicked Start
-  if (showLogin) {
-    return <Login />;
-  }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -135,18 +128,18 @@ export const LandingPage: React.FC = () => {
               </motion.p>
 
               {/* Start Button */}
-              <motion.button
+              <motion.a
+                href="/login"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setShowLogin(true)}
                 className="group relative px-10 py-5 crypto-gradient rounded-2xl text-black font-bold text-xl shadow-2xl glow-lime inline-flex items-center gap-3 transition-all"
               >
                 <span>Get Started</span>
                 <ArrowRight className="transition-transform group-hover:translate-x-1" size={24} />
-              </motion.button>
+              </motion.a>
             </motion.div>
 
             {/* Right: 3D Spline Card */}

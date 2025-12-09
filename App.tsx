@@ -14,6 +14,7 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { TransactionsView } from './components/TransactionsView';
 import { BottomNav } from './components/BottomNav';
 import { LandingPage } from './components/LandingPage';
+import { Login } from './components/Login';
 import { GradeTag } from './components/GradeTag';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -30,6 +31,7 @@ export default function App() {
   const pathname = window.location.pathname;
   const isPreview = urlParams.get('preview') === 'loader';
   const isConfirmEmail = pathname === '/confirm-email';
+  const isLogin = pathname === '/login';
 
   if (isPreview) {
     return <LoaderPreview />;
@@ -37,6 +39,10 @@ export default function App() {
 
   if (isConfirmEmail) {
     return <ConfirmEmail />;
+  }
+
+  if (isLogin) {
+    return <Login onBack={() => window.history.back()} />;
   }
 
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();
