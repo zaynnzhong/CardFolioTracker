@@ -1,6 +1,3 @@
-// Use plain JavaScript wrapper to avoid TypeScript compilation issues with nodemailer
-const nodemailer = require('./nodemailerWrapper');
-
 // Email service for sending custom authentication emails
 // You'll need to configure this with your SMTP provider (SendGrid, Mailgun, etc.)
 
@@ -13,8 +10,12 @@ interface EmailOptions {
 
 // Configure your SMTP transporter
 // For production, use environment variables for credentials
-const createTransporter = () => {
-  return nodemailer.createTransporter({
+const createTransporter = async () => {
+  // Dynamic import to avoid TypeScript/CommonJS compilation issues
+  const nodemailer = await import('nodemailer');
+  const mailer = nodemailer.default || nodemailer;
+
+  return mailer.createTransporter({
     // Example with Gmail (not recommended for production)
     // service: 'gmail',
     // auth: {
@@ -34,7 +35,7 @@ const createTransporter = () => {
 };
 
 export const sendOTPEmail = async (email: string, code: string): Promise<void> => {
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
 
   const emailOptions: EmailOptions = {
     to: email,
@@ -144,7 +145,7 @@ Security Notice: Never share this code with anyone. Prism Portfolio will never a
 };
 
 export const sendCustomEmailLink = async (email: string, link: string): Promise<void> => {
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
 
   const emailOptions: EmailOptions = {
     to: email,
