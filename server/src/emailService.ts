@@ -1,4 +1,5 @@
-import * as nodemailer from 'nodemailer';
+// Use require for nodemailer to support CommonJS in serverless environment
+const nodemailer = require('nodemailer');
 
 // Email service for sending custom authentication emails
 // You'll need to configure this with your SMTP provider (SendGrid, Mailgun, etc.)
