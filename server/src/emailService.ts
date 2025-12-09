@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 
 // Email service for sending custom authentication emails
 // You'll need to configure this with your SMTP provider (SendGrid, Mailgun, etc.)
