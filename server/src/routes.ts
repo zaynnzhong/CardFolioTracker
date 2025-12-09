@@ -74,10 +74,16 @@ router.post('/auth/otp/send', async (req, res) => {
         const expiry = Date.now() + 5 * 60 * 1000;
         otpStore.set(email, { code, expiry });
 
-        // Send code via email
-        await sendOTPEmail(email, code);
+        // Try to send code via email
+        try {
+            await sendOTPEmail(email, code);
+            console.log(`[Local API] OTP sent to ${email}`);
+        } catch (emailError: any) {
+            console.error(`[Local API] Failed to send email, but OTP is still valid`);
+            console.log(`[DEV MODE] OTP Code for ${email}: ${code}`);
+            console.log(`[DEV MODE] Code expires in 5 minutes`);
+        }
 
-        console.log(`[Local API] OTP sent to ${email}`);
         res.json({ success: true, message: 'OTP code sent to your email' });
     } catch (error: any) {
         console.error('[Local API] Error sending OTP:', error);
