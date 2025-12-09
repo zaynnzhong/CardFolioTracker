@@ -49,7 +49,7 @@ export const CardStackLoader: React.FC = () => {
       </motion.div>
 
       {/* Card Stack */}
-      <div className="relative w-64 h-80 mb-8">
+      <div className="relative w-64 h-[400px] mb-8">
         {cards.map((card, index) => {
           const isActive = index === activeCard;
           const offset = (index - activeCard + cards.length) % cards.length;
@@ -79,7 +79,7 @@ export const CardStackLoader: React.FC = () => {
               <img
                 src={card.image}
                 alt={`Loading card ${card.id}`}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
               />
 
               {/* Shine Effect */}
