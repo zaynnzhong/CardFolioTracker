@@ -4,28 +4,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const CardStackLoader: React.FC = () => {
   const [activeCard, setActiveCard] = useState(0);
 
-  // Card data with different colors and content
+  // Card data with actual loading images
   const cards = [
     {
       id: 1,
-      color: 'from-crypto-lime/20 to-emerald-500/20',
-      borderColor: 'border-crypto-lime/30',
-      player: 'Loading',
-      year: '2024'
+      image: '/loading-1.webp',
+      borderColor: 'border-crypto-lime/30'
     },
     {
       id: 2,
-      color: 'from-blue-500/20 to-cyan-500/20',
-      borderColor: 'border-blue-400/30',
-      player: 'Your',
-      year: '2024'
+      image: '/loading-2.webp',
+      borderColor: 'border-blue-400/30'
     },
     {
       id: 3,
-      color: 'from-purple-500/20 to-pink-500/20',
-      borderColor: 'border-purple-400/30',
-      player: 'Portfolio',
-      year: '2024'
+      image: '/loading-3.webp',
+      borderColor: 'border-purple-400/30'
     },
   ];
 
@@ -81,54 +75,12 @@ export const CardStackLoader: React.FC = () => {
                 zIndex: cards.length - offset,
               }}
             >
-              {/* Card Background Gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${card.color}`} />
-
-              {/* Card Content */}
-              <div className="relative h-full p-6 flex flex-col justify-between">
-                {/* Top Section */}
-                <div>
-                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">
-                    Sports Card
-                  </div>
-                  <div className="text-2xl font-bold text-white mb-1">
-                    {card.player}
-                  </div>
-                  <div className="text-sm text-slate-300">
-                    {card.year} Collection
-                  </div>
-                </div>
-
-                {/* Card Image Placeholder */}
-                <div className="flex-1 flex items-center justify-center my-4">
-                  <motion.div
-                    animate={{
-                      scale: isActive ? [1, 1.05, 1] : 1,
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="w-32 h-32 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 flex items-center justify-center"
-                  >
-                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-crypto-lime/30 to-emerald-500/30" />
-                  </motion.div>
-                </div>
-
-                {/* Bottom Section */}
-                <div className="flex justify-between items-end">
-                  <div>
-                    <div className="text-xs text-slate-400">Value</div>
-                    <div className="text-lg font-bold text-crypto-lime">
-                      $---.--
-                    </div>
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    #{card.id}/3
-                  </div>
-                </div>
-              </div>
+              {/* Card Image */}
+              <img
+                src={card.image}
+                alt={`Loading card ${card.id}`}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
 
               {/* Shine Effect */}
               <motion.div
