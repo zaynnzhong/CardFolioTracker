@@ -8,13 +8,16 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onBack }) => {
   console.log('Login component mounted, onBack:', !!onBack);
-  const { signInWithGoogle, signInAsGuest, sendEmailLink } = useAuth();
+  const { signInWithGoogle, signInAsGuest, sendEmailLink, signInWithEmail, signUpWithEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const [authMode, setAuthMode] = useState<'link' | 'password'>('password'); // Default to password mode
+  const [isSignUp, setIsSignUp] = useState(false);
 
   console.log('Login render - emailSent:', emailSent, 'email:', email);
 
@@ -36,7 +39,33 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
     }
   };
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailPasswordAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setEmailLoading(true);
+    setError(null);
+    try {
+      if (isSignUp) {
+        await signUpWithEmail(email, password);
+      } else {
+        await signInWithEmail(email, password);
+      }
+    } catch (err: any) {
+      setError(err.message || `Failed to ${isSignUp ? 'sign up' : 'sign in'}`);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleEmailLinkAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
@@ -326,8 +355,8 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
             </div>
           ) : (
             <>
-              {/* Email Link Sign In */}
-              <form onSubmit={handleEmailSignIn} className="mb-6">
+              {/* Email/Password Sign In */}
+              <form onSubmit={authMode === 'password' ? handleEmailPasswordAuth : handleEmailLinkAuth} className="mb-6">
                 <div className="mb-5">
                   <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
                     Email address
@@ -342,9 +371,27 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
                     disabled={emailLoading}
                   />
                 </div>
+
+                {authMode === 'password' && (
+                  <div className="mb-5">
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 text-base bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
+                      disabled={emailLoading}
+                    />
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={emailLoading || !email}
+                  disabled={emailLoading || !email || (authMode === 'password' && !password)}
                   className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {emailLoading ? (
@@ -352,10 +399,36 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
                   ) : (
                     <>
                       <Mail size={20} />
-                      <span>Send sign-in link</span>
+                      <span>{authMode === 'password' ? (isSignUp ? 'Sign Up' : 'Sign In') : 'Send sign-in link'}</span>
                     </>
                   )}
                 </button>
+
+                {authMode === 'password' && (
+                  <div className="mt-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setIsSignUp(!isSignUp)}
+                      className="text-crypto-lime text-sm hover:underline"
+                    >
+                      {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode(authMode === 'password' ? 'link' : 'password');
+                      setError(null);
+                      setPassword('');
+                    }}
+                    className="text-slate-400 text-xs hover:text-crypto-lime transition-colors"
+                  >
+                    {authMode === 'password' ? 'Use passwordless sign-in instead' : 'Use email & password instead'}
+                  </button>
+                </div>
               </form>
 
               {/* Divider */}
