@@ -12,7 +12,8 @@ import {
   linkWithCredential,
   EmailAuthProvider,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  signInWithCustomToken
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
 
@@ -26,6 +27,8 @@ interface AuthContextType {
   isEmailLinkValid: (url: string) => boolean;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
+  sendOTP: (email: string) => Promise<void>;
+  verifyOTP: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
 }
@@ -196,6 +199,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const sendOTP = async (email: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/auth/otp/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      console.log('OTP sent successfully');
+    } catch (error: any) {
+      console.error('Error sending OTP:', error);
+      throw new Error(error.message || 'Failed to send OTP');
+    }
+  };
+
+  const verifyOTP = async (email: string, code: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/auth/otp/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, code }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify OTP');
+      }
+
+      // Sign in with custom token from backend
+      await signInWithCustomToken(auth, data.customToken);
+      console.log('Signed in successfully with OTP');
+    } catch (error: any) {
+      console.error('Error verifying OTP:', error);
+      throw new Error(error.message || 'Failed to verify OTP');
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -206,6 +259,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isEmailLinkValid,
     signUpWithEmail,
     signInWithEmail,
+    sendOTP,
+    verifyOTP,
     signOut,
     getIdToken
   };

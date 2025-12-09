@@ -6,7 +6,8 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  signInWithCustomToken
 } from 'firebase/auth';
 
 // Firebase configuration

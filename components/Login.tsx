@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Mail, ArrowLeft, UserPlus } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, UserPlus, Shield } from 'lucide-react';
 
 interface LoginProps {
   onBack?: () => void;
@@ -8,18 +8,16 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onBack }) => {
   console.log('Login component mounted, onBack:', !!onBack);
-  const { signInWithGoogle, signInAsGuest, sendEmailLink, signInWithEmail, signUpWithEmail } = useAuth();
+  const { signInWithGoogle, signInAsGuest, sendOTP, verifyOTP } = useAuth();
   const [loading, setLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
-  const [authMode, setAuthMode] = useState<'link' | 'password'>('password'); // Default to password mode
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
 
-  console.log('Login render - emailSent:', emailSent, 'email:', email);
+  console.log('Login render - codeSent:', codeSent, 'email:', email);
 
   const loadingImages = [
     '/loading-1.webp',
@@ -39,46 +37,38 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
     }
   };
 
-  const handleEmailPasswordAuth = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
-      return;
-    }
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters');
       return;
     }
 
     setEmailLoading(true);
     setError(null);
     try {
-      if (isSignUp) {
-        await signUpWithEmail(email, password);
-      } else {
-        await signInWithEmail(email, password);
-      }
+      await sendOTP(email);
+      setCodeSent(true);
     } catch (err: any) {
-      setError(err.message || `Failed to ${isSignUp ? 'sign up' : 'sign in'}`);
+      setError(err.message || 'Failed to send verification code');
     } finally {
       setEmailLoading(false);
     }
   };
 
-  const handleEmailLinkAuth = async (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address');
+    if (!otp || otp.length !== 6) {
+      setError('Please enter the 6-digit code');
       return;
     }
 
     setEmailLoading(true);
     setError(null);
     try {
-      await sendEmailLink(email);
-      setEmailSent(true);
+      await verifyOTP(email, otp);
     } catch (err: any) {
-      setError(err.message || 'Failed to send email link');
+      setError(err.message || 'Invalid or expired code');
     } finally {
       setEmailLoading(false);
     }
@@ -336,27 +326,67 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
             </div>
           )}
 
-          {emailSent ? (
-            <div className="mb-6 p-6 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl text-center">
-              <Mail className="w-16 h-16 mx-auto mb-4 text-crypto-lime" />
-              <h3 className="text-xl font-semibold text-white mb-2">Check your email!</h3>
-              <p className="text-slate-300 text-sm mb-4">
-                We sent a sign-in link to <span className="font-semibold text-crypto-lime">{email}</span>
-              </p>
-              <p className="text-slate-400 text-xs">
-                Click the link in the email to complete your sign-in.
-              </p>
-              <button
-                onClick={() => { setEmailSent(false); setEmail(''); }}
-                className="mt-4 text-crypto-lime text-sm hover:underline"
-              >
-                Use a different email
-              </button>
+          {codeSent ? (
+            <div className="mb-6">
+              <div className="mb-6 p-6 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl text-center">
+                <Shield className="w-16 h-16 mx-auto mb-4 text-crypto-lime" />
+                <h3 className="text-xl font-semibold text-white mb-2">Check your email!</h3>
+                <p className="text-slate-300 text-sm mb-2">
+                  We sent a 6-digit code to <span className="font-semibold text-crypto-lime">{email}</span>
+                </p>
+                <p className="text-slate-400 text-xs">
+                  Enter the code below to sign in. The code expires in 5 minutes.
+                </p>
+              </div>
+
+              <form onSubmit={handleVerifyOTP}>
+                <div className="mb-5">
+                  <label htmlFor="otp" className="block text-sm font-medium text-slate-300 mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    id="otp"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
+                    disabled={emailLoading}
+                    autoComplete="one-time-code"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={emailLoading || otp.length !== 6}
+                  className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {emailLoading ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : (
+                    <>
+                      <Shield size={20} />
+                      <span>Verify & Sign In</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="mt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setCodeSent(false); setOtp(''); setError(null); }}
+                    className="text-slate-400 text-xs hover:text-crypto-lime transition-colors"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              </form>
             </div>
           ) : (
             <>
-              {/* Email/Password Sign In */}
-              <form onSubmit={authMode === 'password' ? handleEmailPasswordAuth : handleEmailLinkAuth} className="mb-6">
+              {/* Email OTP Sign In */}
+              <form onSubmit={handleSendOTP} className="mb-6">
                 <div className="mb-5">
                   <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
                     Email address
@@ -372,26 +402,9 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
                   />
                 </div>
 
-                {authMode === 'password' && (
-                  <div className="mb-5">
-                    <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      id="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-4 py-3 text-base bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
-                      disabled={emailLoading}
-                    />
-                  </div>
-                )}
-
                 <button
                   type="submit"
-                  disabled={emailLoading || !email || (authMode === 'password' && !password)}
+                  disabled={emailLoading || !email}
                   className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {emailLoading ? (
@@ -399,36 +412,10 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
                   ) : (
                     <>
                       <Mail size={20} />
-                      <span>{authMode === 'password' ? (isSignUp ? 'Sign Up' : 'Sign In') : 'Send sign-in link'}</span>
+                      <span>Send verification code</span>
                     </>
                   )}
                 </button>
-
-                {authMode === 'password' && (
-                  <div className="mt-3 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setIsSignUp(!isSignUp)}
-                      className="text-crypto-lime text-sm hover:underline"
-                    >
-                      {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-                    </button>
-                  </div>
-                )}
-
-                <div className="mt-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode(authMode === 'password' ? 'link' : 'password');
-                      setError(null);
-                      setPassword('');
-                    }}
-                    className="text-slate-400 text-xs hover:text-crypto-lime transition-colors"
-                  >
-                    {authMode === 'password' ? 'Use passwordless sign-in instead' : 'Use email & password instead'}
-                  </button>
-                </div>
               </form>
 
               {/* Divider */}

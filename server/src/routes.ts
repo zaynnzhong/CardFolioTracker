@@ -1,12 +1,28 @@
 import express from 'express';
 import ImageKit from 'imagekit';
 import multer from 'multer';
+import admin from 'firebase-admin';
 import { db } from './db';
 import { getMarketInsight } from './gemini';
-import { verifyAuthToken } from './firebaseAdmin';
+import { verifyAuthToken, initializeFirebaseAdmin } from './firebaseAdmin';
+import { sendOTPEmail } from './emailService';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// In-memory OTP storage (Map: email -> {code, expiry})
+// In production, consider using Redis for distributed systems
+const otpStore = new Map<string, { code: string; expiry: number }>();
+
+// Clean up expired OTPs every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [email, data] of otpStore.entries()) {
+        if (data.expiry < now) {
+            otpStore.delete(email);
+        }
+    }
+}, 5 * 60 * 1000);
 
 // Initialize ImageKit (server-side only)
 const imagekit = new ImageKit({
@@ -38,6 +54,104 @@ const authMiddleware = async (req: express.Request, res: express.Response, next:
         res.status(401).json({ error: 'Unauthorized', details: error.message });
     }
 };
+
+// OTP Authentication Endpoints
+
+// Send OTP code to email
+router.post('/auth/otp/send', async (req, res) => {
+    console.log('[Local API] POST /auth/otp/send');
+    try {
+        const { email } = req.body;
+
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ error: 'Invalid email address' });
+        }
+
+        // Generate random 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Store code with 5-minute expiry
+        const expiry = Date.now() + 5 * 60 * 1000;
+        otpStore.set(email, { code, expiry });
+
+        // Send code via email
+        await sendOTPEmail(email, code);
+
+        console.log(`[Local API] OTP sent to ${email}`);
+        res.json({ success: true, message: 'OTP code sent to your email' });
+    } catch (error: any) {
+        console.error('[Local API] Error sending OTP:', error);
+        res.status(500).json({ error: 'Failed to send OTP', details: error.message });
+    }
+});
+
+// Verify OTP code and return custom token
+router.post('/auth/otp/verify', async (req, res) => {
+    console.log('[Local API] POST /auth/otp/verify');
+    try {
+        const { email, code } = req.body;
+
+        if (!email || !code) {
+            return res.status(400).json({ error: 'Email and code are required' });
+        }
+
+        // Check if OTP exists
+        const storedData = otpStore.get(email);
+        if (!storedData) {
+            return res.status(400).json({ error: 'Invalid or expired OTP code' });
+        }
+
+        // Check if OTP is expired
+        if (storedData.expiry < Date.now()) {
+            otpStore.delete(email);
+            return res.status(400).json({ error: 'OTP code has expired' });
+        }
+
+        // Verify code matches
+        if (storedData.code !== code) {
+            return res.status(400).json({ error: 'Invalid OTP code' });
+        }
+
+        // Delete used OTP
+        otpStore.delete(email);
+
+        // Ensure Firebase Admin is initialized
+        if (admin.apps.length === 0) {
+            initializeFirebaseAdmin();
+        }
+
+        // Create or get user by email
+        let userRecord;
+        try {
+            userRecord = await admin.auth().getUserByEmail(email);
+            console.log(`[Local API] Existing user found: ${userRecord.uid}`);
+        } catch (error: any) {
+            if (error.code === 'auth/user-not-found') {
+                // Create new user
+                userRecord = await admin.auth().createUser({
+                    email: email,
+                    emailVerified: true, // OTP verification counts as email verification
+                });
+                console.log(`[Local API] New user created: ${userRecord.uid}`);
+            } else {
+                throw error;
+            }
+        }
+
+        // Generate custom token
+        const customToken = await admin.auth().createCustomToken(userRecord.uid);
+
+        console.log(`[Local API] Custom token generated for ${email}`);
+        res.json({
+            customToken,
+            uid: userRecord.uid,
+            email: userRecord.email
+        });
+    } catch (error: any) {
+        console.error('[Local API] Error verifying OTP:', error);
+        res.status(500).json({ error: 'Failed to verify OTP', details: error.message });
+    }
+});
 
 // Get all cards (user-specific)
 router.get('/cards', authMiddleware, async (req, res) => {
