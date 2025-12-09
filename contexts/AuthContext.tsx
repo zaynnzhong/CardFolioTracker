@@ -6,7 +6,11 @@ import {
   onAuthStateChanged,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
-  signInWithEmailLink
+  signInWithEmailLink,
+  signInAnonymously,
+  linkWithPopup,
+  linkWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
 
@@ -14,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   sendEmailLink: (email: string) => Promise<void>;
   confirmEmailLink: (email: string, url: string) => Promise<void>;
   isEmailLinkValid: (url: string) => boolean;
@@ -38,9 +43,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+      const currentUser = auth.currentUser;
+
+      // If user is anonymous, link their account to Google
+      if (currentUser && currentUser.isAnonymous) {
+        console.log('Linking anonymous account to Google...');
+        await linkWithPopup(currentUser, googleProvider);
+        console.log('Account successfully linked to Google!');
+      } else {
+        // Regular sign-in for non-anonymous users
+        await signInWithPopup(auth, googleProvider);
+      }
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+
+      // Handle account-exists-with-different-credential error
+      if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
+        // Sign out the anonymous account and sign in with the existing account
+        await firebaseSignOut(auth);
+        await signInWithPopup(auth, googleProvider);
+      } else {
+        throw error;
+      }
+    }
+  };
+
+  const signInAsGuest = async () => {
+    try {
+      await signInAnonymously(auth);
+    } catch (error) {
+      console.error('Error signing in anonymously:', error);
       throw error;
     }
   };
@@ -63,12 +95,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const confirmEmailLink = async (email: string, url: string) => {
     try {
-      await signInWithEmailLink(auth, email, url);
+      const currentUser = auth.currentUser;
+
+      // If user is anonymous, link their account to email
+      if (currentUser && currentUser.isAnonymous) {
+        console.log('Linking anonymous account to email...');
+        const credential = EmailAuthProvider.credentialWithLink(email, url);
+        await linkWithCredential(currentUser, credential);
+        console.log('Account successfully linked to email!');
+      } else {
+        // Regular sign-in for non-anonymous users
+        await signInWithEmailLink(auth, email, url);
+      }
+
       // Clear email from localStorage after successful sign-in
       window.localStorage.removeItem('emailForSignIn');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error confirming email link:', error);
-      throw error;
+
+      // Handle account-exists-with-different-credential error
+      if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
+        // Sign out the anonymous account and sign in with the existing account
+        await firebaseSignOut(auth);
+        await signInWithEmailLink(auth, email, url);
+        window.localStorage.removeItem('emailForSignIn');
+      } else {
+        throw error;
+      }
     }
   };
 
@@ -99,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     signInWithGoogle,
+    signInAsGuest,
     sendEmailLink,
     confirmEmailLink,
     isEmailLinkValid,

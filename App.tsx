@@ -15,6 +15,7 @@ import { TransactionsView } from './components/TransactionsView';
 import { BottomNav } from './components/BottomNav';
 import { LandingPage } from './components/LandingPage';
 import { Login } from './components/Login';
+import { UpgradePromptModal } from './components/UpgradePromptModal';
 import { GradeTag } from './components/GradeTag';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -31,7 +32,6 @@ export default function App() {
   const pathname = window.location.pathname;
   const isPreview = urlParams.get('preview') === 'loader';
   const isConfirmEmail = pathname === '/confirm-email';
-  const isLogin = pathname === '/login';
 
   if (isPreview) {
     return <LoaderPreview />;
@@ -41,11 +41,8 @@ export default function App() {
     return <ConfirmEmail />;
   }
 
-  if (isLogin) {
-    return <Login onBack={() => window.history.back()} />;
-  }
-
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();
+
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics' | 'transactions'>('portfolio');
@@ -70,6 +67,7 @@ export default function App() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [updatingPriceCard, setUpdatingPriceCard] = useState<Card | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [analyzingCard, setAnalyzingCard] = useState<Card | null>(null);
   const [soldModalCard, setSoldModalCard] = useState<Card | null>(null);
   const [tradeModalCard, setTradeModalCard] = useState<Card | null>(null);
@@ -180,6 +178,18 @@ export default function App() {
   }, [portfolioCards]);
 
   const handleSaveCard = async (card: Card) => {
+    // Check if this is a new card (not editing)
+    const isNewCard = !cards.find(c => c.id === card.id);
+
+    // Check guest limit: only for new cards and anonymous users
+    if (isNewCard && user?.isAnonymous) {
+      const currentCardCount = cards.length;
+      if (currentCardCount >= 8) {
+        setShowUpgradePrompt(true);
+        return; // Don't save the card
+      }
+    }
+
     const saved = await dataService.saveCard(card, getIdToken);
     setCards(prev => {
       const index = prev.findIndex(c => c.id === saved.id);
@@ -342,9 +352,19 @@ export default function App() {
     return <CardStackLoader />;
   }
 
-  // Show landing page if not authenticated
+  // Handle unauthenticated users
   if (!user) {
+    // If on /login path, show login page
+    if (pathname === '/login') {
+      return <Login onBack={() => window.history.replaceState({}, '', '/')} />;
+    }
+    // Otherwise show landing page
     return <LandingPage />;
+  }
+
+  // If user is authenticated and on /login, redirect to home
+  if (pathname === '/login') {
+    window.history.replaceState({}, '', '/');
   }
 
   // Show app loading
@@ -494,8 +514,14 @@ export default function App() {
                       className="absolute bottom-full right-0 mb-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
                     >
                       <div className="px-4 py-3 border-b border-slate-800/50">
-                        <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
-                        <p className="text-slate-500 text-xs truncate">{user.email}</p>
+                        <p className="text-white font-semibold text-sm truncate">{user.displayName || (user.isAnonymous ? 'Guest' : 'User')}</p>
+                        <p className="text-slate-500 text-xs truncate">{user.email || 'Not signed in'}</p>
+                        {user.isAnonymous && (
+                          <div className="mt-2 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                            <p className="text-amber-400 text-xs font-semibold">Guest Mode</p>
+                            <p className="text-amber-400/70 text-[10px]">{cards.length}/8 cards used</p>
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
@@ -594,8 +620,14 @@ export default function App() {
                   className="absolute top-full right-0 mt-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
                 >
                   <div className="px-4 py-3 border-b border-slate-800/50">
-                    <p className="text-white font-semibold text-sm truncate">{user.displayName || 'User'}</p>
-                    <p className="text-slate-500 text-xs truncate">{user.email}</p>
+                    <p className="text-white font-semibold text-sm truncate">{user.displayName || (user.isAnonymous ? 'Guest' : 'User')}</p>
+                    <p className="text-slate-500 text-xs truncate">{user.email || 'Not signed in'}</p>
+                    {user.isAnonymous && (
+                      <div className="mt-2 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                        <p className="text-amber-400 text-xs font-semibold">Guest Mode</p>
+                        <p className="text-amber-400/70 text-[10px]">{cards.length}/8 cards used</p>
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
@@ -849,6 +881,12 @@ export default function App() {
           onCancel={() => setTradeModalCard(null)}
           displayCurrency={displayCurrency}
           convertPrice={convertPrice}
+        />
+      )}
+
+      {showUpgradePrompt && (
+        <UpgradePromptModal
+          onClose={() => setShowUpgradePrompt(false)}
         />
       )}
 

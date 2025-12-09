@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Mail, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, UserPlus } from 'lucide-react';
 
 interface LoginProps {
   onBack?: () => void;
@@ -8,8 +8,9 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onBack }) => {
   console.log('Login component mounted, onBack:', !!onBack);
-  const { signInWithGoogle, sendEmailLink } = useAuth();
+  const { signInWithGoogle, signInAsGuest, sendEmailLink } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -51,6 +52,18 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
       setError(err.message || 'Failed to send email link');
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    setGuestLoading(true);
+    setError(null);
+    try {
+      await signInAsGuest();
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in as guest');
+    } finally {
+      setGuestLoading(false);
     }
   };
 
@@ -387,6 +400,25 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
                   </>
                 )}
               </button>
+
+              {/* Guest Sign In */}
+              <button
+                onClick={handleGuestSignIn}
+                disabled={guestLoading}
+                className="w-full mt-3 bg-slate-800/50 hover:bg-slate-800/70 border border-slate-700/50 text-slate-300 font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {guestLoading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <UserPlus size={20} />
+                    <span>Continue as Guest</span>
+                  </>
+                )}
+              </button>
+              <p className="text-slate-500 text-xs text-center mt-3">
+                Guest mode limited to 8 cards. Sign in to unlock unlimited cards.
+              </p>
             </>
           )}
 
