@@ -138,19 +138,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const expiry = Date.now() + 5 * 60 * 1000;
                 await otpStore.set(email, code, expiry);
 
-                // Try to send code via email
-                try {
-                    await sendOTPEmail(email, code);
-                    console.log(`[API] OTP sent to ${email}`);
-                } catch (emailError: any) {
-                    console.error(`[API] Failed to send email, but OTP is still valid`);
-                    console.error(`[API] Email error details:`, emailError);
-                    console.error(`[API] Email error message:`, emailError?.message);
-                    console.error(`[API] Email error stack:`, emailError?.stack);
-                    console.log(`[DEV MODE] OTP Code for ${email}: ${code}`);
-                    console.log(`[DEV MODE] Code expires in 5 minutes`);
-                }
+                // Try to send code via email with 5-second timeout
+                // Don't await - send email in background to avoid blocking response
+                const emailPromise = Promise.race([
+                    sendOTPEmail(email, code),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Email timeout')), 5000))
+                ]);
 
+                emailPromise
+                    .then(() => console.log(`[API] OTP sent to ${email}`))
+                    .catch((emailError: any) => {
+                        console.error(`[API] Failed to send email, but OTP is still valid`);
+                        console.error(`[API] Email error details:`, emailError);
+                        console.error(`[API] Email error message:`, emailError?.message);
+                        console.log(`[DEV MODE] OTP Code for ${email}: ${code}`);
+                        console.log(`[DEV MODE] Code expires in 5 minutes`);
+                    });
+
+                // Return immediately without waiting for email
                 return res.status(200).json({ success: true, message: 'OTP code sent to your email' });
             } catch (error: any) {
                 console.error('[API] Error sending OTP:', error);
