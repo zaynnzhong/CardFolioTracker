@@ -1,58 +1,20 @@
-// Email service for sending custom authentication emails
-// You'll need to configure this with your SMTP provider (SendGrid, Mailgun, etc.)
+// Email service using SendGrid SDK (better for Vercel serverless)
+import sgMail from '@sendgrid/mail';
 
-interface EmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
-}
-
-// Configure your SMTP transporter
-// For production, use environment variables for credentials
-const createTransporter = async () => {
-  // Dynamic import to avoid TypeScript/CommonJS compilation issues
-  const nodemailerModule = await import('nodemailer');
-
-  // Try multiple ways to access createTransporter
-  const createTransporterFn =
-    nodemailerModule.createTransporter ||
-    nodemailerModule.default?.createTransporter ||
-    (nodemailerModule as any).default;
-
-  if (typeof createTransporterFn === 'function') {
-    return createTransporterFn({
-      host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER || 'apikey',
-        pass: process.env.SMTP_PASSWORD || 'your-sendgrid-api-key',
-      },
-    });
+// Initialize SendGrid
+const initializeSendGrid = () => {
+  const apiKey = process.env.SENDGRID_API_KEY || process.env.SMTP_PASSWORD;
+  if (apiKey && apiKey !== 'your-sendgrid-api-key') {
+    sgMail.setApiKey(apiKey);
   }
-
-  // Fallback: nodemailer itself might be the function
-  if (typeof nodemailerModule.default === 'function') {
-    return (nodemailerModule.default as any).createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER || 'apikey',
-        pass: process.env.SMTP_PASSWORD || 'your-sendgrid-api-key',
-      },
-    });
-  }
-
-  throw new Error('Unable to find createTransporter function in nodemailer module');
 };
 
 export const sendOTPEmail = async (email: string, code: string): Promise<void> => {
-  const transporter = await createTransporter();
+  initializeSendGrid();
 
-  const emailOptions: EmailOptions = {
+  const msg = {
     to: email,
+    from: process.env.EMAIL_FROM || 'noreply@prism-cards.com',
     subject: '🔐 Your Prism Portfolio Sign-In Code',
     html: `
       <!DOCTYPE html>
@@ -147,22 +109,23 @@ Security Notice: Never share this code with anyone. Prism Portfolio will never a
   };
 
   try {
-    await transporter.sendMail({
-      from: `"Prism Portfolio" <${process.env.EMAIL_FROM || 'noreply@prism-cards.com'}>`,
-      ...emailOptions,
-    });
+    await sgMail.send(msg);
     console.log('OTP email sent successfully to:', email);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending OTP email:', error);
+    if (error.response) {
+      console.error('SendGrid error response:', error.response.body);
+    }
     throw new Error('Failed to send OTP email');
   }
 };
 
 export const sendCustomEmailLink = async (email: string, link: string): Promise<void> => {
-  const transporter = await createTransporter();
+  initializeSendGrid();
 
-  const emailOptions: EmailOptions = {
+  const msg = {
     to: email,
+    from: process.env.EMAIL_FROM || 'noreply@prism-cards.com',
     subject: '🔐 Sign in to Prism Portfolio',
     html: `
       <!DOCTYPE html>
@@ -255,13 +218,13 @@ If you didn't request this email, you can safely ignore it.
   };
 
   try {
-    await transporter.sendMail({
-      from: `"Prism Portfolio" <${process.env.EMAIL_FROM || 'noreply@prism-cards.com'}>`,
-      ...emailOptions,
-    });
+    await sgMail.send(msg);
     console.log('Custom email sent successfully to:', email);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending custom email:', error);
+    if (error.response) {
+      console.error('SendGrid error response:', error.response.body);
+    }
     throw new Error('Failed to send sign-in email');
   }
 };
