@@ -12,26 +12,40 @@ interface EmailOptions {
 // For production, use environment variables for credentials
 const createTransporter = async () => {
   // Dynamic import to avoid TypeScript/CommonJS compilation issues
-  const nodemailer = await import('nodemailer');
-  const mailer = nodemailer.default || nodemailer;
+  const nodemailerModule = await import('nodemailer');
 
-  return mailer.createTransporter({
-    // Example with Gmail (not recommended for production)
-    // service: 'gmail',
-    // auth: {
-    //   user: process.env.EMAIL_USER,
-    //   pass: process.env.EMAIL_PASSWORD
-    // }
+  // Try multiple ways to access createTransporter
+  const createTransporterFn =
+    nodemailerModule.createTransporter ||
+    nodemailerModule.default?.createTransporter ||
+    (nodemailerModule as any).default;
 
-    // Example with SendGrid
-    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER || 'apikey',
-      pass: process.env.SMTP_PASSWORD || 'your-sendgrid-api-key',
-    },
-  });
+  if (typeof createTransporterFn === 'function') {
+    return createTransporterFn({
+      host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER || 'apikey',
+        pass: process.env.SMTP_PASSWORD || 'your-sendgrid-api-key',
+      },
+    });
+  }
+
+  // Fallback: nodemailer itself might be the function
+  if (typeof nodemailerModule.default === 'function') {
+    return (nodemailerModule.default as any).createTransporter({
+      host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER || 'apikey',
+        pass: process.env.SMTP_PASSWORD || 'your-sendgrid-api-key',
+      },
+    });
+  }
+
+  throw new Error('Unable to find createTransporter function in nodemailer module');
 };
 
 export const sendOTPEmail = async (email: string, code: string): Promise<void> => {
