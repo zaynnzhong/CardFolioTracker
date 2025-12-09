@@ -156,6 +156,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     console.log(`[API] OTP sent to ${email}`);
                 } catch (emailError: any) {
                     console.error(`[API] Failed to send email, but OTP is still valid`);
+                    console.error(`[API] Email error details:`, emailError);
+                    console.error(`[API] Email error message:`, emailError?.message);
+                    console.error(`[API] Email error stack:`, emailError?.stack);
                     console.log(`[DEV MODE] OTP Code for ${email}: ${code}`);
                     console.log(`[DEV MODE] Code expires in 5 minutes`);
                 }
