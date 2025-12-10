@@ -4,12 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.prismcards.portfolio',
   appName: 'Prism Portfolio',
   webDir: 'dist',
-  // Use local build instead of remote website for testing
-  // Uncomment below to load from production website
-  // server: {
-  //   url: 'https://prism-cards.com',
-  //   cleartext: true
-  // },
+  server: {
+    // Load from production website
+    url: 'https://prism-cards.com',
+    cleartext: true
+  },
   ios: {
     contentInset: 'always',
     scrollEnabled: true,
