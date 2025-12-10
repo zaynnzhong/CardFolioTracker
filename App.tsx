@@ -617,7 +617,7 @@ export default function App() {
         </header>
 
         {/* Main Scrollable Area - Full Width */}
-        <main className="relative lg:pt-0 pb-32 lg:pb-0 min-h-screen bg-crypto-dark" style={{ paddingTop: 'max(4rem, calc(3rem + env(safe-area-inset-top)))' }}>
+        <main className="relative lg:pt-0 pb-32 lg:pb-0 min-h-screen bg-crypto-dark" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top))' }}>
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
               <DashboardStats stats={stats} displayCurrency={displayCurrency} convertPrice={convertPrice} />
