@@ -56,11 +56,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const currentUser = auth.currentUser;
       // Check if we're in a Capacitor app (even when loading from remote URL)
-      const isCapacitor = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android';
+      const platform = Capacitor.getPlatform();
+      const isNative = Capacitor.isNativePlatform();
+      const isCapacitor = isNative || platform === 'ios' || platform === 'android';
+
+      console.log('Google Sign-In Debug:', { platform, isNative, isCapacitor });
 
       if (isCapacitor) {
+        console.log('Using Capacitor Google Auth for native platform');
         // Use Capacitor Google Auth for native platforms (iOS/Android)
         const googleUser = await GoogleAuth.signIn();
+        console.log('GoogleAuth.signIn() successful:', googleUser);
 
         // Create Firebase credential from Google ID token
         const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
