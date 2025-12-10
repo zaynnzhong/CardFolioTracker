@@ -30,6 +30,16 @@
 				<string>com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.prismcards.portfolio</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>prismportfolio</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
