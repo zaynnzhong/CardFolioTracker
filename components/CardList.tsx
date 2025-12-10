@@ -171,8 +171,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
   }
 
   return (
-    <div className="w-full -mx-4">
-      <div className="space-y-6 px-4">
+    <div className="w-full">
+      <div className="space-y-6">
         {/* Header with Tab Navigation */}
         <div className="flex items-center justify-between">
           <PillTabs
@@ -253,7 +253,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
       {/* Gallery View */}
       {viewMode === 'gallery' && (
-        <div>
+        <div className="px-4">
           <FocusCards
             cards={filteredAndSortedCards.map(card => ({
               title: `${card.year} ${card.brand} ${card.player}${card.parallel ? ` - ${card.parallel}` : ''}`,
@@ -265,7 +265,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
       {/* Mobile Card View */}
       {viewMode === 'list' && (
-        <div className="lg:hidden flex flex-col gap-3">
+        <div className="lg:hidden flex flex-col gap-3 px-4">
         {cardGroups.map((group) => {
           // Use the first card as representative for the group
           const card = group.cards[0];
