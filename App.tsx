@@ -496,7 +496,7 @@ export default function App() {
                   {showUserMenu && (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute bottom-full right-0 mb-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
+                      className="absolute bottom-full right-0 mb-2 w-48 bg-slate-900 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
                     >
                       <div className="px-4 py-3 border-b border-slate-800/50">
                         <p className="text-white font-semibold text-sm truncate">{user.displayName || (user.isAnonymous ? 'Guest' : 'User')}</p>
@@ -584,7 +584,7 @@ export default function App() {
               {showUserMenu && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute top-full right-0 mt-2 w-48 bg-slate-900/98 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
+                  className="absolute top-full right-0 mt-2 w-48 bg-slate-900 backdrop-blur-xl border border-slate-800/50 rounded-xl shadow-2xl overflow-hidden z-[100]"
                 >
                   <div className="px-4 py-3 border-b border-slate-800/50">
                     <p className="text-white font-semibold text-sm truncate">{user.displayName || (user.isAnonymous ? 'Guest' : 'User')}</p>
