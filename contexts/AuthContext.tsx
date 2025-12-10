@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   User,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   sendSignInLinkToEmail,
@@ -9,6 +11,7 @@ import {
   signInWithEmailLink,
   signInAnonymously,
   linkWithPopup,
+  linkWithRedirect,
   linkWithCredential,
   EmailAuthProvider,
   createUserWithEmailAndPassword,
@@ -40,6 +43,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle redirect result from Google Sign-In
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          console.log('Google Sign-In redirect successful');
+          localStorage.removeItem('pendingGoogleLink');
+        }
+      })
+      .catch((error) => {
+        console.error('Error handling redirect result:', error);
+        localStorage.removeItem('pendingGoogleLink');
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -52,15 +68,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const currentUser = auth.currentUser;
 
-      // Use Firebase popup for all platforms (web and iOS)
-      // Note: Native Google Auth plugin doesn't work reliably when loading from remote URL
+      // Use redirect flow for iOS (popups are blocked in WKWebView)
+      // Use popup for web browsers
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
       if (currentUser && currentUser.isAnonymous) {
         console.log('Linking anonymous account to Google...');
-        await linkWithPopup(currentUser, googleProvider);
+        if (isIOS) {
+          // Store that we're linking (for after redirect)
+          localStorage.setItem('pendingGoogleLink', 'true');
+          await linkWithRedirect(currentUser, googleProvider);
+        } else {
+          await linkWithPopup(currentUser, googleProvider);
+        }
         console.log('Account successfully linked to Google!');
       } else {
         // Regular sign-in for non-anonymous users
-        await signInWithPopup(auth, googleProvider);
+        if (isIOS) {
+          await signInWithRedirect(auth, googleProvider);
+        } else {
+          await signInWithPopup(auth, googleProvider);
+        }
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
@@ -69,7 +97,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
         // Sign out the anonymous account and sign in with the existing account
         await firebaseSignOut(auth);
-        await signInWithPopup(auth, googleProvider);
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          await signInWithRedirect(auth, googleProvider);
+        } else {
+          await signInWithPopup(auth, googleProvider);
+        }
       } else {
         throw error;
       }
