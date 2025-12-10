@@ -4,11 +4,12 @@ const config: CapacitorConfig = {
   appId: 'com.prismcards.portfolio',
   appName: 'Prism Portfolio',
   webDir: 'dist',
-  server: {
-    // Load from production website
-    url: 'https://prism-cards.com',
-    cleartext: true
-  },
+  // Removed server.url to use local app bundle instead of loading from web
+  // server: {
+  //   // Load from production website
+  //   url: 'https://prism-cards.com',
+  //   cleartext: true
+  // },
   ios: {
     contentInset: 'always',
     scrollEnabled: true,
