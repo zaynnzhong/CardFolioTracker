@@ -13,13 +13,9 @@ import {
   EmailAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithCustomToken,
-  GoogleAuthProvider,
-  signInWithCredential
+  signInWithCustomToken
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
   user: User | null;
@@ -55,41 +51,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     try {
       const currentUser = auth.currentUser;
-      // Check if we're in a Capacitor app (even when loading from remote URL)
-      const platform = Capacitor.getPlatform();
-      const isNative = Capacitor.isNativePlatform();
-      const isCapacitor = isNative || platform === 'ios' || platform === 'android';
 
-      console.log('Google Sign-In Debug:', { platform, isNative, isCapacitor });
-
-      if (isCapacitor) {
-        console.log('Using Capacitor Google Auth for native platform');
-        // Use Capacitor Google Auth for native platforms (iOS/Android)
-        const googleUser = await GoogleAuth.signIn();
-        console.log('GoogleAuth.signIn() successful:', googleUser);
-
-        // Create Firebase credential from Google ID token
-        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-
-        // If user is anonymous, link their account to Google
-        if (currentUser && currentUser.isAnonymous) {
-          console.log('Linking anonymous account to Google...');
-          await linkWithCredential(currentUser, credential);
-          console.log('Account successfully linked to Google!');
-        } else {
-          // Regular sign-in for non-anonymous users
-          await signInWithCredential(auth, credential);
-        }
+      // Use Firebase popup for all platforms (web and iOS)
+      // Note: Native Google Auth plugin doesn't work reliably when loading from remote URL
+      if (currentUser && currentUser.isAnonymous) {
+        console.log('Linking anonymous account to Google...');
+        await linkWithPopup(currentUser, googleProvider);
+        console.log('Account successfully linked to Google!');
       } else {
-        // Use Firebase popup for web
-        if (currentUser && currentUser.isAnonymous) {
-          console.log('Linking anonymous account to Google...');
-          await linkWithPopup(currentUser, googleProvider);
-          console.log('Account successfully linked to Google!');
-        } else {
-          // Regular sign-in for non-anonymous users
-          await signInWithPopup(auth, googleProvider);
-        }
+        // Regular sign-in for non-anonymous users
+        await signInWithPopup(auth, googleProvider);
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
@@ -98,15 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
         // Sign out the anonymous account and sign in with the existing account
         await firebaseSignOut(auth);
-
-        const isCapacitor = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android';
-        if (isCapacitor) {
-          const googleUser = await GoogleAuth.signIn();
-          const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-          await signInWithCredential(auth, credential);
-        } else {
-          await signInWithPopup(auth, googleProvider);
-        }
+        await signInWithPopup(auth, googleProvider);
       } else {
         throw error;
       }
