@@ -392,7 +392,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
+    <div className="h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
 
       {/* Sidebar Navigation - Desktop Only */}
       <aside
@@ -558,7 +558,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Area - Full Width on Desktop */}
-      <div className={`flex-1 transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
+      <div className={`flex-1 h-screen overflow-y-auto transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Bar - Mobile Only */}
         <header className="lg:hidden fixed top-0 left-0 right-0 glass-card backdrop-blur-xl z-30 px-4 ios-header-safe flex justify-between items-center border-b border-white/10">
           <img src="/white-type.svg" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
@@ -619,8 +619,7 @@ export default function App() {
         {/* Main Scrollable Area - Full Width */}
         <main className="relative lg:pt-0 lg:pb-0 bg-crypto-dark" style={{
           paddingTop: 'calc(3.5rem + env(safe-area-inset-top))',
-          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))',
-          minHeight: '100vh'
+          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))'
         }}>
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
