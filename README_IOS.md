@@ -1,6 +1,17 @@
 # Prism Portfolio - iOS App Store Preparation
 
-This branch contains all the necessary configurations and assets for submitting Prism Portfolio as a PWA to the iOS App Store.
+This branch contains all the necessary configurations and assets for submitting Prism Portfolio as a native iOS app using **Capacitor**.
+
+## 🚀 Recommended Approach: Capacitor
+
+We use **Capacitor** (not PWABuilder) to package the app because:
+- ✅ Full control over the iOS project
+- ✅ Native iOS capabilities (camera, push notifications, etc.)
+- ✅ Better App Store approval rate
+- ✅ Live reload for development
+- ✅ Easy to maintain and update
+
+**Complete Capacitor guide**: [CAPACITOR_GUIDE.md](CAPACITOR_GUIDE.md)
 
 ## What's Been Configured
 
@@ -49,6 +60,21 @@ This branch contains all the necessary configurations and assets for submitting 
 /index.html                      - Added iOS meta tags & splash screens
 /vite.config.ts                  - Enhanced PWA manifest
 ```
+
+## Quick Start with Capacitor
+
+### Option A: Use Capacitor (Recommended ⭐)
+
+```bash
+# Build and open in Xcode
+npm run ios:run
+```
+
+Then follow the [CAPACITOR_GUIDE.md](CAPACITOR_GUIDE.md) for complete instructions.
+
+### Option B: Use PWABuilder (Alternative)
+
+If you prefer the PWA approach, follow the steps below.
 
 ## Next Steps
 

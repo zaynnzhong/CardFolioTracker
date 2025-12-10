@@ -8,9 +8,17 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "cd server && npm run dev",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\""
+    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "ios:build": "npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:run": "npm run ios:build && npm run ios:open",
+    "capacitor:sync": "npx cap sync",
+    "capacitor:copy": "npx cap copy"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "@google/genai": "^1.30.0",
     "@sendgrid/mail": "^8.1.6",
     "@splinetool/react-spline": "^4.1.0",

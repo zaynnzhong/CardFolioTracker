@@ -17,6 +17,12 @@ dev-dist
 server/.env
 .env
 
+# Capacitor
+ios/App/Pods
+ios/App/App/public
+ios/App/build
+.capacitor
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
