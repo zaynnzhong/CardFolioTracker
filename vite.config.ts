@@ -24,13 +24,37 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'Prism Portfolio - Card Tracker',
           short_name: 'Prism',
-          description: 'Track your sports card portfolio and watch list',
+          description: 'The only sports card portfolio app that correctly tracks FIFO, card-for-card trades, and real profit/loss. No AI scanner lies. Free to start.',
           theme_color: '#9aea62',
           background_color: '#000000',
           display: 'standalone',
           orientation: 'portrait-primary',
           scope: '/',
           start_url: '/',
+          categories: ['finance', 'sports', 'utilities', 'productivity'],
+          screenshots: [
+            {
+              src: '/screenshots/portfolio-view.png',
+              sizes: '1170x2532',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Portfolio Overview'
+            },
+            {
+              src: '/screenshots/card-details.png',
+              sizes: '1170x2532',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Card Details & Price History'
+            },
+            {
+              src: '/screenshots/watchlist.png',
+              sizes: '1170x2532',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Watchlist Tracking'
+            }
+          ],
           icons: [
             {
               src: '/icons/icon-72x72.png',
