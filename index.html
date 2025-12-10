@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
     <!-- Primary Meta Tags -->
     <title>Prism Cards – Accurate P/L & Trade Tracker for Sports Cards</title>
@@ -143,6 +143,24 @@
 
       .glow-purple {
         box-shadow: 0 0 20px rgba(70, 40, 140, 0.4);
+      }
+
+      /* iOS Safe Area Support */
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+        --sar: env(safe-area-inset-right);
+      }
+
+      /* Header should extend into notch area */
+      .ios-header-safe {
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+      }
+
+      /* Bottom nav should respect safe area */
+      .ios-bottom-safe {
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
       }
     </style>
   <script type="importmap">
