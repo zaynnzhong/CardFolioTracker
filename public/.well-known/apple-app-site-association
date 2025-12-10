@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "YOURTEAMID.com.prismcards.portfolio",
+        "appID": "REPLACE_WITH_YOUR_TEAM_ID.com.prismcards.portfolio",
         "paths": ["/__/auth/*", "/*"]
       }
     ]
