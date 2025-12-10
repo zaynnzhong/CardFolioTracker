@@ -55,9 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     try {
       const currentUser = auth.currentUser;
-      const isNative = Capacitor.isNativePlatform();
+      // Check if we're in a Capacitor app (even when loading from remote URL)
+      const isCapacitor = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android';
 
-      if (isNative) {
+      if (isCapacitor) {
         // Use Capacitor Google Auth for native platforms (iOS/Android)
         const googleUser = await GoogleAuth.signIn();
 
@@ -92,8 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Sign out the anonymous account and sign in with the existing account
         await firebaseSignOut(auth);
 
-        const isNative = Capacitor.isNativePlatform();
-        if (isNative) {
+        const isCapacitor = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android';
+        if (isCapacitor) {
           const googleUser = await GoogleAuth.signIn();
           const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
           await signInWithCredential(auth, credential);
