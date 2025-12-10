@@ -367,14 +367,9 @@ export default function App() {
     return <CardStackLoader />;
   }
 
-  // Handle unauthenticated users
+  // Handle unauthenticated users - skip landing page, go directly to login
   if (!user) {
-    // If on /login path, show login page
-    if (pathname === '/login') {
-      return <Login onBack={() => window.history.replaceState({}, '', '/')} />;
-    }
-    // Otherwise show landing page
-    return <LandingPage />;
+    return <Login onBack={() => window.history.replaceState({}, '', '/')} />;
   }
 
   // If user is authenticated and on /login, redirect to home
