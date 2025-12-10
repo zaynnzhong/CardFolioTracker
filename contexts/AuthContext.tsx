@@ -201,7 +201,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sendOTP = async (email: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      // Use same origin for production, localhost for dev
+      const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
       const response = await fetch(`${apiUrl}/api/auth/otp/send`, {
         method: 'POST',
         headers: {
@@ -225,7 +226,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyOTP = async (email: string, code: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      // Use same origin for production, localhost for dev
+      const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
       const response = await fetch(`${apiUrl}/api/auth/otp/verify`, {
         method: 'POST',
         headers: {
