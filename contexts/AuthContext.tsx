@@ -13,9 +13,13 @@ import {
   EmailAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithCustomToken
+  signInWithCustomToken,
+  GoogleAuthProvider,
+  signInWithCredential
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
   user: User | null;
@@ -51,15 +55,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     try {
       const currentUser = auth.currentUser;
+      const isNative = Capacitor.isNativePlatform();
 
-      // If user is anonymous, link their account to Google
-      if (currentUser && currentUser.isAnonymous) {
-        console.log('Linking anonymous account to Google...');
-        await linkWithPopup(currentUser, googleProvider);
-        console.log('Account successfully linked to Google!');
+      if (isNative) {
+        // Use Capacitor Google Auth for native platforms (iOS/Android)
+        const googleUser = await GoogleAuth.signIn();
+
+        // Create Firebase credential from Google ID token
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+
+        // If user is anonymous, link their account to Google
+        if (currentUser && currentUser.isAnonymous) {
+          console.log('Linking anonymous account to Google...');
+          await linkWithCredential(currentUser, credential);
+          console.log('Account successfully linked to Google!');
+        } else {
+          // Regular sign-in for non-anonymous users
+          await signInWithCredential(auth, credential);
+        }
       } else {
-        // Regular sign-in for non-anonymous users
-        await signInWithPopup(auth, googleProvider);
+        // Use Firebase popup for web
+        if (currentUser && currentUser.isAnonymous) {
+          console.log('Linking anonymous account to Google...');
+          await linkWithPopup(currentUser, googleProvider);
+          console.log('Account successfully linked to Google!');
+        } else {
+          // Regular sign-in for non-anonymous users
+          await signInWithPopup(auth, googleProvider);
+        }
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
@@ -68,7 +91,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
         // Sign out the anonymous account and sign in with the existing account
         await firebaseSignOut(auth);
-        await signInWithPopup(auth, googleProvider);
+
+        const isNative = Capacitor.isNativePlatform();
+        if (isNative) {
+          const googleUser = await GoogleAuth.signIn();
+          const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+          await signInWithCredential(auth, credential);
+        } else {
+          await signInWithPopup(auth, googleProvider);
+        }
       } else {
         throw error;
       }

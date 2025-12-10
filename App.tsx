@@ -26,6 +26,17 @@ import { ConfirmEmail } from './components/ConfirmEmail';
 import { ProfileSettings } from './components/ProfileSettings';
 import { useAuth } from './contexts/AuthContext';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
+
+// Initialize Google Auth for web platform
+if (!Capacitor.isNativePlatform()) {
+  GoogleAuth.initialize({
+    clientId: '398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+    grantOfflineAccess: true,
+  });
+}
 
 export default function App() {
   // Check URL routing
