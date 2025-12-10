@@ -265,7 +265,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
       {/* Mobile Card View */}
       {viewMode === 'list' && (
-        <div className="lg:hidden flex flex-col gap-3 px-4">
+        <div className="lg:hidden flex flex-col gap-3">
         {cardGroups.map((group) => {
           // Use the first card as representative for the group
           const card = group.cards[0];
