@@ -17,6 +17,12 @@ const config: CapacitorConfig = {
     // Use WKWebView to load your PWA
     scheme: 'capacitor'
   },
+  android: {
+    backgroundColor: '#000000',
+    allowMixedContent: false,
+    captureInput: true,
+    webContentsDebuggingEnabled: false
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
@@ -34,6 +40,7 @@ const config: CapacitorConfig = {
       scopes: ['profile', 'email'],
       serverClientId: '398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d.apps.googleusercontent.com',
       iosClientId: '398836187935-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com',
+      androidClientId: 'REPLACE_WITH_ANDROID_CLIENT_ID.apps.googleusercontent.com',
       forceCodeForRefreshToken: true
     }
   }
