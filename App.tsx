@@ -392,11 +392,16 @@ export default function App() {
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
     // On iOS, skip landing page and go directly to login
-    if (isIOS || pathname === '/login') {
-      return <Login onBack={() => window.history.replaceState({}, '', '/')} />;
+    if (isIOS) {
+      return <Login />;
     }
 
-    // On desktop/web, show landing page
+    // On desktop/web, show landing page or login based on route
+    if (pathname === '/login') {
+      return <Login onBack={() => window.history.back()} />;
+    }
+
+    // Show landing page by default
     return <LandingPage />;
   }
 
