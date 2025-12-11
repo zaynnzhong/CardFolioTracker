@@ -386,9 +386,18 @@ export default function App() {
     return <CardStackLoader />;
   }
 
-  // Handle unauthenticated users - skip landing page, go directly to login
+  // Handle unauthenticated users - show landing page on desktop, skip on iOS
   if (!user) {
-    return <Login onBack={() => window.history.replaceState({}, '', '/')} />;
+    // Detect iOS devices
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+    // On iOS, skip landing page and go directly to login
+    if (isIOS || pathname === '/login') {
+      return <Login onBack={() => window.history.replaceState({}, '', '/')} />;
+    }
+
+    // On desktop/web, show landing page
+    return <LandingPage />;
   }
 
   // If user is authenticated and on /login, redirect to home
