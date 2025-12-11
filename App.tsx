@@ -57,14 +57,33 @@ export default function App() {
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
-  // Listen for currency changes from ProfileSettings
+  // Listen for currency changes from ProfileSettings and sync with localStorage
   useEffect(() => {
+    // Check localStorage on mount and when returning from settings
+    const checkCurrency = () => {
+      const saved = localStorage.getItem('displayCurrency') as Currency;
+      if (saved && (saved === 'USD' || saved === 'CNY') && saved !== displayCurrency) {
+        setDisplayCurrency(saved);
+      }
+    };
+
+    // Check immediately
+    checkCurrency();
+
+    // Listen for custom currency change event
     const handleCurrencyChange = (event: CustomEvent<Currency>) => {
       setDisplayCurrency(event.detail);
     };
     window.addEventListener('currencyChange', handleCurrencyChange as EventListener);
-    return () => window.removeEventListener('currencyChange', handleCurrencyChange as EventListener);
-  }, []);
+
+    // Also check when window regains focus (user comes back from settings)
+    window.addEventListener('focus', checkCurrency);
+
+    return () => {
+      window.removeEventListener('currencyChange', handleCurrencyChange as EventListener);
+      window.removeEventListener('focus', checkCurrency);
+    };
+  }, [displayCurrency]);
 
   // Check screen width
   useEffect(() => {
