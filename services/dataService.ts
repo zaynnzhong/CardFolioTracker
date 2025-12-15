@@ -1,4 +1,4 @@
-import { Card } from "../types";
+import { Card, TradePlan, BundledCard } from "../types";
 
 // Use relative URL in production, localhost in development
 const API_URL = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
@@ -82,5 +82,91 @@ export const dataService = {
     const result = await res.json();
     console.log('[dataService] editPriceEntry response:', result);
     return result;
+  },
+
+  // ===== Trade Plans API =====
+
+  async getTradePlans(getIdToken: () => Promise<string | null>, status?: 'pending' | 'completed' | 'cancelled'): Promise<TradePlan[]> {
+    try {
+      const headers = await getAuthHeaders(getIdToken);
+      const url = status ? `${API_URL}/trade-plans?status=${status}` : `${API_URL}/trade-plans`;
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error('Failed to fetch trade plans');
+      return await res.json();
+    } catch (e) {
+      console.error("API Error fetching trade plans", e);
+      return [];
+    }
+  },
+
+  async getTradePlan(id: string, getIdToken: () => Promise<string | null>): Promise<TradePlan | null> {
+    try {
+      const headers = await getAuthHeaders(getIdToken);
+      const res = await fetch(`${API_URL}/trade-plans/${id}`, { headers });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.error("API Error fetching trade plan", e);
+      return null;
+    }
+  },
+
+  async createTradePlan(plan: {
+    planName: string;
+    targetValue?: number;
+    bundleCards: BundledCard[];
+    cashAmount?: number;
+    cashCurrency?: 'USD' | 'CNY';
+    totalBundleValue: number;
+    notes?: string;
+  }, getIdToken: () => Promise<string | null>): Promise<TradePlan> {
+    const headers = await getAuthHeaders(getIdToken);
+    const res = await fetch(`${API_URL}/trade-plans`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(plan)
+    });
+    if (!res.ok) throw new Error('Failed to create trade plan');
+    return await res.json();
+  },
+
+  async updateTradePlan(id: string, updates: Partial<TradePlan>, getIdToken: () => Promise<string | null>): Promise<TradePlan> {
+    const headers = await getAuthHeaders(getIdToken);
+    const res = await fetch(`${API_URL}/trade-plans/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) throw new Error('Failed to update trade plan');
+    return await res.json();
+  },
+
+  async deleteTradePlan(id: string, getIdToken: () => Promise<string | null>): Promise<void> {
+    const headers = await getAuthHeaders(getIdToken);
+    await fetch(`${API_URL}/trade-plans/${id}`, {
+      method: 'DELETE',
+      headers
+    });
+  },
+
+  async completeTradePlan(id: string, transactionId: string, getIdToken: () => Promise<string | null>): Promise<TradePlan> {
+    const headers = await getAuthHeaders(getIdToken);
+    const res = await fetch(`${API_URL}/trade-plans/${id}/complete`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ transactionId })
+    });
+    if (!res.ok) throw new Error('Failed to complete trade plan');
+    return await res.json();
+  },
+
+  async migrateTradePlansCurrency(getIdToken: () => Promise<string | null>): Promise<{ message: string; updated: number }> {
+    const headers = await getAuthHeaders(getIdToken);
+    const res = await fetch(`${API_URL}/trade-plans/migrate-currency`, {
+      method: 'POST',
+      headers
+    });
+    if (!res.ok) throw new Error('Failed to migrate trade plans');
+    return await res.json();
   }
 };

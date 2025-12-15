@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { DollarSign, User, Mail, Settings as SettingsIcon, ArrowLeft } from 'lucide-react';
+import { DollarSign, User, Mail, Settings as SettingsIcon, ArrowLeft, Crown, Sparkles, RefreshCw } from 'lucide-react';
+import { tierService } from '../services/tierService';
+import { revenueCatService } from '../services/revenueCatService';
+import { dataService } from '../services/dataService';
+import { UserProfile, UserTier } from '../types';
 
 type Currency = 'USD' | 'CNY';
 
 export const ProfileSettings: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, getIdToken } = useAuth();
   const [currency, setCurrency] = useState<Currency>('USD');
   const [saved, setSaved] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [migrating, setMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<string | null>(null);
 
   // Load currency from localStorage on mount
   useEffect(() => {
@@ -19,6 +27,30 @@ export const ProfileSettings: React.FC = () => {
       localStorage.setItem('displayCurrency', 'USD');
     }
   }, []);
+
+  // Load user profile and tier
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user || user.isAnonymous) {
+        console.log('[ProfileSettings] User is guest or not logged in');
+        setLoadingProfile(false);
+        return;
+      }
+
+      try {
+        console.log('[ProfileSettings] Loading user profile...');
+        const profile = await tierService.getUserProfile();
+        console.log('[ProfileSettings] User profile loaded:', profile);
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('[ProfileSettings] Failed to load user profile:', error);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
 
   const handleCurrencyChange = (newCurrency: Currency) => {
     setCurrency(newCurrency);
@@ -37,6 +69,25 @@ export const ProfileSettings: React.FC = () => {
       await signOut();
     } catch (error) {
       console.error('Error signing out:', error);
+    }
+  };
+
+  const handleMigrateTradePlans = async () => {
+    if (!getIdToken) return;
+
+    setMigrating(true);
+    setMigrationResult(null);
+
+    try {
+      const result = await dataService.migrateTradePlansCurrency(getIdToken);
+      setMigrationResult(`✓ Migration completed: ${result.updated} trade plan(s) updated`);
+      setTimeout(() => setMigrationResult(null), 5000);
+    } catch (error) {
+      console.error('Migration error:', error);
+      setMigrationResult('✗ Migration failed. Please try again.');
+      setTimeout(() => setMigrationResult(null), 5000);
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -80,7 +131,57 @@ export const ProfileSettings: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Subscription Tier Badge */}
+              {!loadingProfile && userProfile && (
+                <div className="bg-slate-950/50 border border-slate-800/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {userProfile.tier === UserTier.UNLIMITED ? (
+                        <>
+                          <div className="p-2 bg-gradient-to-br from-prism to-purple-600 rounded-lg">
+                            <Crown size={20} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-lg font-bold bg-gradient-to-r from-prism to-purple-400 bg-clip-text text-transparent">
+                                Pro Member
+                              </span>
+                              <Sparkles size={16} className="text-prism" />
+                            </div>
+                            <p className="text-sm text-slate-400">
+                              {userProfile.whitelisted ? 'Whitelisted Access' :
+                               userProfile.unlockKey ? 'Unlock Key Access' :
+                               'Subscription Active'}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-2 bg-slate-700/50 rounded-lg">
+                            <User size={20} className="text-slate-400" />
+                          </div>
+                          <div>
+                            <span className="text-lg font-bold text-white">Free Tier</span>
+                            <p className="text-sm text-slate-400">
+                              {userProfile.cardLimit} card limit
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {userProfile.tier === UserTier.FREE && (
+                      <button
+                        onClick={() => window.location.href = '/'}
+                        className="px-4 py-2 bg-gradient-to-r from-prism to-purple-600 text-black font-bold rounded-lg hover:opacity-90 transition-opacity text-sm"
+                      >
+                        Upgrade
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-3">
                 <User size={18} className="text-slate-400" />
                 <div>
@@ -156,6 +257,52 @@ export const ProfileSettings: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Data Migration */}
+      {!isGuest && (
+        <div className="glass-card p-6 mb-6">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <RefreshCw size={20} className="text-crypto-lime" />
+            Data Migration
+          </h2>
+
+          <p className="text-slate-400 text-sm mb-4">
+            If you have existing trade plans created before the currency update, click below to migrate them to use the default CNY currency.
+          </p>
+
+          <button
+            onClick={handleMigrateTradePlans}
+            disabled={migrating}
+            className="w-full bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {migrating ? (
+              <>
+                <RefreshCw size={18} className="animate-spin" />
+                Migrating Trade Plans...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={18} />
+                Migrate Trade Plans Currency
+              </>
+            )}
+          </button>
+
+          {migrationResult && (
+            <div className={`mt-4 p-3 rounded-xl ${
+              migrationResult.startsWith('✓')
+                ? 'bg-crypto-lime/10 border border-crypto-lime/30'
+                : 'bg-red-500/10 border border-red-500/30'
+            }`}>
+              <p className={`text-sm text-center font-medium ${
+                migrationResult.startsWith('✓') ? 'text-crypto-lime' : 'text-red-400'
+              }`}>
+                {migrationResult}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sign Out Button */}
       <div className="glass-card p-6">

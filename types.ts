@@ -101,6 +101,9 @@ export interface Card {
   // Watchlist Status
   watchlist?: boolean;
 
+  // Trade Planning
+  neverTrade?: boolean; // Exclude from trade bundle suggestions
+
   // Bulk Entry Grouping
   bulkGroupId?: string; // Links cards added together in bulk mode
 
@@ -133,4 +136,85 @@ export interface Stats {
   soldTotal: { USD: number; CNY: number };
   cash: { USD: number; CNY: number }; // Net cash position: Total Invested + Realized P/L
   cardCount: number;
+}
+
+// User tier and limits
+export enum UserTier {
+  FREE = 'free',
+  UNLIMITED = 'unlimited'
+}
+
+export interface UserProfile {
+  userId: string;
+  email: string;
+  tier: UserTier;
+  cardLimit: number; // -1 for unlimited
+  unlockKey?: string;
+  whitelisted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UnlockKey {
+  key: string;
+  tier: UserTier;
+  cardLimit: number;
+  maxUses: number;
+  usedCount: number;
+  createdAt: string;
+  expiresAt?: string;
+  active: boolean;
+}
+
+export interface SystemConfig {
+  defaultCardLimit: number;
+  emailWhitelist: string[];
+  adminEmails: string[];
+}
+
+// ===== Trade Plan Types =====
+
+export interface BundledCard {
+  cardId: string;
+  currentValueAtPlanTime: number;
+  cardSnapshot: {
+    player: string;
+    year: string;
+    set: string;
+    parallel?: string;
+    grade?: string;
+    imageUrl?: string;
+  };
+}
+
+export interface TradePlan {
+  _id: string;
+  userId: string;
+  planName: string;
+  targetValue?: number;
+  targetCard?: {
+    player: string;
+    year: string;
+    set: string;
+    parallel?: string;
+    grade?: string;
+    imageUrl?: string;
+  };
+  bundleCards: BundledCard[];
+  cashAmount?: number; // Cash to add to bundle (in planner currency)
+  cashCurrency?: 'USD' | 'CNY'; // Currency of cash amount
+  totalBundleValue: number; // Total value including cash
+  notes?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+  completedTransactionId?: string;
+}
+
+export interface BundleSuggestion {
+  cards: Card[];
+  cashAmount?: number; // Optional cash to add to bundle
+  totalValue: number; // Total including cash
+  cardCount: number;
+  percentOverTarget: number;
 }

@@ -240,9 +240,28 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log('[CardForm] Submitting card', {
+      isWatchlist,
+      player,
+      purchasePrice,
+      currentValue,
+      currentValueUnknown
+    });
+
+    // For watchlist cards, purchasePrice is the target price (optional)
+    // If not provided, default to 0
     const pPrice = parseFloat(purchasePrice) || 0;
-    const cValue = currentValueUnknown ? -1 : (parseFloat(currentValue) || 0);
+    // For watchlist cards, treat empty currentValue as unknown (-1)
+    const cValue = (currentValueUnknown || (isWatchlist && !currentValue))
+      ? -1
+      : (parseFloat(currentValue) || 0);
     const sPrice = parseFloat(soldPrice) || 0;
+
+    console.log('[CardForm] Calculated values', {
+      pPrice,
+      cValue,
+      sPrice
+    });
 
     // If in bulk mode and not editing, create multiple cards
     if (isBulkMode && !initialData) {
@@ -861,7 +880,7 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                             <input
                               type="number"
                               step="0.01"
-                              required={!currentValueUnknown}
+                              required={!isWatchlist && !currentValueUnknown}
                               value={currentValue}
                               onChange={(e) => setCurrentValue(e.target.value)}
                               className="form-input font-mono bg-slate-800 flex-1"

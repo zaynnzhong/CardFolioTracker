@@ -27,9 +27,11 @@ export const WatchList: React.FC<WatchListProps> = ({ cards, onSelect, onConvert
       <div className="flex flex-col gap-3 px-4">
         {cards.map((card) => {
           const symbol = card.currency === 'USD' ? '$' : '¥';
-          const isTargetMet = card.currentValue <= card.purchasePrice && card.purchasePrice > 0;
-          const distanceToTarget = card.purchasePrice > 0 
-            ? ((card.currentValue - card.purchasePrice) / card.purchasePrice) * 100 
+          // Handle unknown/invalid current values (-1 or NaN)
+          const hasValidCurrentValue = card.currentValue > 0 && !isNaN(card.currentValue);
+          const isTargetMet = hasValidCurrentValue && card.currentValue <= card.purchasePrice && card.purchasePrice > 0;
+          const distanceToTarget = hasValidCurrentValue && card.purchasePrice > 0
+            ? ((card.currentValue - card.purchasePrice) / card.purchasePrice) * 100
             : 0;
 
           // Simple data for sparkline
@@ -95,7 +97,9 @@ export const WatchList: React.FC<WatchListProps> = ({ cards, onSelect, onConvert
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-slate-500 uppercase font-semibold">Market:</span>
-                        <span className="text-sm font-mono text-white font-bold">{symbol}{card.currentValue.toLocaleString()}</span>
+                        <span className="text-sm font-mono text-white font-bold">
+                          {hasValidCurrentValue ? `${symbol}${card.currentValue.toLocaleString()}` : '-'}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-slate-500 uppercase font-semibold">Target:</span>
@@ -106,7 +110,12 @@ export const WatchList: React.FC<WatchListProps> = ({ cards, onSelect, onConvert
 
                   {/* Status indicator at bottom */}
                   <div className="flex items-center gap-2 mt-2">
-                    {isTargetMet ? (
+                    {!hasValidCurrentValue ? (
+                      <span className="text-slate-500 flex items-center gap-1.5 text-[11px] font-medium italic">
+                        <Activity size={12} />
+                        Market price unknown
+                      </span>
+                    ) : isTargetMet ? (
                       <span className="text-emerald-400 flex items-center gap-1.5 text-[11px] font-medium">
                         <CheckCircle2 size={12} className="text-emerald-500" />
                         Price is good

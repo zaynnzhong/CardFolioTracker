@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Card, Currency, Sport } from '../types';
+import { Card, Currency, Sport, TradePlan } from '../types';
 import { X, Plus, Trash2, ArrowRightLeft } from 'lucide-react';
 
 interface TradeModalProps {
-  card: Card; // The card being traded away
+  card?: Card; // The card being traded away (optional if using tradePlan)
   allCards: Card[]; // All cards in portfolio (for selecting received cards)
   onSave: (tradeData: TradeData) => Promise<void>;
   onCancel: () => void;
   displayCurrency: Currency;
   convertPrice: (price: number, from: Currency, to: Currency) => number;
+  tradePlan?: TradePlan; // Optional: pre-fill from trade plan
+  onPlanCompleted?: (transactionId: string) => void; // Called after successful trade from plan
 }
 
 export interface ReceivedCardData {
@@ -28,12 +30,14 @@ export interface ReceivedCardData {
 
 export interface TradeData {
   tradeDate: string;
-  cardGivenId: string;
-  cardGivenFMV: number;
-  cardGivenCostBasis: number;
+  cardGivenId?: string; // Optional for single card trades
+  cardGivenFMV?: number; // Optional for single card trades
+  cardGivenCostBasis?: number; // Optional for single card trades
+  cardsGiven?: Array<{ cardId: string; fmv: number; costBasis: number }>; // For multi-card trades (trade plans)
   cardsReceived: ReceivedCardData[];
   cashBoot: number; // positive if you received cash, negative if you paid cash
   tradeType: 'even' | 'received-cash' | 'paid-cash';
+  tradePlanId?: string; // Link to trade plan if executed from plan
 }
 
 export const TradeModal: React.FC<TradeModalProps> = ({

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Stats, Currency } from './types';
+import { Card, Stats, Currency, TradePlan } from './types';
 import { dataService } from './services/dataService';
 import { DashboardStats } from './components/DashboardStats';
 import { CardList } from './components/CardList';
@@ -12,6 +12,11 @@ import { SoldModal } from './components/SoldModal';
 import { TradeModal, TradeData } from './components/TradeModal';
 import { AnalyticsView } from './components/AnalyticsView';
 import { TransactionsView } from './components/TransactionsView';
+import { TradePlanner } from './components/TradePlanner';
+import { TradePlansList } from './components/TradePlansList';
+import { TradePlanDetail } from './components/TradePlanDetail';
+import { TradePlanExecutionModal } from './components/TradePlanExecutionModal';
+import { NeverTradeList } from './components/NeverTradeList';
 import { BottomNav } from './components/BottomNav';
 import { LandingPage } from './components/LandingPage';
 import { Login } from './components/Login';
@@ -24,8 +29,14 @@ import { CardStackLoader } from './components/CardStackLoader';
 import { LoaderPreview } from './components/LoaderPreview';
 import { ConfirmEmail } from './components/ConfirmEmail';
 import { ProfileSettings } from './components/ProfileSettings';
+import { CardLimitBanner } from './components/CardLimitBanner';
+import { UnlockKeyModal } from './components/UnlockKeyModal';
+import { AdminPanel } from './components/AdminPanel';
 import { useAuth } from './contexts/AuthContext';
-import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt } from 'lucide-react';
+import { tierService } from './services/tierService';
+import { revenueCatService } from './services/revenueCatService';
+import { UserProfile } from './types';
+import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt, Shield, Package } from 'lucide-react';
 
 export default function App() {
   // Check URL routing
@@ -47,7 +58,7 @@ export default function App() {
 
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics' | 'transactions'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'analytics' | 'transactions' | 'trade-plans'>('portfolio');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>(() => {
     // Load from localStorage, default to USD
@@ -107,6 +118,20 @@ export default function App() {
   const [tradeModalCard, setTradeModalCard] = useState<Card | null>(null);
   const [portfolioTab, setPortfolioTab] = useState<'holdings' | 'sold'>('holdings');
 
+  // Tier & Limit States
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Trade Plans States
+  const [tradePlansView, setTradePlansView] = useState<'list' | 'detail' | null>(null);
+  const [tradePlansTab, setTradePlansTab] = useState<'plans' | 'never-trade'>('plans');
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [showTradePlanner, setShowTradePlanner] = useState(false);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [executingPlan, setExecutingPlan] = useState<TradePlan | null>(null);
+
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -135,6 +160,45 @@ export default function App() {
     };
     loadData();
   }, [user, getIdToken]);
+
+  // Load user profile, initialize RevenueCat, and check admin status
+  useEffect(() => {
+    if (!user) return;
+
+    const loadProfile = async () => {
+      try {
+        // Initialize RevenueCat for native platforms
+        try {
+          await revenueCatService.initialize(user.uid);
+          await revenueCatService.setUserAttributes({
+            email: user.email || undefined,
+            displayName: user.displayName || undefined
+          });
+
+          // Check if user has pro access via RevenueCat
+          const hasProAccess = await revenueCatService.hasProAccess();
+          if (hasProAccess) {
+            console.log('[App] User has Pro access via RevenueCat');
+            // User tier will be synced via webhook, but we can update immediately
+          }
+        } catch (error) {
+          // RevenueCat initialization failed (likely web platform or no SDK)
+          console.log('[App] RevenueCat not available or initialization failed');
+        }
+
+        const profile = await tierService.getUserProfile();
+        setUserProfile(profile);
+
+        // Check if user is admin
+        const config = await tierService.getAdminConfig();
+        setIsAdmin(config.adminEmails.includes(user.email || ''));
+      } catch (error) {
+        // If getAdminConfig fails, user is not admin (403 error expected)
+        console.log('User is not admin');
+      }
+    };
+    loadProfile();
+  }, [user]);
 
   const portfolioCards = cards.filter(c => !c.watchlist);
   const watchlistCards = cards.filter(c => c.watchlist && !c.sold);
@@ -381,6 +445,59 @@ export default function App() {
     setShowUserMenu(false);
   };
 
+  const handleExecuteTradePlan = async (data: {
+    receivedValue: number;
+    cashBoot: number;
+    tradeDate: string;
+  }) => {
+    if (!executingPlan) return;
+
+    try {
+      // 1. Mark all bundled cards as sold
+      for (const bundledCard of executingPlan.bundleCards) {
+        const card = cards.find(c => c.id === bundledCard.cardId);
+        if (card) {
+          const soldCard: Card = {
+            ...card,
+            sold: true,
+            soldDate: data.tradeDate,
+            soldPrice: bundledCard.currentValueAtPlanTime,
+            soldVia: 'trade',
+            tradeCashBoot: data.cashBoot / executingPlan.bundleCards.length // Distribute cash boot across cards
+          };
+          await handleSaveCard(soldCard);
+        }
+      }
+
+      // 2. Mark plan as completed
+      await dataService.completeTradePlan(executingPlan._id, 'trade-execution', getIdToken);
+
+      // 3. Close modals and refresh
+      setShowExecutionModal(false);
+      setExecutingPlan(null);
+      setTradePlansView(null);
+
+      // Reload cards to reflect changes
+      const data = await dataService.getCards(getIdToken);
+      setCards(data);
+    } catch (error) {
+      console.error('Failed to execute trade plan:', error);
+      throw error;
+    }
+  };
+
+  const handleToggleNeverTrade = async (cardId: string, neverTrade: boolean) => {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+
+    const updatedCard: Card = {
+      ...card,
+      neverTrade
+    };
+
+    await handleSaveCard(updatedCard);
+  };
+
   // Show loading screen while checking auth
   if (authLoading) {
     return <CardStackLoader />;
@@ -483,6 +600,18 @@ export default function App() {
               {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Transactions</span>}
             </button>
 
+            <button
+              onClick={() => setActiveTab('trade-plans')}
+              className={`w-full flex items-center rounded-xl transition-all duration-300 font-semibold ${
+                activeTab === 'trade-plans'
+                  ? 'bg-crypto-lime/20 text-crypto-lime border border-crypto-lime/30 glow-lime'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
+            >
+              <Package size={24} className="flex-shrink-0" />
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Trade Plans</span>}
+            </button>
+
             <div className="pt-4 space-y-3">
               <button
                 onClick={() => { setEditingCard(null); setIsFormOpen(true); }}
@@ -548,6 +677,15 @@ export default function App() {
                         <Settings size={20} />
                         <span>Settings</span>
                       </button>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setShowAdminPanel(true); setShowUserMenu(false); }}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-prism font-medium"
+                        >
+                          <Shield size={20} />
+                          <span>Admin Panel</span>
+                        </button>
+                      )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
                         className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
@@ -636,6 +774,15 @@ export default function App() {
                     <Settings size={18} />
                     <span>Settings</span>
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowAdminPanel(true); setShowUserMenu(false); }}
+                      className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-prism font-medium"
+                    >
+                      <Shield size={18} />
+                      <span>Admin Panel</span>
+                    </button>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
                     className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-slate-800/50 transition-colors text-rose-400 font-medium"
@@ -658,6 +805,12 @@ export default function App() {
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
               <DashboardStats stats={stats} displayCurrency={displayCurrency} convertPrice={convertPrice} />
+
+              {/* Card Limit Banner */}
+              <CardLimitBanner
+                cardCount={portfolioCards.filter(c => !c.sold).length}
+                onProfileUpdate={setUserProfile}
+              />
 
               {/* Transactions Button - Mobile Only */}
               <button
@@ -705,11 +858,93 @@ export default function App() {
             </div>
           ) : activeTab === 'analytics' ? (
             <AnalyticsView cards={cards} displayCurrency={displayCurrency} convertPrice={convertPrice} />
-          ) : (
+          ) : activeTab === 'transactions' ? (
             <div className="p-4 lg:p-6">
               <TransactionsView cards={cards} displayCurrency={displayCurrency} convertPrice={convertPrice} />
             </div>
-          )}
+          ) : activeTab === 'trade-plans' ? (
+            <div className="p-4 lg:p-6">
+              {!tradePlansView ? (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white">Trade Plans</h2>
+                    {tradePlansTab === 'plans' && (
+                      <button
+                        onClick={() => setShowTradePlanner(true)}
+                        className="bg-gradient-to-r from-crypto-lime to-green-500 text-black font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+                      >
+                        <Plus size={20} />
+                        Create New Plan
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="flex gap-2 mb-6 border-b border-slate-700/50">
+                    <button
+                      onClick={() => setTradePlansTab('plans')}
+                      className={`px-4 py-2 font-medium transition-all ${
+                        tradePlansTab === 'plans'
+                          ? 'text-crypto-lime border-b-2 border-crypto-lime'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      My Plans
+                    </button>
+                    <button
+                      onClick={() => setTradePlansTab('never-trade')}
+                      className={`px-4 py-2 font-medium transition-all ${
+                        tradePlansTab === 'never-trade'
+                          ? 'text-crypto-lime border-b-2 border-crypto-lime'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Never Trade List
+                    </button>
+                  </div>
+
+                  {tradePlansTab === 'plans' ? (
+                    <TradePlansList
+                      displayCurrency={displayCurrency}
+                      convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
+                      formatCurrency={(amount, currency) => `${currency === 'USD' ? '$' : '¥'}${amount.toLocaleString()}`}
+                      getIdToken={getIdToken}
+                      onViewPlan={(id) => {
+                        setSelectedPlanId(id);
+                        setTradePlansView('detail');
+                      }}
+                    />
+                  ) : (
+                    <NeverTradeList
+                      cards={cards}
+                      displayCurrency={displayCurrency}
+                      convertPrice={convertPrice}
+                      formatPrice={(amount, currency) => `${currency === 'USD' ? '$' : '¥'}${amount.toLocaleString()}`}
+                      onToggleNeverTrade={handleToggleNeverTrade}
+                    />
+                  )}
+                </>
+              ) : tradePlansView === 'detail' && selectedPlanId ? (
+                <TradePlanDetail
+                  planId={selectedPlanId}
+                  displayCurrency={displayCurrency}
+                  convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
+                  convertCurrency={convertPrice}
+                  formatCurrency={(amount, currency) => `${currency === 'USD' ? '$' : '¥'}${amount.toLocaleString()}`}
+                  allCards={cards}
+                  getIdToken={getIdToken}
+                  onBack={() => {
+                    setTradePlansView(null);
+                    setSelectedPlanId(null);
+                  }}
+                  onExecuteTrade={(plan) => {
+                    setExecutingPlan(plan);
+                    setShowExecutionModal(true);
+                  }}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </main>
       </div>
 
@@ -898,6 +1133,48 @@ export default function App() {
       {showUpgradePrompt && (
         <UpgradePromptModal
           onClose={() => setShowUpgradePrompt(false)}
+        />
+      )}
+
+      {/* Admin Panel */}
+      {showAdminPanel && (
+        <AdminPanel onClose={() => setShowAdminPanel(false)} />
+      )}
+
+      {/* Unlock Key Modal */}
+      {showUnlockModal && (
+        <UnlockKeyModal
+          onClose={() => setShowUnlockModal(false)}
+          onSuccess={setUserProfile}
+        />
+      )}
+
+      {/* Trade Planner Modal */}
+      {showTradePlanner && (
+        <TradePlanner
+          cards={cards}
+          displayCurrency={displayCurrency}
+          convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
+          getIdToken={getIdToken}
+          onClose={() => setShowTradePlanner(false)}
+          onPlanCreated={() => {
+            setShowTradePlanner(false);
+            // Optionally refresh plans list if viewing trade plans
+          }}
+        />
+      )}
+
+      {/* Trade Plan Execution Modal */}
+      {showExecutionModal && executingPlan && (
+        <TradePlanExecutionModal
+          plan={executingPlan}
+          displayCurrency={displayCurrency}
+          convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
+          onExecute={handleExecuteTradePlan}
+          onCancel={() => {
+            setShowExecutionModal(false);
+            setExecutingPlan(null);
+          }}
         />
       )}
 

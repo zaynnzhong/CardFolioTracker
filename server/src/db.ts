@@ -39,6 +39,7 @@ export interface Card {
         date: string;
         notes?: string;
     }>;
+    neverTrade?: boolean; // Exclude from trade bundle suggestions
 }
 
 // 2. Define Mongoose Schema
@@ -86,7 +87,8 @@ const CardSchema = new Schema({
         senderName: String,
         date: String,
         notes: String
-    }]
+    }],
+    neverTrade: Boolean
 });
 
 // 3. Create Model
