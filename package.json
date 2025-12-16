@@ -39,6 +39,7 @@
     "imagekit": "^6.0.0",
     "lucide-react": "^0.555.0",
     "mongoose": "^8.0.0",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.11",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
