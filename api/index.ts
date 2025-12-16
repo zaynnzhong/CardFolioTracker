@@ -321,6 +321,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // POST /api/trade-plans
             if (method === 'POST' && path === '/trade-plans') {
                 console.log('[API] POST /trade-plans');
+                // Ensure DB connection before importing model
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { planName, targetValue, targetCard, bundleCards, cashAmount, cashCurrency, totalBundleValue, notes } = req.body;
 
