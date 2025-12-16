@@ -114,6 +114,14 @@ export const dataService = {
   async createTradePlan(plan: {
     planName: string;
     targetValue?: number;
+    targetCard?: {
+      player: string;
+      year: string;
+      set: string;
+      parallel?: string;
+      grade?: string;
+      imageUrl?: string;
+    };
     bundleCards: BundledCard[];
     cashAmount?: number;
     cashCurrency?: 'USD' | 'CNY';
