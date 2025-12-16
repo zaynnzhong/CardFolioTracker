@@ -287,6 +287,194 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).json(authenticationParameters);
             }
 
+            // ===== Trade Plans API =====
+
+            // GET /api/trade-plans
+            if (method === 'GET' && path === '/trade-plans') {
+                console.log('[API] GET /trade-plans');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+                const { status } = req.query;
+
+                const query: any = { userId };
+                if (status && ['pending', 'completed', 'cancelled'].includes(status as string)) {
+                    query.status = status;
+                }
+
+                const plans = await TradePlanModel.find(query).sort({ createdAt: -1 });
+                return res.status(200).json(plans);
+            }
+
+            // GET /api/trade-plans/:id
+            if (method === 'GET' && path.startsWith('/trade-plans/') && !path.includes('/complete')) {
+                const id = path.split('/')[2];
+                console.log('[API] GET /trade-plans/:id');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+
+                const plan = await TradePlanModel.findOne({ _id: id, userId });
+                if (!plan) {
+                    return res.status(404).json({ error: 'Trade plan not found' });
+                }
+
+                return res.status(200).json(plan);
+            }
+
+            // POST /api/trade-plans
+            if (method === 'POST' && path === '/trade-plans') {
+                console.log('[API] POST /trade-plans');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+                const { planName, targetValue, targetCard, bundleCards, cashAmount, cashCurrency, totalBundleValue, notes } = req.body;
+
+                if (!planName || !bundleCards || !Array.isArray(bundleCards) || bundleCards.length === 0) {
+                    return res.status(400).json({ error: 'Plan name and bundle cards are required' });
+                }
+
+                if (totalBundleValue === undefined || totalBundleValue < 0) {
+                    return res.status(400).json({ error: 'Total bundle value is required' });
+                }
+
+                const newPlan = new TradePlanModel({
+                    userId,
+                    planName,
+                    targetValue,
+                    targetCard,
+                    bundleCards,
+                    cashAmount,
+                    cashCurrency,
+                    totalBundleValue,
+                    notes,
+                    status: 'pending'
+                });
+
+                await newPlan.save();
+                return res.status(201).json(newPlan);
+            }
+
+            // PUT /api/trade-plans/:id
+            if (method === 'PUT' && path.startsWith('/trade-plans/') && !path.endsWith('/complete')) {
+                const id = path.split('/')[2];
+                console.log('[API] PUT /trade-plans/:id');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+                const updates = req.body;
+
+                // Don't allow changing userId
+                delete updates.userId;
+                delete updates._id;
+
+                const plan = await TradePlanModel.findOneAndUpdate(
+                    { _id: id, userId },
+                    { ...updates, updatedAt: new Date() },
+                    { new: true }
+                );
+
+                if (!plan) {
+                    return res.status(404).json({ error: 'Trade plan not found' });
+                }
+
+                return res.status(200).json(plan);
+            }
+
+            // DELETE /api/trade-plans/:id
+            if (method === 'DELETE' && path.startsWith('/trade-plans/')) {
+                const id = path.split('/')[2];
+                console.log('[API] DELETE /trade-plans/:id');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+
+                const plan = await TradePlanModel.findOneAndDelete({ _id: id, userId });
+                if (!plan) {
+                    return res.status(404).json({ error: 'Trade plan not found' });
+                }
+
+                return res.status(200).json({ message: 'Trade plan deleted successfully' });
+            }
+
+            // POST /api/trade-plans/:id/complete
+            if (method === 'POST' && path.match(/^\/trade-plans\/[^/]+\/complete$/)) {
+                const id = path.split('/')[2];
+                console.log('[API] POST /trade-plans/:id/complete');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+                const { transactionId } = req.body;
+
+                const plan = await TradePlanModel.findOneAndUpdate(
+                    { _id: id, userId, status: 'pending' },
+                    {
+                        status: 'completed',
+                        completedTransactionId: transactionId,
+                        updatedAt: new Date()
+                    },
+                    { new: true }
+                );
+
+                if (!plan) {
+                    return res.status(404).json({ error: 'Trade plan not found or already completed' });
+                }
+
+                return res.status(200).json(plan);
+            }
+
+            // POST /api/trade-plans/migrate-currency
+            if (method === 'POST' && path === '/trade-plans/migrate-currency') {
+                console.log('[API] POST /trade-plans/migrate-currency');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+
+                // Find all plans without cashCurrency set
+                const plansToUpdate = await TradePlanModel.find({
+                    userId,
+                    cashCurrency: { $exists: false }
+                });
+
+                console.log(`[API] Found ${plansToUpdate.length} plans to migrate`);
+
+                // Update each plan to set default cashCurrency to CNY
+                for (const plan of plansToUpdate) {
+                    plan.cashCurrency = 'CNY';
+                    await plan.save();
+                }
+
+                return res.status(200).json({
+                    message: 'Migration completed',
+                    updated: plansToUpdate.length
+                });
+            }
+
+            // ===== Tier & Limits API =====
+
+            // GET /api/tier/profile
+            if (method === 'GET' && path === '/tier/profile') {
+                console.log('[API] GET /tier/profile');
+                const { tierService } = await import('../server/src/services/tierService.js');
+                const userEmail = decodedToken.email || '';
+                const profile = await tierService.getUserProfile(userId, userEmail);
+                return res.status(200).json(profile);
+            }
+
+            // GET /api/tier/can-add-card
+            if (method === 'GET' && path === '/tier/can-add-card') {
+                console.log('[API] GET /tier/can-add-card');
+                const { tierService } = await import('../server/src/services/tierService.js');
+                const userEmail = decodedToken.email || '';
+                const result = await tierService.canAddCard(userId, userEmail);
+                return res.status(200).json(result);
+            }
+
+            // POST /api/tier/redeem-key
+            if (method === 'POST' && path === '/tier/redeem-key') {
+                console.log('[API] POST /tier/redeem-key');
+                const { tierService } = await import('../server/src/services/tierService.js');
+                const userEmail = decodedToken.email || '';
+                const { key } = req.body;
+
+                if (!key) {
+                    return res.status(400).json({ error: 'Unlock key is required' });
+                }
+
+                const result = await tierService.redeemUnlockKey(userId, userEmail, key);
+                if (result.success) {
+                    return res.status(200).json(result);
+                } else {
+                    return res.status(400).json(result);
+                }
+            }
+
             console.log('[API] Route not found');
             return res.status(404).json({ error: 'Not found' });
         } catch (error: any) {
