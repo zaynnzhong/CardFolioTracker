@@ -218,28 +218,34 @@ export const SavePlanModal: React.FC<SavePlanModalProps> = ({
                 +100
               </button>
             </div>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => setCashAmount(cashAmount + 500)}
-                className="flex-1 px-3 py-1 text-xs bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded transition-colors"
-              >
-                +500
-              </button>
-              <button
-                onClick={() => setCashAmount(cashAmount + 1000)}
-                className="flex-1 px-3 py-1 text-xs bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded transition-colors"
-              >
-                +1000
-              </button>
-              {targetValue && cardsTotal < targetValue && (
+            {targetValue && cardsTotal < targetValue && (
+              <div className="grid grid-cols-4 gap-2 mt-2">
+                <button
+                  onClick={() => setCashAmount(Math.ceil((targetValue * 1.05 - cardsTotal) / 100) * 100)}
+                  className="px-3 py-1 text-xs bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded transition-colors"
+                >
+                  Fill to 5%
+                </button>
+                <button
+                  onClick={() => setCashAmount(Math.ceil((targetValue * 1.08 - cardsTotal) / 100) * 100)}
+                  className="px-3 py-1 text-xs bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded transition-colors"
+                >
+                  Fill to 8%
+                </button>
                 <button
                   onClick={() => setCashAmount(Math.ceil((targetValue * 1.10 - cardsTotal) / 100) * 100)}
-                  className="flex-1 px-3 py-1 text-xs bg-crypto-lime/20 hover:bg-crypto-lime/30 text-crypto-lime border border-crypto-lime/30 rounded transition-colors"
+                  className="px-3 py-1 text-xs bg-crypto-lime/20 hover:bg-crypto-lime/30 text-crypto-lime border border-crypto-lime/30 rounded transition-colors"
                 >
-                  Fill to 110%
+                  Fill to 10%
                 </button>
-              )}
-            </div>
+                <button
+                  onClick={() => setCashAmount(Math.ceil((targetValue * 1.15 - cardsTotal) / 100) * 100)}
+                  className="px-3 py-1 text-xs bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded transition-colors"
+                >
+                  Fill to 15%
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Cards List */}
