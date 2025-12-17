@@ -2,6 +2,9 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  PhoneAuthProvider,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,

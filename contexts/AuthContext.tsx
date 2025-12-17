@@ -16,7 +16,11 @@ import {
   EmailAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithCustomToken
+  signInWithCustomToken,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult,
+  PhoneAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
 
@@ -32,6 +36,9 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   sendOTP: (email: string) => Promise<void>;
   verifyOTP: (email: string, code: string) => Promise<void>;
+  setupRecaptcha: (containerId: string) => RecaptchaVerifier;
+  sendPhoneCode: (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier) => Promise<ConfirmationResult>;
+  verifyPhoneCode: (confirmationResult: ConfirmationResult, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
 }
@@ -285,6 +292,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Phone Authentication Methods
+  const setupRecaptcha = (containerId: string): RecaptchaVerifier => {
+    try {
+      // Clear any existing recaptcha
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '';
+      }
+
+      const recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+        'size': 'invisible',
+        'callback': () => {
+          console.log('reCAPTCHA solved');
+        }
+      });
+      return recaptchaVerifier;
+    } catch (error) {
+      console.error('Error setting up reCAPTCHA:', error);
+      throw error;
+    }
+  };
+
+  const sendPhoneCode = async (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier): Promise<ConfirmationResult> => {
+    try {
+      console.log('Sending SMS code to:', phoneNumber);
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+      console.log('SMS code sent successfully');
+      return confirmationResult;
+    } catch (error: any) {
+      console.error('Error sending phone code:', error);
+      // Clear reCAPTCHA on error
+      recaptchaVerifier.clear();
+
+      if (error.code === 'auth/invalid-phone-number') {
+        throw new Error('Invalid phone number format. Please use international format (e.g., +1234567890)');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many requests. Please try again later.');
+      } else {
+        throw new Error(error.message || 'Failed to send verification code');
+      }
+    }
+  };
+
+  const verifyPhoneCode = async (confirmationResult: ConfirmationResult, code: string): Promise<void> => {
+    try {
+      console.log('Verifying phone code');
+      await confirmationResult.confirm(code);
+      console.log('Phone verification successful');
+    } catch (error: any) {
+      console.error('Error verifying phone code:', error);
+      if (error.code === 'auth/invalid-verification-code') {
+        throw new Error('Invalid verification code. Please try again.');
+      } else if (error.code === 'auth/code-expired') {
+        throw new Error('Verification code has expired. Please request a new one.');
+      } else {
+        throw new Error(error.message || 'Failed to verify code');
+      }
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -297,6 +364,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithEmail,
     sendOTP,
     verifyOTP,
+    setupRecaptcha,
+    sendPhoneCode,
+    verifyPhoneCode,
     signOut,
     getIdToken
   };

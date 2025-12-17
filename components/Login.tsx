@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Mail, ArrowLeft, UserPlus, Shield } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, UserPlus, Shield, Phone } from 'lucide-react';
+import type { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 
 interface LoginProps {
   onBack?: () => void;
@@ -8,16 +9,37 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onBack }) => {
   console.log('Login component mounted, onBack:', !!onBack);
-  const { signInWithGoogle, signInAsGuest, sendOTP, verifyOTP } = useAuth();
+  const { signInWithGoogle, signInAsGuest, sendOTP, verifyOTP, setupRecaptcha, sendPhoneCode, verifyPhoneCode } = useAuth();
   const [loading, setLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   console.log('Login render - codeSent:', codeSent, 'email:', email);
+
+  // Setup reCAPTCHA when component mounts
+  useEffect(() => {
+    if (loginMethod === 'phone') {
+      const verifier = setupRecaptcha('recaptcha-container');
+      setRecaptchaVerifier(verifier);
+
+      return () => {
+        if (verifier) {
+          verifier.clear();
+        }
+      };
+    }
+  }, [loginMethod]);
 
   const loadingImages = [
     '/loading-1.webp',
@@ -83,6 +105,54 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
       setError(err.message || 'Failed to sign in as guest');
     } finally {
       setGuestLoading(false);
+    }
+  };
+
+  const handleSendPhoneCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setError('Please enter a valid phone number with country code (e.g., +1234567890)');
+      return;
+    }
+
+    if (!recaptchaVerifier) {
+      setError('reCAPTCHA not initialized. Please refresh the page.');
+      return;
+    }
+
+    setPhoneLoading(true);
+    setError(null);
+    try {
+      const result = await sendPhoneCode(phoneNumber, recaptchaVerifier);
+      setConfirmationResult(result);
+      setPhoneCodeSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send verification code');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyPhoneCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneCode || phoneCode.length !== 6) {
+      setError('Please enter the 6-digit code');
+      return;
+    }
+
+    if (!confirmationResult) {
+      setError('No verification in progress. Please request a new code.');
+      return;
+    }
+
+    setPhoneLoading(true);
+    setError(null);
+    try {
+      await verifyPhoneCode(confirmationResult, phoneCode);
+    } catch (err: any) {
+      setError(err.message || 'Invalid or expired code');
+    } finally {
+      setPhoneLoading(false);
     }
   };
 
@@ -326,7 +396,46 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
             </div>
           )}
 
-          {codeSent ? (
+          {/* Tab Switcher */}
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => {
+                setLoginMethod('email');
+                setError(null);
+                setCodeSent(false);
+                setPhoneCodeSent(false);
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+                loginMethod === 'email'
+                  ? 'bg-crypto-lime text-black'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Mail size={18} />
+              <span>Email</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLoginMethod('phone');
+                setError(null);
+                setCodeSent(false);
+                setPhoneCodeSent(false);
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+                loginMethod === 'phone'
+                  ? 'bg-crypto-lime text-black'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Phone size={18} />
+              <span>Phone</span>
+            </button>
+          </div>
+
+          {/* Email OTP Flow */}
+          {loginMethod === 'email' && codeSent ? (
             <div className="mb-6">
               <div className="mb-6 p-6 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl text-center">
                 <Shield className="w-16 h-16 mx-auto mb-4 text-crypto-lime" />
@@ -383,40 +492,137 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
                 </div>
               </form>
             </div>
-          ) : (
-            <>
-              {/* Email OTP Sign In */}
-              <form onSubmit={handleSendOTP} className="mb-6">
+          ) : loginMethod === 'phone' && phoneCodeSent ? (
+            <div className="mb-6">
+              <div className="mb-6 p-6 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl text-center">
+                <Shield className="w-16 h-16 mx-auto mb-4 text-crypto-lime" />
+                <h3 className="text-xl font-semibold text-white mb-2">Check your phone!</h3>
+                <p className="text-slate-300 text-sm mb-2">
+                  We sent a 6-digit code to <span className="font-semibold text-crypto-lime">{phoneNumber}</span>
+                </p>
+                <p className="text-slate-400 text-xs">
+                  Enter the code below to sign in.
+                </p>
+              </div>
+
+              <form onSubmit={handleVerifyPhoneCode}>
                 <div className="mb-5">
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                    Email address
+                  <label htmlFor="phoneCode" className="block text-sm font-medium text-slate-300 mb-2">
+                    Verification Code
                   </label>
                   <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-3 text-base bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
-                    disabled={emailLoading}
+                    type="text"
+                    id="phoneCode"
+                    value={phoneCode}
+                    onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
+                    disabled={phoneLoading}
+                    autoComplete="one-time-code"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={emailLoading || !email}
+                  disabled={phoneLoading || phoneCode.length !== 6}
                   className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {emailLoading ? (
+                  {phoneLoading ? (
                     <Loader2 className="animate-spin" size={20} />
                   ) : (
                     <>
-                      <Mail size={20} />
-                      <span>Send verification code</span>
+                      <Shield size={20} />
+                      <span>Verify & Sign In</span>
                     </>
                   )}
                 </button>
+
+                <div className="mt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setPhoneCodeSent(false); setPhoneCode(''); setError(null); }}
+                    className="text-slate-400 text-xs hover:text-crypto-lime transition-colors"
+                  >
+                    Use a different phone number
+                  </button>
+                </div>
               </form>
+            </div>
+          ) : (
+            <>
+              {/* Email Form */}
+              {loginMethod === 'email' && (
+                <form onSubmit={handleSendOTP} className="mb-6">
+                  <div className="mb-5">
+                    <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                      Email address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-3 text-base bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
+                      disabled={emailLoading}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={emailLoading || !email}
+                    className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {emailLoading ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <>
+                        <Mail size={20} />
+                        <span>Send verification code</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {/* Phone Form */}
+              {loginMethod === 'phone' && (
+                <form onSubmit={handleSendPhoneCode} className="mb-6">
+                  <div className="mb-5">
+                    <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-2">
+                      Phone number
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+1234567890"
+                      className="w-full px-4 py-3 text-base bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime transition-all"
+                      disabled={phoneLoading}
+                    />
+                    <p className="text-slate-500 text-xs mt-2">
+                      Include country code (e.g., +1 for US, +86 for China)
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={phoneLoading || !phoneNumber}
+                    className="w-full bg-crypto-lime hover:bg-crypto-lime/90 text-black font-bold py-3.5 px-6 text-base rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {phoneLoading ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <>
+                        <Phone size={20} />
+                        <span>Send verification code</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
 
               {/* Divider */}
               <div className="relative my-6">
@@ -485,6 +691,9 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
           <p className="text-slate-500 text-xs text-center mt-8">
             By signing in, you agree to our <span className="text-slate-400 hover:text-crypto-lime cursor-pointer">Terms</span> and <span className="text-slate-400 hover:text-crypto-lime cursor-pointer">Privacy Policy</span>
           </p>
+
+          {/* reCAPTCHA Container (hidden) */}
+          <div id="recaptcha-container"></div>
         </div>
       </div>
     </div>
