@@ -304,7 +304,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
         'size': 'invisible',
         'callback': () => {
-          console.log('reCAPTCHA solved');
+          console.log('reCAPTCHA solved successfully');
+        },
+        'expired-callback': () => {
+          console.warn('reCAPTCHA expired, please try again');
         }
       });
       return recaptchaVerifier;
@@ -322,6 +325,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return confirmationResult;
     } catch (error: any) {
       console.error('Error sending phone code:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+
       // Clear reCAPTCHA on error
       recaptchaVerifier.clear();
 
@@ -329,8 +335,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid phone number format. Please use international format (e.g., +1234567890)');
       } else if (error.code === 'auth/too-many-requests') {
         throw new Error('Too many requests. Please try again later.');
+      } else if (error.code === 'auth/quota-exceeded') {
+        throw new Error('SMS quota exceeded. Please upgrade your Firebase plan to Blaze (pay-as-you-go) to send SMS.');
+      } else if (error.code === 'auth/project-not-authorized') {
+        throw new Error('Phone authentication is not enabled. Please enable it in Firebase Console.');
+      } else if (error.code === 'auth/app-not-authorized') {
+        throw new Error('This app is not authorized for Firebase Phone Authentication. Please check Firebase Console settings.');
       } else {
-        throw new Error(error.message || 'Failed to send verification code');
+        throw new Error(error.message || 'Failed to send verification code. Check console for details.');
       }
     }
   };
