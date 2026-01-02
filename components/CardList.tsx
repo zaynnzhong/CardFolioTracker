@@ -13,7 +13,28 @@ interface CardListProps {
   onTabChange?: (tab: 'holdings' | 'sold') => void;
 }
 
-type SortOption = 'price-high' | 'price-low' | 'trend-up' | 'trend-down';
+type SortOption =
+  | 'date-newest' | 'date-oldest'
+  | 'price-high' | 'price-low'
+  | 'trend-up' | 'trend-down'
+  | 'basis-high' | 'basis-low'
+  | 'player-az' | 'player-za'
+  | 'year-newest' | 'year-oldest'
+  | 'count-high' | 'count-low';
+
+interface FilterState {
+  players: string[];
+  yearMin: number | null;
+  yearMax: number | null;
+  sets: string[];
+  parallels: string[];
+  grades: string[];
+  valueMin: number | null;
+  valueMax: number | null;
+  profitStatus: 'all' | 'positive' | 'negative' | 'breakeven';
+  tradeStatus: 'all' | 'available' | 'never-trade';
+  hasImage: 'all' | 'yes' | 'no';
+}
 
 interface CardGroup {
   id: string; // bulkGroupId or individual card id
@@ -22,12 +43,34 @@ interface CardGroup {
 }
 
 export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurrency, convertPrice, onTabChange }) => {
-  const [filterPlayer, setFilterPlayer] = useState<string>('');
-  const [sortBy, setSortBy] = useState<SortOption>('price-high');
+  const [sortBy, setSortBy] = useState<SortOption>('date-newest');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<'holdings' | 'sold'>('holdings');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
+
+  const [filters, setFilters] = useState<FilterState>({
+    players: [],
+    yearMin: null,
+    yearMax: null,
+    sets: [],
+    parallels: [],
+    grades: [],
+    valueMin: null,
+    valueMax: null,
+    profitStatus: 'all',
+    tradeStatus: 'all',
+    hasImage: 'all',
+  });
+
+  const [expandedFilters, setExpandedFilters] = useState<{[key: string]: boolean}>({
+    players: false,
+    sets: false,
+    parallels: false,
+    grades: false,
+  });
+
+  const [playerSearch, setPlayerSearch] = useState('');
 
   // Notify parent when tab changes
   const handleTabChange = (tab: 'holdings' | 'sold') => {
@@ -35,10 +78,16 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
     onTabChange?.(tab);
   };
 
-  // Get unique players for filter dropdown
-  const uniquePlayers = useMemo(() => {
+  // Get unique values for filter dropdowns
+  const uniqueValues = useMemo(() => {
     const players = [...new Set(cards.map(c => c.player))].sort();
-    return players;
+    const sets = [...new Set(cards.map(c => `${c.brand} ${c.series}`))].sort();
+    const parallels = [...new Set(cards.map(c => c.parallel).filter(Boolean))].sort() as string[];
+    const gradeSet = new Set(cards.map(c => c.graded ? `${c.gradeCompany} ${c.gradeValue}` : 'Raw'));
+    const grades = [...gradeSet].sort();
+    const years = [...new Set(cards.map(c => c.year))].sort((a: number, b: number) => b - a);
+
+    return { players, sets, parallels, grades, years };
   }, [cards]);
 
   // Filter and sort cards
@@ -52,8 +101,77 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
     filtered = filtered.filter(c => activeTab === 'holdings' ? !c.sold : c.sold);
 
     // Apply player filter
-    if (filterPlayer) {
-      filtered = filtered.filter(c => c.player === filterPlayer);
+    if (filters.players.length > 0) {
+      filtered = filtered.filter(c => filters.players.includes(c.player));
+    }
+
+    // Apply year range filter
+    if (filters.yearMin !== null) {
+      filtered = filtered.filter(c => c.year >= filters.yearMin!);
+    }
+    if (filters.yearMax !== null) {
+      filtered = filtered.filter(c => c.year <= filters.yearMax!);
+    }
+
+    // Apply set filter
+    if (filters.sets.length > 0) {
+      filtered = filtered.filter(c => filters.sets.includes(`${c.brand} ${c.series}`));
+    }
+
+    // Apply parallel filter
+    if (filters.parallels.length > 0) {
+      filtered = filtered.filter(c => c.parallel && filters.parallels.includes(c.parallel));
+    }
+
+    // Apply grade filter
+    if (filters.grades.length > 0) {
+      filtered = filtered.filter(c => {
+        const cardGrade = c.graded ? `${c.gradeCompany} ${c.gradeValue}` : 'Raw';
+        return filters.grades.includes(cardGrade);
+      });
+    }
+
+    // Apply value range filter
+    if (filters.valueMin !== null || filters.valueMax !== null) {
+      filtered = filtered.filter(c => {
+        const value = convertPrice(c.sold ? (c.soldPrice || 0) : c.currentValue, c.currency, displayCurrency);
+        if (filters.valueMin !== null && value < filters.valueMin) return false;
+        if (filters.valueMax !== null && value > filters.valueMax) return false;
+        return true;
+      });
+    }
+
+    // Apply P/L filter
+    if (filters.profitStatus !== 'all') {
+      filtered = filtered.filter(c => {
+        const value = convertPrice(c.sold ? (c.soldPrice || 0) : c.currentValue, c.currency, displayCurrency);
+        const isBreakOrSelfRip = c.acquisitionSource === 'Break' || c.acquisitionSource === 'Self Rip (Case/Box)';
+        const purchasePrice = convertPrice(c.purchasePrice, c.currency, displayCurrency);
+        const earliestComp = c.priceHistory && c.priceHistory.length > 0
+          ? convertPrice(c.priceHistory[0].value, c.currency, displayCurrency)
+          : purchasePrice;
+        const basis = isBreakOrSelfRip ? earliestComp : purchasePrice;
+        const profit = value - basis;
+
+        if (filters.profitStatus === 'positive') return profit > 0;
+        if (filters.profitStatus === 'negative') return profit < 0;
+        if (filters.profitStatus === 'breakeven') return Math.abs(profit) < 0.01;
+        return true;
+      });
+    }
+
+    // Apply trade status filter
+    if (filters.tradeStatus === 'available') {
+      filtered = filtered.filter(c => !c.neverTrade);
+    } else if (filters.tradeStatus === 'never-trade') {
+      filtered = filtered.filter(c => c.neverTrade === true);
+    }
+
+    // Apply image filter
+    if (filters.hasImage === 'yes') {
+      filtered = filtered.filter(c => c.imageUrl);
+    } else if (filters.hasImage === 'no') {
+      filtered = filtered.filter(c => !c.imageUrl);
     }
 
     // Apply sorting
@@ -81,7 +199,15 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
       const aProfitPercent = aBasis > 0 ? (aProfit / aBasis) * 100 : 0;
       const bProfitPercent = bBasis > 0 ? (bProfit / bBasis) * 100 : 0;
 
+      // Get purchase dates for sorting
+      const aDate = a.purchaseDate ? new Date(a.purchaseDate).getTime() : 0;
+      const bDate = b.purchaseDate ? new Date(b.purchaseDate).getTime() : 0;
+
       switch (sortBy) {
+        case 'date-newest':
+          return bDate - aDate; // Newest first
+        case 'date-oldest':
+          return aDate - bDate; // Oldest first
         case 'price-high':
           return bValue - aValue; // High to low
         case 'price-low':
@@ -90,13 +216,25 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
           return bProfitPercent - aProfitPercent; // Best trending first
         case 'trend-down':
           return aProfitPercent - bProfitPercent; // Worst trending first
+        case 'basis-high':
+          return bBasis - aBasis; // High to low
+        case 'basis-low':
+          return aBasis - bBasis; // Low to high
+        case 'player-az':
+          return a.player.localeCompare(b.player); // A-Z
+        case 'player-za':
+          return b.player.localeCompare(a.player); // Z-A
+        case 'year-newest':
+          return b.year - a.year; // Newest year first
+        case 'year-oldest':
+          return a.year - b.year; // Oldest year first
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [cards, activeTab, filterPlayer, sortBy, displayCurrency, convertPrice]);
+  }, [cards, activeTab, filters, sortBy, displayCurrency, convertPrice]);
 
   // Group cards by matching properties (player, year, brand, series, insert)
   const cardGroups = useMemo(() => {
@@ -215,40 +353,354 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
           </div>
         </div>
 
+        {/* Slide-in Filter Panel */}
         {showFilters && (
-          <div className="glass-card backdrop-blur-sm border border-white/10 rounded-xl p-4 lg:flex lg:gap-4 space-y-3 lg:space-y-0">
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 block">
-                Filter by Player
-              </label>
-              <select
-                value={filterPlayer}
-                onChange={(e) => setFilterPlayer(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
-              >
-                <option value="">All Players</option>
-                {uniquePlayers.map(player => (
-                  <option key={player} value={player}>{player}</option>
-                ))}
-              </select>
-            </div>
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
+              onClick={() => setShowFilters(false)}
+            />
 
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5 block">
-                <ArrowUpDown size={12} /> Sort By
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-0 focus:border-slate-500 outline-none"
-              >
-                <option value="price-high">Price: High to Low</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="trend-up">Trending: Best First</option>
-                <option value="trend-down">Trending: Worst First</option>
-              </select>
+            {/* Filter Panel */}
+            <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-white/10 z-50 overflow-y-auto shadow-2xl animate-slideInRight">
+              <div className="p-6 space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Filter size={20} className="text-crypto-lime" />
+                    Filter & Sort
+                  </h2>
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Sort Options */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5 block">
+                    <ArrowUpDown size={12} /> Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none transition-all"
+                  >
+                    <optgroup label="Date">
+                      <option value="date-newest">Date Added: Newest First</option>
+                      <option value="date-oldest">Date Added: Oldest First</option>
+                    </optgroup>
+                    <optgroup label="Value">
+                      <option value="price-high">Current Value: High → Low</option>
+                      <option value="price-low">Current Value: Low → High</option>
+                    </optgroup>
+                    <optgroup label="Performance">
+                      <option value="trend-up">Unrealized P/L %: Best → Worst</option>
+                      <option value="trend-down">Unrealized P/L %: Worst → Best</option>
+                    </optgroup>
+                    <optgroup label="Cost">
+                      <option value="basis-high">Cost Basis: High → Low</option>
+                      <option value="basis-low">Cost Basis: Low → High</option>
+                    </optgroup>
+                    <optgroup label="Player">
+                      <option value="player-az">Player Name: A → Z</option>
+                      <option value="player-za">Player Name: Z → A</option>
+                    </optgroup>
+                    <optgroup label="Year">
+                      <option value="year-newest">Year: Newest → Oldest</option>
+                      <option value="year-oldest">Year: Oldest → Newest</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div className="border-t border-white/10 pt-6 space-y-3">
+                  {/* Player Multi-select Dropdown */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setExpandedFilters({ ...expandedFilters, players: !expandedFilters.players })}
+                      className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">Player</span>
+                        {filters.players.length > 0 && (
+                          <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
+                            {filters.players.length}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedFilters.players ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedFilters.players && (
+                      <div className="bg-slate-950 border border-slate-700 rounded-lg overflow-hidden">
+                        {/* Search Input */}
+                        <div className="p-2 border-b border-slate-700">
+                          <input
+                            type="text"
+                            value={playerSearch}
+                            onChange={(e) => setPlayerSearch(e.target.value)}
+                            placeholder="Search players..."
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                          />
+                        </div>
+                        {/* Player List */}
+                        <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                          {uniqueValues.players
+                            .filter(player => player.toLowerCase().includes(playerSearch.toLowerCase()))
+                            .map(player => (
+                              <label key={player} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded cursor-pointer transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={filters.players.includes(player)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFilters({ ...filters, players: [...filters.players, player] });
+                                    } else {
+                                      setFilters({ ...filters, players: filters.players.filter(p => p !== player) });
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded border-slate-600 text-crypto-lime focus:ring-crypto-lime/50"
+                                />
+                                <span className="text-sm text-slate-300">{player}</span>
+                              </label>
+                            ))}
+                          {uniqueValues.players.filter(player => player.toLowerCase().includes(playerSearch.toLowerCase())).length === 0 && (
+                            <p className="text-sm text-slate-500 text-center py-4">No players found</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Set/Product Line Multi-select Dropdown */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setExpandedFilters({ ...expandedFilters, sets: !expandedFilters.sets })}
+                      className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">Set / Product Line</span>
+                        {filters.sets.length > 0 && (
+                          <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
+                            {filters.sets.length}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedFilters.sets ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedFilters.sets && (
+                      <div className="max-h-48 overflow-y-auto bg-slate-950 border border-slate-700 rounded-lg p-2 space-y-1">
+                        {uniqueValues.sets.map(set => (
+                          <label key={set} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded cursor-pointer transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={filters.sets.includes(set)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilters({ ...filters, sets: [...filters.sets, set] });
+                                } else {
+                                  setFilters({ ...filters, sets: filters.sets.filter(s => s !== set) });
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-slate-600 text-crypto-lime focus:ring-crypto-lime/50"
+                            />
+                            <span className="text-sm text-slate-300">{set}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Parallel Multi-select Dropdown */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setExpandedFilters({ ...expandedFilters, parallels: !expandedFilters.parallels })}
+                      className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">Parallel</span>
+                        {filters.parallels.length > 0 && (
+                          <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
+                            {filters.parallels.length}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedFilters.parallels ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedFilters.parallels && (
+                      <div className="max-h-48 overflow-y-auto bg-slate-950 border border-slate-700 rounded-lg p-2 space-y-1">
+                        {uniqueValues.parallels.map(parallel => (
+                          <label key={parallel} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded cursor-pointer transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={filters.parallels.includes(parallel)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilters({ ...filters, parallels: [...filters.parallels, parallel] });
+                                } else {
+                                  setFilters({ ...filters, parallels: filters.parallels.filter(p => p !== parallel) });
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-slate-600 text-crypto-lime focus:ring-crypto-lime/50"
+                            />
+                            <span className="text-sm text-slate-300">{parallel}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Grade Multi-select Dropdown */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setExpandedFilters({ ...expandedFilters, grades: !expandedFilters.grades })}
+                      className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">Grade</span>
+                        {filters.grades.length > 0 && (
+                          <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
+                            {filters.grades.length}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedFilters.grades ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedFilters.grades && (
+                      <div className="max-h-48 overflow-y-auto bg-slate-950 border border-slate-700 rounded-lg p-2 space-y-1">
+                        {uniqueValues.grades.map(grade => (
+                          <label key={grade} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded cursor-pointer transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={filters.grades.includes(grade)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilters({ ...filters, grades: [...filters.grades, grade] });
+                                } else {
+                                  setFilters({ ...filters, grades: filters.grades.filter(g => g !== grade) });
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-slate-600 text-crypto-lime focus:ring-crypto-lime/50"
+                            />
+                            <span className="text-sm text-slate-300">{grade}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Year Range */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Year Range</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="number"
+                        value={filters.yearMin ?? ''}
+                        onChange={(e) => setFilters({ ...filters, yearMin: e.target.value ? parseInt(e.target.value) : null })}
+                        placeholder="From"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                      />
+                      <input
+                        type="number"
+                        value={filters.yearMax ?? ''}
+                        onChange={(e) => setFilters({ ...filters, yearMax: e.target.value ? parseInt(e.target.value) : null })}
+                        placeholder="To"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Value Range */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Value Range ({displayCurrency})</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="number"
+                        value={filters.valueMin ?? ''}
+                        onChange={(e) => setFilters({ ...filters, valueMin: e.target.value ? parseFloat(e.target.value) : null })}
+                        placeholder="Min"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                      />
+                      <input
+                        type="number"
+                        value={filters.valueMax ?? ''}
+                        onChange={(e) => setFilters({ ...filters, valueMax: e.target.value ? parseFloat(e.target.value) : null })}
+                        placeholder="Max"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* P/L Status */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Unrealized P/L</label>
+                    <select
+                      value={filters.profitStatus}
+                      onChange={(e) => setFilters({ ...filters, profitStatus: e.target.value as FilterState['profitStatus'] })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                    >
+                      <option value="all">All Cards</option>
+                      <option value="positive">Winners Only</option>
+                      <option value="negative">Losers Only</option>
+                      <option value="breakeven">Breakeven</option>
+                    </select>
+                  </div>
+
+                  {/* Trade Status */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Trade Status</label>
+                    <select
+                      value={filters.tradeStatus}
+                      onChange={(e) => setFilters({ ...filters, tradeStatus: e.target.value as FilterState['tradeStatus'] })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                    >
+                      <option value="all">All Cards</option>
+                      <option value="available">Available for Trade</option>
+                      <option value="never-trade">Never Trade</option>
+                    </select>
+                  </div>
+
+                  {/* Has Image */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Has Image</label>
+                    <select
+                      value={filters.hasImage}
+                      onChange={(e) => setFilters({ ...filters, hasImage: e.target.value as FilterState['hasImage'] })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                    >
+                      <option value="all">All Cards</option>
+                      <option value="yes">With Image</option>
+                      <option value="no">Without Image</option>
+                    </select>
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  <button
+                    onClick={() => setFilters({
+                      players: [],
+                      yearMin: null,
+                      yearMax: null,
+                      sets: [],
+                      parallels: [],
+                      grades: [],
+                      valueMin: null,
+                      valueMax: null,
+                      profitStatus: 'all',
+                      tradeStatus: 'all',
+                      hasImage: 'all',
+                    })}
+                    className="w-full px-4 py-3 bg-crypto-lime/10 hover:bg-crypto-lime/20 text-crypto-lime font-medium rounded-lg text-sm transition-colors border border-crypto-lime/30"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
       {/* Gallery View */}
