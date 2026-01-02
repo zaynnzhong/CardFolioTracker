@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, Currency } from '../types';
-import { ArrowDown, ArrowUp, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, TrendingUp, TrendingDown, Filter, ArrowUpDown, ChevronDown } from 'lucide-react';
 
 interface TransactionLine {
   direction: 'OUT' | 'IN';
@@ -15,8 +15,18 @@ interface TransactionLine {
 interface Transaction {
   id: string;
   date: string;
-  type: 'sale' | 'trade';
+  type: 'sale' | 'trade' | 'purchase';
   lines: TransactionLine[];
+}
+
+type SortOption = 'date-newest' | 'date-oldest' | 'amount-high' | 'amount-low' | 'pl-best' | 'pl-worst';
+
+interface FilterState {
+  type: 'all' | 'buy' | 'sell' | 'trade';
+  dateMin: string;
+  dateMax: string;
+  search: string;
+  plStatus: 'all' | 'profit' | 'loss' | 'breakeven';
 }
 
 interface TransactionsViewProps {
@@ -27,6 +37,16 @@ interface TransactionsViewProps {
 
 export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displayCurrency, convertPrice }) => {
   const symbol = displayCurrency === 'USD' ? '$' : '¥';
+
+  const [sortBy, setSortBy] = useState<SortOption>('date-newest');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    type: 'all',
+    dateMin: '',
+    dateMax: '',
+    search: '',
+    plStatus: 'all',
+  });
 
   // Generate transactions from both purchased and sold cards
   const transactions = useMemo(() => {
@@ -58,7 +78,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
       txns.push({
         id: `purchase-${card.id}`,
         date: card.purchaseDate,
-        type: 'sale', // Using 'sale' type for styling, could add 'purchase' type
+        type: 'purchase',
         lines
       });
     });
@@ -127,21 +147,206 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
       }
     });
 
-    // Sort all transactions by date, most recent first
-    return txns.sort((a, b) => {
+    // Apply filters
+    let filtered = txns;
+
+    // Filter by type
+    if (filters.type !== 'all') {
+      if (filters.type === 'buy') {
+        filtered = filtered.filter(t => t.type === 'purchase');
+      } else if (filters.type === 'sell') {
+        filtered = filtered.filter(t => t.type === 'sale');
+      } else if (filters.type === 'trade') {
+        filtered = filtered.filter(t => t.type === 'trade');
+      }
+    }
+
+    // Filter by date range
+    if (filters.dateMin) {
+      const minDate = new Date(filters.dateMin).getTime();
+      filtered = filtered.filter(t => new Date(t.date).getTime() >= minDate);
+    }
+    if (filters.dateMax) {
+      const maxDate = new Date(filters.dateMax).getTime();
+      filtered = filtered.filter(t => new Date(t.date).getTime() <= maxDate);
+    }
+
+    // Filter by card/player search
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.lines.some(line => line.item.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Filter by P/L status
+    if (filters.plStatus !== 'all') {
+      filtered = filtered.filter(t => {
+        const hasRealizedGL = t.lines.some(line => line.realizedGainLoss !== undefined);
+        if (!hasRealizedGL && filters.plStatus !== 'breakeven') return false;
+
+        return t.lines.some(line => {
+          if (line.realizedGainLoss === undefined) return filters.plStatus === 'breakeven';
+
+          if (filters.plStatus === 'profit') return line.realizedGainLoss > 0;
+          if (filters.plStatus === 'loss') return line.realizedGainLoss < 0;
+          if (filters.plStatus === 'breakeven') return Math.abs(line.realizedGainLoss) < 0.01;
+          return true;
+        });
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      return dateB - dateA;
+
+      // Get amounts (sum of all lines in transaction)
+      const amountA = a.lines.reduce((sum, line) => sum + line.amountFMV, 0);
+      const amountB = b.lines.reduce((sum, line) => sum + line.amountFMV, 0);
+
+      // Get realized P/L (sum of all lines with realized G/L)
+      const plA = a.lines.reduce((sum, line) => sum + (line.realizedGainLoss || 0), 0);
+      const plB = b.lines.reduce((sum, line) => sum + (line.realizedGainLoss || 0), 0);
+
+      switch (sortBy) {
+        case 'date-newest':
+          return dateB - dateA;
+        case 'date-oldest':
+          return dateA - dateB;
+        case 'amount-high':
+          return amountB - amountA;
+        case 'amount-low':
+          return amountA - amountB;
+        case 'pl-best':
+          return plB - plA;
+        case 'pl-worst':
+          return plA - plB;
+        default:
+          return dateB - dateA;
+      }
     });
-  }, [cards, displayCurrency, convertPrice]);
+
+    return filtered;
+  }, [cards, displayCurrency, convertPrice, filters, sortBy]);
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-2xl lg:text-3xl font-bold text-white">Transactions</h2>
-        <div className="text-xs lg:text-sm text-slate-400 font-medium">
-          {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
+      {/* Header with Sort/Filter */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl lg:text-3xl font-bold text-white">Transactions</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-xs lg:text-sm text-slate-400 font-medium">
+              {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
+            </span>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded-lg transition-colors ${showFilters ? 'bg-crypto-lime/10 text-crypto-lime' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <Filter size={18} />
+            </button>
+          </div>
         </div>
+
+        {/* Sort Dropdown */}
+        <div className="flex items-center gap-2">
+          <ArrowUpDown size={16} className="text-slate-400" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+          >
+            <option value="date-newest">Date: Newest First</option>
+            <option value="date-oldest">Date: Oldest First</option>
+            <option value="amount-high">Amount: High → Low</option>
+            <option value="amount-low">Amount: Low → High</option>
+            <option value="pl-best">Realized P/L: Best → Worst</option>
+            <option value="pl-worst">Realized P/L: Worst → Best</option>
+          </select>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="glass-card backdrop-blur-sm border border-white/10 rounded-xl p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Type Filter */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</label>
+                <select
+                  value={filters.type}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value as FilterState['type'] })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                >
+                  <option value="all">All Transactions</option>
+                  <option value="buy">Buy Only</option>
+                  <option value="sell">Sell Only</option>
+                  <option value="trade">Trade Only</option>
+                </select>
+              </div>
+
+              {/* P/L Status Filter */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Realized P/L</label>
+                <select
+                  value={filters.plStatus}
+                  onChange={(e) => setFilters({ ...filters, plStatus: e.target.value as FilterState['plStatus'] })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                >
+                  <option value="all">All</option>
+                  <option value="profit">Profit Only</option>
+                  <option value="loss">Loss Only</option>
+                  <option value="breakeven">Breakeven</option>
+                </select>
+              </div>
+
+              {/* Date Range */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Date Range</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={filters.dateMin}
+                    onChange={(e) => setFilters({ ...filters, dateMin: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                  />
+                  <input
+                    type="date"
+                    value={filters.dateMax}
+                    onChange={(e) => setFilters({ ...filters, dateMax: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Card/Player Search */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Card / Player Search</label>
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  placeholder="Search by card or player..."
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={() => setFilters({
+                type: 'all',
+                dateMin: '',
+                dateMax: '',
+                search: '',
+                plStatus: 'all',
+              })}
+              className="w-full px-4 py-2 bg-crypto-lime/10 hover:bg-crypto-lime/20 text-crypto-lime font-medium rounded-lg text-sm transition-colors border border-crypto-lime/30"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {transactions.length === 0 ? (
@@ -151,13 +356,29 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
         </div>
       ) : (
         <div className="space-y-4">
-          {transactions.map((txn) => (
-            <div key={txn.id} className={`glass-card backdrop-blur-sm rounded-2xl overflow-hidden ${txn.type === 'trade' ? 'border-2 border-purple-500/30' : 'border-2 border-crypto-lime/30'}`}>
+          {transactions.map((txn) => {
+            const typeColor = txn.type === 'trade' ? 'purple' : txn.type === 'purchase' ? 'blue' : 'crypto-lime';
+            const typeLabel = txn.type === 'trade' ? 'TRADE' : txn.type === 'purchase' ? 'BUY' : 'SALE';
+
+            return (
+            <div key={txn.id} className={`glass-card backdrop-blur-sm rounded-2xl overflow-hidden ${
+              txn.type === 'trade' ? 'border-2 border-purple-500/30' :
+              txn.type === 'purchase' ? 'border-2 border-blue-500/30' :
+              'border-2 border-crypto-lime/30'
+            }`}>
               {/* Transaction Header */}
-              <div className={`px-4 py-3 border-b flex items-center justify-between ${txn.type === 'trade' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-crypto-lime/10 border-crypto-lime/20'}`}>
+              <div className={`px-4 py-3 border-b flex items-center justify-between ${
+                txn.type === 'trade' ? 'bg-purple-500/10 border-purple-500/20' :
+                txn.type === 'purchase' ? 'bg-blue-500/10 border-blue-500/20' :
+                'bg-crypto-lime/10 border-crypto-lime/20'
+              }`}>
                 <div className="flex items-center gap-2 lg:gap-3">
-                  <span className={`px-2 lg:px-3 py-1 rounded-lg text-xs font-bold ${txn.type === 'trade' ? 'bg-purple-500/30 text-purple-300 border border-purple-400/50' : 'bg-crypto-lime/30 text-crypto-lime border border-crypto-lime/50'}`}>
-                    {txn.type === 'trade' ? 'TRADE' : 'SALE'}
+                  <span className={`px-2 lg:px-3 py-1 rounded-lg text-xs font-bold ${
+                    txn.type === 'trade' ? 'bg-purple-500/30 text-purple-300 border border-purple-400/50' :
+                    txn.type === 'purchase' ? 'bg-blue-500/30 text-blue-300 border border-blue-400/50' :
+                    'bg-crypto-lime/30 text-crypto-lime border border-crypto-lime/50'
+                  }`}>
+                    {typeLabel}
                   </span>
                   <span className="text-xs lg:text-sm text-slate-300 font-semibold">
                     {new Date(txn.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -295,7 +516,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                 })}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

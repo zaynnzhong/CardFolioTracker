@@ -43,7 +43,7 @@ interface CardGroup {
 }
 
 export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurrency, convertPrice, onTabChange }) => {
-  const [sortBy, setSortBy] = useState<SortOption>('date-newest');
+  const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<'holdings' | 'sold'>('holdings');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
