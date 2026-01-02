@@ -28,11 +28,42 @@ interface TransactionsViewProps {
 export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displayCurrency, convertPrice }) => {
   const symbol = displayCurrency === 'USD' ? '$' : '¥';
 
-  // Generate transactions from sold cards
+  // Generate transactions from both purchased and sold cards
   const transactions = useMemo(() => {
     const txns: Transaction[] = [];
 
-    // Group sold cards by date and type to create transactions
+    // 1. Add purchase transactions (IN) for all cards
+    const purchasedCards = cards.filter(c => !c.watchlist).sort((a, b) => {
+      const dateA = new Date(a.purchaseDate).getTime();
+      const dateB = new Date(b.purchaseDate).getTime();
+      return dateB - dateA; // Most recent first
+    });
+
+    purchasedCards.forEach(card => {
+      const cardDesc = `${card.year} ${card.brand} ${card.series} ${card.insert} ${card.player}${card.parallel ? ` (${card.parallel})` : ''}${card.serialNumber ? ` #${card.serialNumber}` : ''}${card.graded ? ` ${card.gradeCompany} ${card.gradeValue}` : ''}`;
+
+      // Cost basis for purchase
+      const costBasis = convertPrice(card.purchasePrice, card.currency, displayCurrency);
+
+      const lines: TransactionLine[] = [
+        {
+          direction: 'IN',
+          item: cardDesc,
+          bookedAs: card.acquisitionSource || 'Purchase',
+          amountFMV: costBasis,
+          cardId: card.id
+        }
+      ];
+
+      txns.push({
+        id: `purchase-${card.id}`,
+        date: card.purchaseDate,
+        type: 'sale', // Using 'sale' type for styling, could add 'purchase' type
+        lines
+      });
+    });
+
+    // 2. Add sale/trade transactions (OUT) for sold cards
     const soldCards = cards.filter(c => c.sold).sort((a, b) => {
       const dateA = new Date(a.soldDate || '').getTime();
       const dateB = new Date(b.soldDate || '').getTime();
@@ -96,7 +127,12 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
       }
     });
 
-    return txns;
+    // Sort all transactions by date, most recent first
+    return txns.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
+    });
   }, [cards, displayCurrency, convertPrice]);
 
   return (
