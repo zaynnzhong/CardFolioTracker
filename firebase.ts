@@ -43,9 +43,7 @@ export const googleProvider = new GoogleAuthProvider();
 // Force account selection and ensure consent screen is shown
 // This helps with mobile Chrome which may have issues with cached credentials
 googleProvider.setCustomParameters({
-  prompt: 'select_account',
-  // Add display parameter for mobile optimization
-  display: 'popup'
+  prompt: 'select_account'
 });
 
 // Email link auth configuration

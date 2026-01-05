@@ -58,13 +58,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Handle redirect result from Google Sign-In FIRST, before setting up auth listener
     console.log('[Auth] Checking for redirect result...');
+    console.log('[Auth] Current localStorage pendingGoogleLink:', localStorage.getItem('pendingGoogleLink'));
+    console.log('[Auth] Current auth.currentUser:', auth.currentUser);
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
           console.log('[Auth] ✅ Google Sign-In redirect successful!');
           console.log('[Auth] User email:', result.user.email);
           console.log('[Auth] User ID:', result.user.uid);
+          console.log('[Auth] Is Anonymous:', result.user.isAnonymous);
           console.log('[Auth] Provider data:', result.user.providerData);
+          console.log('[Auth] Operation type:', result.operationType);
+          console.log('[Auth] Additional user info:', result.user.metadata);
           localStorage.removeItem('pendingGoogleLink');
         } else {
           console.log('[Auth] No redirect result (user may have navigated directly or already authenticated)');
