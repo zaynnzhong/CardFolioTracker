@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { DollarSign, User, Mail, Settings as SettingsIcon, ArrowLeft, Crown, Sparkles, RefreshCw } from 'lucide-react';
+import { useLanguage, Language } from '../contexts/LanguageContext';
+import { DollarSign, User, Mail, Settings as SettingsIcon, ArrowLeft, Crown, Sparkles, RefreshCw, Globe } from 'lucide-react';
 import { tierService } from '../services/tierService';
 import { revenueCatService } from '../services/revenueCatService';
 import { dataService } from '../services/dataService';
@@ -10,8 +11,10 @@ type Currency = 'USD' | 'CNY';
 
 export const ProfileSettings: React.FC = () => {
   const { user, signOut, getIdToken } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [currency, setCurrency] = useState<Currency>('USD');
   const [saved, setSaved] = useState(false);
+  const [languageSaved, setLanguageSaved] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [migrating, setMigrating] = useState(false);
@@ -64,6 +67,15 @@ export const ProfileSettings: React.FC = () => {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleLanguageChange = (newLanguage: 'en' | 'zh') => {
+    console.log('[ProfileSettings] Changing language to:', newLanguage);
+    setLanguage(newLanguage);
+
+    // Show saved feedback
+    setLanguageSaved(true);
+    setTimeout(() => setLanguageSaved(false), 2000);
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -101,20 +113,20 @@ export const ProfileSettings: React.FC = () => {
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4"
         >
           <ArrowLeft size={20} />
-          <span>Back</span>
+          <span>{t('profile.back')}</span>
         </button>
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
           <SettingsIcon className="text-crypto-lime" size={32} />
-          Profile Settings
+          {t('profile.title')}
         </h1>
-        <p className="text-slate-400">Manage your account and preferences</p>
+        <p className="text-slate-400">{t('profile.subtitle')}</p>
       </div>
 
       {/* Profile Information */}
       <div className="glass-card p-6 mb-6">
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
           <User size={20} className="text-crypto-lime" />
-          Account Information
+          {t('profile.accountInfo')}
         </h2>
 
         <div className="space-y-4">
@@ -122,12 +134,12 @@ export const ProfileSettings: React.FC = () => {
             <div className="bg-slate-950/50 border border-slate-800/50 rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="px-3 py-1 bg-gradient-to-r from-slate-700 to-slate-600 rounded-full">
-                  <span className="text-white text-xs font-bold">GUEST</span>
+                  <span className="text-white text-xs font-bold">{t('profile.guest')}</span>
                 </div>
-                <span className="text-slate-300">Guest User</span>
+                <span className="text-slate-300">{t('profile.guestUser')}</span>
               </div>
               <p className="text-slate-400 text-sm">
-                You're using a guest account. Sign in with Google or email to unlock unlimited cards and save your data permanently.
+                {t('profile.guestDesc')}
               </p>
             </div>
           ) : (
@@ -145,14 +157,14 @@ export const ProfileSettings: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-lg font-bold bg-gradient-to-r from-prism to-purple-400 bg-clip-text text-transparent">
-                                Pro Member
+                                {t('profile.proMember')}
                               </span>
                               <Sparkles size={16} className="text-prism" />
                             </div>
                             <p className="text-sm text-slate-400">
-                              {userProfile.whitelisted ? 'Whitelisted Access' :
-                               userProfile.unlockKey ? 'Unlock Key Access' :
-                               'Subscription Active'}
+                              {userProfile.whitelisted ? t('profile.whitelisted') :
+                               userProfile.unlockKey ? t('profile.unlockKey') :
+                               t('profile.subscriptionActive')}
                             </p>
                           </div>
                         </>
@@ -162,9 +174,9 @@ export const ProfileSettings: React.FC = () => {
                             <User size={20} className="text-slate-400" />
                           </div>
                           <div>
-                            <span className="text-lg font-bold text-white">Free Tier</span>
+                            <span className="text-lg font-bold text-white">{t('profile.freeTier')}</span>
                             <p className="text-sm text-slate-400">
-                              {userProfile.cardLimit} card limit
+                              {userProfile.cardLimit} {t('profile.cardLimit')}
                             </p>
                           </div>
                         </>
@@ -175,7 +187,7 @@ export const ProfileSettings: React.FC = () => {
                         onClick={() => window.location.href = '/'}
                         className="px-4 py-2 bg-gradient-to-r from-prism to-purple-600 text-black font-bold rounded-lg hover:opacity-90 transition-opacity text-sm"
                       >
-                        Upgrade
+                        {t('profile.upgrade')}
                       </button>
                     )}
                   </div>
@@ -185,16 +197,16 @@ export const ProfileSettings: React.FC = () => {
               <div className="flex items-center gap-3">
                 <User size={18} className="text-slate-400" />
                 <div>
-                  <p className="text-sm text-slate-400">Display Name</p>
-                  <p className="text-white font-medium">{user?.displayName || 'Not set'}</p>
+                  <p className="text-sm text-slate-400">{t('profile.displayName')}</p>
+                  <p className="text-white font-medium">{user?.displayName || t('profile.notSet')}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <Mail size={18} className="text-slate-400" />
                 <div>
-                  <p className="text-sm text-slate-400">Email</p>
-                  <p className="text-white font-medium">{user?.email || 'Not set'}</p>
+                  <p className="text-sm text-slate-400">{t('profile.email')}</p>
+                  <p className="text-white font-medium">{user?.email || t('profile.notSet')}</p>
                 </div>
               </div>
             </div>
@@ -202,15 +214,71 @@ export const ProfileSettings: React.FC = () => {
         </div>
       </div>
 
+      {/* Language Settings */}
+      <div className="glass-card p-6 mb-6">
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Globe size={20} className="text-crypto-lime" />
+          {t('profile.language')}
+        </h2>
+
+        <p className="text-slate-400 text-sm mb-4">
+          {t('profile.languageDesc')}
+        </p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => handleLanguageChange('en')}
+            className={`p-4 rounded-xl border-2 transition-all ${
+              language === 'en'
+                ? 'border-crypto-lime bg-crypto-lime/10 shadow-lg'
+                : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600'
+            }`}
+          >
+            <div className="text-center">
+              <div className="text-2xl mb-1">🇺🇸</div>
+              <div className={`font-bold ${language === 'en' ? 'text-crypto-lime' : 'text-white'}`}>
+                English
+              </div>
+              <div className="text-xs text-slate-400 mt-1">{t('profile.english')}</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleLanguageChange('zh')}
+            className={`p-4 rounded-xl border-2 transition-all ${
+              language === 'zh'
+                ? 'border-crypto-lime bg-crypto-lime/10 shadow-lg'
+                : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600'
+            }`}
+          >
+            <div className="text-center">
+              <div className="text-2xl mb-1">🇨🇳</div>
+              <div className={`font-bold ${language === 'zh' ? 'text-crypto-lime' : 'text-white'}`}>
+                中文
+              </div>
+              <div className="text-xs text-slate-400 mt-1">{t('profile.chinese')}</div>
+            </div>
+          </button>
+        </div>
+
+        {languageSaved && (
+          <div className="mt-4 p-3 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl">
+            <p className="text-crypto-lime text-sm text-center font-medium">
+              ✓ {language === 'en' ? 'Language preference saved' : '语言设置已保存'}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Currency Settings */}
       <div className="glass-card p-6 mb-6">
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
           <DollarSign size={20} className="text-crypto-lime" />
-          Display Currency
+          {t('profile.currency')}
         </h2>
 
         <p className="text-slate-400 text-sm mb-4">
-          Choose your preferred currency for displaying prices and values throughout the app.
+          {t('profile.currencyDesc')}
         </p>
 
         <div className="grid grid-cols-2 gap-4">
@@ -227,7 +295,7 @@ export const ProfileSettings: React.FC = () => {
               <div className={`font-bold ${currency === 'USD' ? 'text-crypto-lime' : 'text-white'}`}>
                 USD
               </div>
-              <div className="text-xs text-slate-400 mt-1">US Dollar</div>
+              <div className="text-xs text-slate-400 mt-1">{t('profile.usd')}</div>
             </div>
           </button>
 
@@ -244,7 +312,7 @@ export const ProfileSettings: React.FC = () => {
               <div className={`font-bold ${currency === 'CNY' ? 'text-crypto-lime' : 'text-white'}`}>
                 CNY
               </div>
-              <div className="text-xs text-slate-400 mt-1">Chinese Yuan</div>
+              <div className="text-xs text-slate-400 mt-1">{t('profile.cny')}</div>
             </div>
           </button>
         </div>
@@ -252,7 +320,7 @@ export const ProfileSettings: React.FC = () => {
         {saved && (
           <div className="mt-4 p-3 bg-crypto-lime/10 border border-crypto-lime/30 rounded-xl">
             <p className="text-crypto-lime text-sm text-center font-medium">
-              ✓ Currency preference saved
+              ✓ {language === 'en' ? 'Currency preference saved' : '货币设置已保存'}
             </p>
           </div>
         )}
@@ -263,11 +331,11 @@ export const ProfileSettings: React.FC = () => {
         <div className="glass-card p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <RefreshCw size={20} className="text-crypto-lime" />
-            Data Migration
+            {t('profile.dataMigration')}
           </h2>
 
           <p className="text-slate-400 text-sm mb-4">
-            If you have existing trade plans created before the currency update, click below to migrate them to use the default CNY currency.
+            {t('profile.migrationDesc')}
           </p>
 
           <button
@@ -278,12 +346,12 @@ export const ProfileSettings: React.FC = () => {
             {migrating ? (
               <>
                 <RefreshCw size={18} className="animate-spin" />
-                Migrating Trade Plans...
+                {t('profile.migrating')}
               </>
             ) : (
               <>
                 <RefreshCw size={18} />
-                Migrate Trade Plans Currency
+                {t('profile.migratePlans')}
               </>
             )}
           </button>
@@ -306,12 +374,12 @@ export const ProfileSettings: React.FC = () => {
 
       {/* Sign Out Button */}
       <div className="glass-card p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Account Actions</h2>
+        <h2 className="text-xl font-bold text-white mb-4">{t('profile.accountActions')}</h2>
         <button
           onClick={handleSignOut}
           className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold py-3 px-6 rounded-xl transition-all duration-200"
         >
-          Sign Out
+          {t('profile.signOut')}
         </button>
       </div>
     </div>

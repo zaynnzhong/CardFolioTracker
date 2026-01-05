@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Currency } from '../types';
 import { ArrowDown, ArrowUp, TrendingUp, TrendingDown, Filter, ArrowUpDown, ChevronDown } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface TransactionLine {
   direction: 'OUT' | 'IN';
@@ -36,6 +37,7 @@ interface TransactionsViewProps {
 }
 
 export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displayCurrency, convertPrice }) => {
+  const { t } = useLanguage();
   const symbol = displayCurrency === 'USD' ? '$' : '¥';
 
   const [sortBy, setSortBy] = useState<SortOption>('date-newest');
@@ -235,10 +237,10 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
       {/* Header with Sort/Filter */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl lg:text-3xl font-bold text-white">Transactions</h2>
+          <h2 className="text-2xl lg:text-3xl font-bold text-white">{t('transactions.title')}</h2>
           <div className="flex items-center gap-3">
             <span className="text-xs lg:text-sm text-slate-400 font-medium">
-              {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
+              {transactions.length} {transactions.length === 1 ? t('transactions.transaction') : t('transactions.transactions')}
             </span>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -257,12 +259,12 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
           >
-            <option value="date-newest">Date: Newest First</option>
-            <option value="date-oldest">Date: Oldest First</option>
-            <option value="amount-high">Amount: High → Low</option>
-            <option value="amount-low">Amount: Low → High</option>
-            <option value="pl-best">Realized P/L: Best → Worst</option>
-            <option value="pl-worst">Realized P/L: Worst → Best</option>
+            <option value="date-newest">{t('transSort.dateNewest')}</option>
+            <option value="date-oldest">{t('transSort.dateOldest')}</option>
+            <option value="amount-high">{t('transSort.amountHigh')}</option>
+            <option value="amount-low">{t('transSort.amountLow')}</option>
+            <option value="pl-best">{t('transSort.plBest')}</option>
+            <option value="pl-worst">{t('transSort.plWorst')}</option>
           </select>
         </div>
 
@@ -272,37 +274,37 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Type Filter */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</label>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('transFilter.type')}</label>
                 <select
                   value={filters.type}
                   onChange={(e) => setFilters({ ...filters, type: e.target.value as FilterState['type'] })}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                 >
-                  <option value="all">All Transactions</option>
-                  <option value="buy">Buy Only</option>
-                  <option value="sell">Sell Only</option>
-                  <option value="trade">Trade Only</option>
+                  <option value="all">{t('transFilter.allTransactions')}</option>
+                  <option value="buy">{t('transFilter.buyOnly')}</option>
+                  <option value="sell">{t('transFilter.sellOnly')}</option>
+                  <option value="trade">{t('transFilter.tradeOnly')}</option>
                 </select>
               </div>
 
               {/* P/L Status Filter */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Realized P/L</label>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('transFilter.realizedPL')}</label>
                 <select
                   value={filters.plStatus}
                   onChange={(e) => setFilters({ ...filters, plStatus: e.target.value as FilterState['plStatus'] })}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                 >
-                  <option value="all">All</option>
-                  <option value="profit">Profit Only</option>
-                  <option value="loss">Loss Only</option>
-                  <option value="breakeven">Breakeven</option>
+                  <option value="all">{t('transFilter.all')}</option>
+                  <option value="profit">{t('transFilter.profitOnly')}</option>
+                  <option value="loss">{t('transFilter.lossOnly')}</option>
+                  <option value="breakeven">{t('transFilter.breakeven')}</option>
                 </select>
               </div>
 
               {/* Date Range */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Date Range</label>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('transFilter.dateRange')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="date"
@@ -321,12 +323,12 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
 
               {/* Card/Player Search */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Card / Player Search</label>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('transFilter.search')}</label>
                 <input
                   type="text"
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  placeholder="Search by card or player..."
+                  placeholder={t('transFilter.searchPlaceholder')}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                 />
               </div>
@@ -343,7 +345,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
               })}
               className="w-full px-4 py-2 bg-crypto-lime/10 hover:bg-crypto-lime/20 text-crypto-lime font-medium rounded-lg text-sm transition-colors border border-crypto-lime/30"
             >
-              Clear All Filters
+              {t('transFilter.clearFilters')}
             </button>
           </div>
         )}
@@ -351,14 +353,14 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
 
       {transactions.length === 0 ? (
         <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-12 text-center">
-          <p className="text-slate-500">No transactions yet</p>
-          <p className="text-xs text-slate-600 mt-2">Sell or trade cards to see transactions here</p>
+          <p className="text-slate-500">{t('transactions.noTransactions')}</p>
+          <p className="text-xs text-slate-600 mt-2">{t('transactions.sellTrade')}</p>
         </div>
       ) : (
         <div className="space-y-4">
           {transactions.map((txn) => {
             const typeColor = txn.type === 'trade' ? 'purple' : txn.type === 'purchase' ? 'blue' : 'crypto-lime';
-            const typeLabel = txn.type === 'trade' ? 'TRADE' : txn.type === 'purchase' ? 'BUY' : 'SALE';
+            const typeLabel = txn.type === 'trade' ? t('transactions.trade') : txn.type === 'purchase' ? t('transactions.buy') : t('transactions.sale');
 
             return (
             <div key={txn.id} className={`glass-card backdrop-blur-sm rounded-2xl overflow-hidden ${
@@ -391,12 +393,12 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ cards, displ
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-800/30">
-                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-24">Direction</th>
-                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3">Item</th>
-                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Booked as</th>
-                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Amount (FMV)</th>
-                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">Cost Basis</th>
-                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-36">Realized G/L</th>
+                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-24">{t('transactions.direction')}</th>
+                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3">{t('transactions.item')}</th>
+                      <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">{t('transactions.bookedAs')}</th>
+                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">{t('transactions.amount')}</th>
+                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-32">{t('transactions.costBasis')}</th>
+                      <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wide px-4 py-3 w-36">{t('transactions.realizedGL')}</th>
                     </tr>
                   </thead>
                   <tbody>

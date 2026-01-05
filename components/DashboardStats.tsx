@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Stats, Currency } from '../types';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Info } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DashboardStatsProps {
   stats: Stats;
@@ -9,6 +10,7 @@ interface DashboardStatsProps {
 }
 
 export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCurrency, convertPrice }) => {
+  const { t } = useLanguage();
   const [showCashTooltip, setShowCashTooltip] = useState(false);
 
   // Convert all values to display currency
@@ -33,7 +35,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 animate-fadeIn">
         {/* Left: Main Value */}
         <div className="flex-1">
-          <span className="text-slate-400 text-xs font-bold tracking-wider mb-2 block uppercase">PORTFOLIO VALUE</span>
+          <span className="text-slate-400 text-xs font-bold tracking-wider mb-2 block uppercase">{t('dashboard.portfolioValue')}</span>
 
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-5xl lg:text-6xl font-extrabold bg-gradient-to-r from-white to-crypto-lime bg-clip-text text-transparent tracking-tight">
@@ -50,7 +52,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
             <span className={`text-lg font-bold ${isPositive ? 'text-crypto-lime' : 'text-rose-400'}`}>
               ({totalGainPercent > 0 ? '+' : ''}{totalGainPercent.toFixed(2)}%)
             </span>
-            <span className="text-slate-400 text-sm font-semibold">All Time</span>
+            <span className="text-slate-400 text-sm font-semibold">{t('dashboard.allTime')}</span>
           </div>
         </div>
 
@@ -59,7 +61,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
           <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4 relative">
             <div className="flex flex-col">
               <div className="flex items-center gap-1 mb-1.5">
-                <span className="text-xs text-slate-400 font-bold uppercase tracking-wide">Cash in the Game</span>
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wide">{t('dashboard.cashInGame')}</span>
                 <div
                   className="relative"
                   onMouseEnter={() => setShowCashTooltip(true)}
@@ -68,7 +70,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
                   <Info size={12} className="text-slate-500 cursor-help" />
                   {showCashTooltip && (
                     <div className="absolute left-0 top-full mt-1 w-56 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 z-50 shadow-xl">
-                      How much of your own money is currently in cards (negative) or ready to spend (positive).
+                      {t('dashboard.cashTooltip')}
                     </div>
                   )}
                 </div>
@@ -79,14 +81,14 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
                 {cash > 0 && '+'}{cash === 0 ? '' : (cash < 0 ? '–' : '')}{symbol}{Math.abs(cash).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               {cash > 0 && (
-                <span className="text-xs text-emerald-400 mt-1 font-medium">ready to hunt</span>
+                <span className="text-xs text-emerald-400 mt-1 font-medium">{t('dashboard.readyToHunt')}</span>
               )}
             </div>
           </div>
 
           <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4">
             <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">Assets</span>
+              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">{t('dashboard.assets')}</span>
               <div className="text-xl lg:text-2xl font-extrabold text-white">
                 {stats.cardCount}
               </div>
@@ -95,7 +97,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
 
           <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4">
             <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">Unrealized P/L</span>
+              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">{t('dashboard.unrealizedPL')}</span>
               <div className={`text-xl lg:text-2xl font-extrabold ${unrealizedProfit >= 0 ? 'text-crypto-lime' : 'text-rose-400'}`}>
                 {unrealizedProfit >= 0 ? '+' : ''}{symbol}{Math.abs(unrealizedProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
@@ -104,7 +106,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
 
           <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4">
             <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">Realized P/L</span>
+              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">{t('dashboard.realizedPL')}</span>
               <div className={`text-xl lg:text-2xl font-extrabold ${realizedProfit >= 0 ? 'text-crypto-lime' : 'text-rose-400'}`}>
                 {realizedProfit >= 0 ? '+' : ''}{symbol}{Math.abs(realizedProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>

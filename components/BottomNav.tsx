@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, PieChart, Plus, Package, Receipt } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface BottomNavProps {
   currentTab: 'portfolio' | 'analytics' | 'transactions' | 'trade-plans';
@@ -8,6 +9,8 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, onAdd }) => {
+  const { t } = useLanguage();
+
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-card backdrop-blur-xl border-t border-white/10 z-40">
       <div className="flex items-center justify-around px-2 pt-3 pb-6 ios-bottom-safe">
@@ -20,7 +23,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
           }`}
         >
           <Home size={22} strokeWidth={currentTab === 'portfolio' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold tracking-wide">Portfolio</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('bottomNav.portfolio')}</span>
         </button>
 
         <button
@@ -32,7 +35,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
           }`}
         >
           <PieChart size={22} strokeWidth={currentTab === 'analytics' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold tracking-wide">Analytics</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('bottomNav.analytics')}</span>
         </button>
 
         {/* Floating Action Button for Add */}
@@ -54,7 +57,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
           }`}
         >
           <Package size={22} strokeWidth={currentTab === 'trade-plans' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold tracking-wide">Plans</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('bottomNav.plans')}</span>
         </button>
 
         <button
@@ -66,7 +69,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
           }`}
         >
           <Receipt size={22} strokeWidth={currentTab === 'transactions' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold tracking-wide">History</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('bottomNav.history')}</span>
         </button>
       </div>
     </div>

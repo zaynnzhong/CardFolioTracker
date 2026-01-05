@@ -33,12 +33,14 @@ import { CardLimitBanner } from './components/CardLimitBanner';
 import { UnlockKeyModal } from './components/UnlockKeyModal';
 import { AdminPanel } from './components/AdminPanel';
 import { useAuth } from './contexts/AuthContext';
+import { useLanguage } from './contexts/LanguageContext';
 import { tierService } from './services/tierService';
 import { revenueCatService } from './services/revenueCatService';
 import { UserProfile } from './types';
 import { Loader2, Download, Edit2, TrendingUp, Activity, X, Wallet, Eye, LogOut, User, Home, BarChart3, Plus, Settings, DollarSign, ArrowRightLeft, Receipt, Shield, Package } from 'lucide-react';
 
 export default function App() {
+  const { t } = useLanguage();
   // Check URL routing
   const urlParams = new URLSearchParams(window.location.search);
   const pathname = window.location.pathname;
@@ -573,7 +575,7 @@ export default function App() {
               } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
             >
               <Home size={24} className="flex-shrink-0" />
-              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Portfolio</span>}
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">{t('nav.portfolio')}</span>}
             </button>
 
             <button
@@ -597,7 +599,7 @@ export default function App() {
               } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
             >
               <Receipt size={24} className="flex-shrink-0" />
-              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Transactions</span>}
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">{t('nav.transactions')}</span>}
             </button>
 
             <button
@@ -609,7 +611,7 @@ export default function App() {
               } ${(isNarrowScreen && !sidebarHovered) ? 'justify-center p-3' : 'gap-3 px-4 py-3'}`}
             >
               <Package size={24} className="flex-shrink-0" />
-              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">Trade Plans</span>}
+              {(!isNarrowScreen || sidebarHovered) && <span className="whitespace-nowrap overflow-hidden">{t('nav.trade')}</span>}
             </button>
 
             <div className="pt-4 space-y-3">

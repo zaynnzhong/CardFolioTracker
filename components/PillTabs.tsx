@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PillTabsProps {
   activeTab: 'holdings' | 'sold';
@@ -6,6 +7,8 @@ interface PillTabsProps {
 }
 
 export const PillTabs: React.FC<PillTabsProps> = ({ activeTab, onChange }) => {
+  const { t } = useLanguage();
+
   return (
     <div className="relative inline-flex items-center bg-slate-900/40 backdrop-blur-sm rounded-full p-1 border border-slate-800/50">
       {/* Background slider */}
@@ -28,7 +31,7 @@ export const PillTabs: React.FC<PillTabsProps> = ({ activeTab, onChange }) => {
             : 'text-slate-400 hover:text-white'
         }`}
       >
-        Holdings
+        {t('portfolio.holdings')}
       </button>
 
       {/* Sold Tab */}
@@ -40,7 +43,7 @@ export const PillTabs: React.FC<PillTabsProps> = ({ activeTab, onChange }) => {
             : 'text-slate-400 hover:text-white'
         }`}
       >
-        Sold
+        {t('portfolio.sold')}
       </button>
     </div>
   );

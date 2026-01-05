@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Image as ImageIcon, ChevronRight, CheckCircle
 import { PillTabs } from './PillTabs';
 import { FocusCards } from './FocusCards';
 import { GradeTag } from './GradeTag';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface CardListProps {
   cards: Card[];
@@ -43,6 +44,7 @@ interface CardGroup {
 }
 
 export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurrency, convertPrice, onTabChange }) => {
+  const { t } = useLanguage();
   const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<'holdings' | 'sold'>('holdings');
@@ -302,8 +304,8 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
         <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-emerald-500/20">
           <Sparkles className="text-emerald-400" size={32} />
         </div>
-        <h3 className="text-white font-bold text-xl">No assets yet</h3>
-        <p className="text-slate-400 mt-2 max-w-xs">Add your first card to start building your portfolio.</p>
+        <h3 className="text-white font-bold text-xl">{t('portfolio.noCards')}</h3>
+        <p className="text-slate-400 mt-2 max-w-xs">{t('portfolio.getStarted')}</p>
       </div>
     );
   }
@@ -321,10 +323,10 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
         <div className="flex justify-between items-center mt-6">
           <h3 className="text-white text-xl lg:text-2xl font-bold">
-            {activeTab === 'holdings' ? 'Holdings' : 'Sold Cards'}
+            {activeTab === 'holdings' ? t('portfolio.holdings') : t('portfolio.sold')}
           </h3>
           <div className="flex items-center gap-3">
-            <span className="text-slate-400 text-sm font-medium">{filteredAndSortedCards.length} cards {cardGroups.filter(g => g.isBulkGroup).length > 0 && `(${cardGroups.length} entries)`}</span>
+            <span className="text-slate-400 text-sm font-medium">{filteredAndSortedCards.length} {t('portfolio.cards')} {cardGroups.filter(g => g.isBulkGroup).length > 0 && `(${cardGroups.length} entries)`}</span>
 
             {/* View Mode Toggle */}
             <div className="flex items-center gap-1 bg-slate-900/50 rounded-lg p-1">
@@ -369,7 +371,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                 <div className="flex items-center justify-between pb-4 border-b border-white/10">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <Filter size={20} className="text-crypto-lime" />
-                    Filter & Sort
+                    {t('filter.title')}
                   </h2>
                   <button
                     onClick={() => setShowFilters(false)}
@@ -384,36 +386,36 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                 {/* Sort Options */}
                 <div>
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5 block">
-                    <ArrowUpDown size={12} /> Sort By
+                    <ArrowUpDown size={12} /> {t('filter.sortBy')}
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none transition-all"
                   >
-                    <optgroup label="Date">
-                      <option value="date-newest">Date Added: Newest First</option>
-                      <option value="date-oldest">Date Added: Oldest First</option>
+                    <optgroup label={t('sort.groupDate')}>
+                      <option value="date-newest">{t('sort.dateNewest')}</option>
+                      <option value="date-oldest">{t('sort.dateOldest')}</option>
                     </optgroup>
-                    <optgroup label="Value">
-                      <option value="price-high">Current Value: High → Low</option>
-                      <option value="price-low">Current Value: Low → High</option>
+                    <optgroup label={t('sort.groupValue')}>
+                      <option value="price-high">{t('sort.priceHigh')}</option>
+                      <option value="price-low">{t('sort.priceLow')}</option>
                     </optgroup>
-                    <optgroup label="Performance">
-                      <option value="trend-up">Unrealized P/L %: Best → Worst</option>
-                      <option value="trend-down">Unrealized P/L %: Worst → Best</option>
+                    <optgroup label={t('sort.groupPerformance')}>
+                      <option value="trend-up">{t('sort.profitHigh')}</option>
+                      <option value="trend-down">{t('sort.profitLow')}</option>
                     </optgroup>
-                    <optgroup label="Cost">
-                      <option value="basis-high">Cost Basis: High → Low</option>
-                      <option value="basis-low">Cost Basis: Low → High</option>
+                    <optgroup label={t('sort.groupCost')}>
+                      <option value="basis-high">{t('sort.costHigh')}</option>
+                      <option value="basis-low">{t('sort.costLow')}</option>
                     </optgroup>
-                    <optgroup label="Player">
-                      <option value="player-az">Player Name: A → Z</option>
-                      <option value="player-za">Player Name: Z → A</option>
+                    <optgroup label={t('sort.groupPlayer')}>
+                      <option value="player-az">{t('sort.playerAZ')}</option>
+                      <option value="player-za">{t('sort.playerZA')}</option>
                     </optgroup>
-                    <optgroup label="Year">
-                      <option value="year-newest">Year: Newest → Oldest</option>
-                      <option value="year-oldest">Year: Oldest → Newest</option>
+                    <optgroup label={t('sort.groupYear')}>
+                      <option value="year-newest">{t('sort.yearNewest')}</option>
+                      <option value="year-oldest">{t('sort.yearOldest')}</option>
                     </optgroup>
                   </select>
                 </div>
@@ -426,7 +428,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">Player</span>
+                        <span className="text-sm font-medium text-white">{t('filter.player')}</span>
                         {filters.players.length > 0 && (
                           <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
                             {filters.players.length}
@@ -443,7 +445,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                             type="text"
                             value={playerSearch}
                             onChange={(e) => setPlayerSearch(e.target.value)}
-                            placeholder="Search players..."
+                            placeholder={t('filter.searchPlayers')}
                             className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                           />
                         </div>
@@ -469,7 +471,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                               </label>
                             ))}
                           {uniqueValues.players.filter(player => player.toLowerCase().includes(playerSearch.toLowerCase())).length === 0 && (
-                            <p className="text-sm text-slate-500 text-center py-4">No players found</p>
+                            <p className="text-sm text-slate-500 text-center py-4">{t('filter.noPlayers')}</p>
                           )}
                         </div>
                       </div>
@@ -483,7 +485,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">Set / Product Line</span>
+                        <span className="text-sm font-medium text-white">{t('filter.set')}</span>
                         {filters.sets.length > 0 && (
                           <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
                             {filters.sets.length}
@@ -522,7 +524,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">Parallel</span>
+                        <span className="text-sm font-medium text-white">{t('filter.parallel')}</span>
                         {filters.parallels.length > 0 && (
                           <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
                             {filters.parallels.length}
@@ -561,7 +563,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                       className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">Grade</span>
+                        <span className="text-sm font-medium text-white">{t('filter.grade')}</span>
                         {filters.grades.length > 0 && (
                           <span className="text-xs px-2 py-0.5 bg-crypto-lime/20 text-crypto-lime rounded-full font-semibold">
                             {filters.grades.length}
@@ -595,20 +597,20 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
                   {/* Year Range */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Year Range</label>
+                    <label className="text-sm font-medium text-white">{t('filter.yearRange')}</label>
                     <div className="grid grid-cols-2 gap-3">
                       <input
                         type="number"
                         value={filters.yearMin ?? ''}
                         onChange={(e) => setFilters({ ...filters, yearMin: e.target.value ? parseInt(e.target.value) : null })}
-                        placeholder="From"
+                        placeholder={t('filter.from')}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                       />
                       <input
                         type="number"
                         value={filters.yearMax ?? ''}
                         onChange={(e) => setFilters({ ...filters, yearMax: e.target.value ? parseInt(e.target.value) : null })}
-                        placeholder="To"
+                        placeholder={t('filter.to')}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                       />
                     </div>
@@ -616,20 +618,20 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
                   {/* Value Range */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Value Range ({displayCurrency})</label>
+                    <label className="text-sm font-medium text-white">{t('filter.valueRange')} ({displayCurrency})</label>
                     <div className="grid grid-cols-2 gap-3">
                       <input
                         type="number"
                         value={filters.valueMin ?? ''}
                         onChange={(e) => setFilters({ ...filters, valueMin: e.target.value ? parseFloat(e.target.value) : null })}
-                        placeholder="Min"
+                        placeholder={t('filter.min')}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                       />
                       <input
                         type="number"
                         value={filters.valueMax ?? ''}
                         onChange={(e) => setFilters({ ...filters, valueMax: e.target.value ? parseFloat(e.target.value) : null })}
-                        placeholder="Max"
+                        placeholder={t('filter.max')}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                       />
                     </div>
@@ -637,44 +639,44 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
 
                   {/* P/L Status */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Unrealized P/L</label>
+                    <label className="text-sm font-medium text-white">{t('cardList.unrealizedPL')}</label>
                     <select
                       value={filters.profitStatus}
                       onChange={(e) => setFilters({ ...filters, profitStatus: e.target.value as FilterState['profitStatus'] })}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                     >
-                      <option value="all">All Cards</option>
-                      <option value="positive">Winners Only</option>
-                      <option value="negative">Losers Only</option>
-                      <option value="breakeven">Breakeven</option>
+                      <option value="all">{t('cardList.allCards')}</option>
+                      <option value="positive">{t('cardList.winnersOnly')}</option>
+                      <option value="negative">{t('cardList.losersOnly')}</option>
+                      <option value="breakeven">{t('cardList.breakeven')}</option>
                     </select>
                   </div>
 
                   {/* Trade Status */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Trade Status</label>
+                    <label className="text-sm font-medium text-white">{t('cardList.tradeStatus')}</label>
                     <select
                       value={filters.tradeStatus}
                       onChange={(e) => setFilters({ ...filters, tradeStatus: e.target.value as FilterState['tradeStatus'] })}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                     >
-                      <option value="all">All Cards</option>
-                      <option value="available">Available for Trade</option>
-                      <option value="never-trade">Never Trade</option>
+                      <option value="all">{t('cardList.allCards')}</option>
+                      <option value="available">{t('cardList.availableForTrade')}</option>
+                      <option value="never-trade">{t('cardList.neverTrade')}</option>
                     </select>
                   </div>
 
                   {/* Has Image */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Has Image</label>
+                    <label className="text-sm font-medium text-white">{t('cardList.hasImage')}</label>
                     <select
                       value={filters.hasImage}
                       onChange={(e) => setFilters({ ...filters, hasImage: e.target.value as FilterState['hasImage'] })}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-crypto-lime/50 focus:border-crypto-lime outline-none"
                     >
-                      <option value="all">All Cards</option>
-                      <option value="yes">With Image</option>
-                      <option value="no">Without Image</option>
+                      <option value="all">{t('cardList.allCards')}</option>
+                      <option value="yes">{t('cardList.withImage')}</option>
+                      <option value="no">{t('cardList.withoutImage')}</option>
                     </select>
                   </div>
 
@@ -695,7 +697,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                     })}
                     className="w-full px-4 py-3 bg-crypto-lime/10 hover:bg-crypto-lime/20 text-crypto-lime font-medium rounded-lg text-sm transition-colors border border-crypto-lime/30"
                   >
-                    Clear All Filters
+                    {t('filter.clearAll')}
                   </button>
                 </div>
               </div>
@@ -807,7 +809,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                 <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
                   {card.currentValue === -1 && !card.sold ? (
                     <>
-                      <span className="font-mono font-bold text-lg text-amber-400">Unknown</span>
+                      <span className="font-mono font-bold text-lg text-amber-400">{t('cardList.unknown')}</span>
                       <span className="text-xs font-medium text-amber-400/60">?</span>
                     </>
                   ) : (
@@ -880,21 +882,21 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
           <table className="w-full">
             <thead>
               <tr className="bg-slate-900/60 border-b border-slate-800/50">
-                <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-6 py-4">Card</th>
-                <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">Details</th>
+                <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-6 py-4">{t('cardList.card')}</th>
+                <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.details')}</th>
                 {activeTab === 'sold' ? (
                   <>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">Purchase</th>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">Sold</th>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">P/L</th>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-6 py-4">Return</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.purchase')}</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.sold')}</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.pl')}</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-6 py-4">{t('cardList.return')}</th>
                   </>
                 ) : (
                   <>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">Cost Basis</th>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">Current Value</th>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">P/L</th>
-                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-6 py-4">Change</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.costBasis')}</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.currentValue')}</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 py-4">{t('cardList.pl')}</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide px-6 py-4">{t('cardList.change')}</th>
                   </>
                 )}
               </tr>
@@ -950,7 +952,7 @@ export const CardList: React.FC<CardListProps> = ({ cards, onSelect, displayCurr
                           {card.sold && (
                             <div className="absolute top-1 right-1">
                               <span className={`text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg ${card.soldVia === 'trade' ? 'bg-purple-500' : 'bg-emerald-500'}`}>
-                                {card.soldVia === 'trade' ? 'TRADED' : 'SOLD'}
+                                {card.soldVia === 'trade' ? t('cardList.traded') : t('cardList.soldLabel')}
                               </span>
                             </div>
                           )}

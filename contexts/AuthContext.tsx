@@ -75,37 +75,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const currentUser = auth.currentUser;
 
-      // Use redirect flow for iOS (popups are blocked in WKWebView)
-      // Use popup for web browsers
-      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      // Detect if user is on a mobile device (iOS, Android, or other mobile browsers)
+      // Use redirect flow for mobile devices to avoid popup blockers
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      console.log('[Auth] Device detection - isMobile:', isMobile, 'userAgent:', navigator.userAgent);
 
       if (currentUser && currentUser.isAnonymous) {
         console.log('Linking anonymous account to Google...');
-        if (isIOS) {
+        if (isMobile) {
           // Store that we're linking (for after redirect)
           localStorage.setItem('pendingGoogleLink', 'true');
+          console.log('[Auth] Using redirect flow for mobile');
           await linkWithRedirect(currentUser, googleProvider);
         } else {
+          console.log('[Auth] Using popup flow for desktop');
           await linkWithPopup(currentUser, googleProvider);
         }
         console.log('Account successfully linked to Google!');
       } else {
         // Regular sign-in for non-anonymous users
-        if (isIOS) {
+        if (isMobile) {
+          console.log('[Auth] Using redirect flow for mobile sign-in');
           await signInWithRedirect(auth, googleProvider);
         } else {
+          console.log('[Auth] Using popup flow for desktop sign-in');
           await signInWithPopup(auth, googleProvider);
         }
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
 
       // Handle account-exists-with-different-credential error
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
         // Sign out the anonymous account and sign in with the existing account
         await firebaseSignOut(auth);
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        if (isIOS) {
+        const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
           await signInWithRedirect(auth, googleProvider);
         } else {
           await signInWithPopup(auth, googleProvider);
@@ -244,6 +251,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Use same origin for production, localhost for dev
       const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
+      console.log('[Auth] Sending OTP to:', email, 'API URL:', apiUrl);
+
       const response = await fetch(`${apiUrl}/api/auth/otp/send`, {
         method: 'POST',
         headers: {
@@ -255,12 +264,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('[Auth] OTP send failed:', data);
         throw new Error(data.error || 'Failed to send OTP');
       }
 
-      console.log('OTP sent successfully');
+      console.log('[Auth] OTP sent successfully');
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
+      console.error('[Auth] Error sending OTP:', error);
       throw new Error(error.message || 'Failed to send OTP');
     }
   };
@@ -269,6 +279,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Use same origin for production, localhost for dev
       const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
+      console.log('[Auth] Verifying OTP for:', email, 'API URL:', apiUrl);
+
       const response = await fetch(`${apiUrl}/api/auth/otp/verify`, {
         method: 'POST',
         headers: {
@@ -280,14 +292,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('[Auth] OTP verification failed:', data);
         throw new Error(data.error || 'Failed to verify OTP');
       }
 
+      console.log('[Auth] OTP verified, signing in with custom token');
       // Sign in with custom token from backend
       await signInWithCustomToken(auth, data.customToken);
-      console.log('Signed in successfully with OTP');
+      console.log('[Auth] Signed in successfully with OTP');
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+      console.error('[Auth] Error verifying OTP:', error);
       throw new Error(error.message || 'Failed to verify OTP');
     }
   };
