@@ -50,35 +50,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[Auth] AuthProvider initializing...');
+    console.log('[Auth] Current URL:', window.location.href);
+    console.log('[Auth] User agent:', navigator.userAgent);
+
     let unsubscribe: (() => void) | undefined;
 
     // Handle redirect result from Google Sign-In FIRST, before setting up auth listener
+    console.log('[Auth] Checking for redirect result...');
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-          console.log('[Auth] Google Sign-In redirect successful:', result.user.email);
+          console.log('[Auth] ✅ Google Sign-In redirect successful!');
+          console.log('[Auth] User email:', result.user.email);
+          console.log('[Auth] User ID:', result.user.uid);
+          console.log('[Auth] Provider data:', result.user.providerData);
           localStorage.removeItem('pendingGoogleLink');
         } else {
-          console.log('[Auth] No redirect result (user may have navigated directly)');
+          console.log('[Auth] No redirect result (user may have navigated directly or already authenticated)');
         }
       })
       .catch((error) => {
-        console.error('[Auth] Error handling redirect result:', error);
+        console.error('[Auth] ❌ Error handling redirect result:');
         console.error('[Auth] Error code:', error.code);
         console.error('[Auth] Error message:', error.message);
+        console.error('[Auth] Full error:', error);
+
+        // Log specific error types
+        if (error.code === 'auth/unauthorized-domain') {
+          console.error('[Auth] UNAUTHORIZED DOMAIN! Add this domain to Firebase Console:');
+          console.error('[Auth] Domain:', window.location.hostname);
+          console.error('[Auth] Go to: Firebase Console > Authentication > Settings > Authorized domains');
+        } else if (error.code === 'auth/popup-blocked') {
+          console.error('[Auth] Popup was blocked by browser');
+        } else if (error.code === 'auth/cancelled-popup-request') {
+          console.error('[Auth] User cancelled the popup');
+        }
+
         localStorage.removeItem('pendingGoogleLink');
       })
       .finally(() => {
+        console.log('[Auth] Setting up auth state listener...');
         // Set up the auth state listener AFTER redirect handling completes
         unsubscribe = onAuthStateChanged(auth, (user) => {
-          console.log('[Auth] Auth state changed:', user ? `User: ${user.email}` : 'No user');
+          console.log('[Auth] 🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+          if (user) {
+            console.log('[Auth] User details:', {
+              email: user.email,
+              uid: user.uid,
+              isAnonymous: user.isAnonymous,
+              emailVerified: user.emailVerified
+            });
+          }
           setUser(user);
           setLoading(false);
+          console.log('[Auth] Loading set to false');
         });
       });
 
     return () => {
       if (unsubscribe) {
+        console.log('[Auth] Cleaning up auth listener');
         unsubscribe();
       }
     };

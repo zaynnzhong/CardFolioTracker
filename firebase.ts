@@ -10,7 +10,9 @@ import {
   signInWithEmailLink,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithCustomToken
+  signInWithCustomToken,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 
 // Firebase configuration
@@ -30,8 +32,21 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
+// Set persistence to LOCAL to ensure auth state persists across page reloads
+// This is critical for mobile Chrome which may have strict session policies
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error('[Firebase] Error setting persistence:', error);
+});
+
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
+// Force account selection and ensure consent screen is shown
+// This helps with mobile Chrome which may have issues with cached credentials
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+  // Add display parameter for mobile optimization
+  display: 'popup'
+});
 
 // Email link auth configuration
 // Use production URL if available, otherwise fall back to current origin
