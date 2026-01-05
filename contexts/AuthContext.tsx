@@ -50,25 +50,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result from Google Sign-In
+    let unsubscribe: (() => void) | undefined;
+
+    // Handle redirect result from Google Sign-In FIRST, before setting up auth listener
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-          console.log('Google Sign-In redirect successful');
+          console.log('[Auth] Google Sign-In redirect successful:', result.user.email);
           localStorage.removeItem('pendingGoogleLink');
+        } else {
+          console.log('[Auth] No redirect result (user may have navigated directly)');
         }
       })
       .catch((error) => {
-        console.error('Error handling redirect result:', error);
+        console.error('[Auth] Error handling redirect result:', error);
+        console.error('[Auth] Error code:', error.code);
+        console.error('[Auth] Error message:', error.message);
         localStorage.removeItem('pendingGoogleLink');
+      })
+      .finally(() => {
+        // Set up the auth state listener AFTER redirect handling completes
+        unsubscribe = onAuthStateChanged(auth, (user) => {
+          console.log('[Auth] Auth state changed:', user ? `User: ${user.email}` : 'No user');
+          setUser(user);
+          setLoading(false);
+        });
       });
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const signInWithGoogle = async () => {
