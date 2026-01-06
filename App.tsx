@@ -507,6 +507,18 @@ export default function App() {
 
   // Handle unauthenticated users - show landing page on desktop, skip on iOS
   if (!user) {
+    // Check if we might be processing a redirect result
+    // This prevents showing login screen prematurely while auth state is updating
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuthParams = urlParams.toString().includes('state=') ||
+                          urlParams.toString().includes('code=') ||
+                          window.location.hash.includes('access_token');
+
+    // If we have OAuth parameters, show loading while processing
+    if (hasAuthParams && loading) {
+      return <CardStackLoader />;
+    }
+
     // Detect iOS devices
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
