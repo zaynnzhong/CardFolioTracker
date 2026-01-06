@@ -514,8 +514,10 @@ export default function App() {
                           urlParams.toString().includes('code=') ||
                           window.location.hash.includes('access_token');
 
-    // If we have OAuth parameters, show loading while processing
-    if (hasAuthParams && loading) {
+    // If we have OAuth parameters, ALWAYS show loading while processing redirect
+    // This is critical - don't check loading state, just show loader if auth params exist
+    if (hasAuthParams) {
+      console.log('[App] OAuth parameters detected, showing loader while processing redirect');
       return <CardStackLoader />;
     }
 

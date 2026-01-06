@@ -128,28 +128,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Detect if user is on a mobile device (iOS, Android, or other mobile browsers)
       // Use redirect flow for mobile devices to avoid popup blockers
       const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      console.log('[Auth] Device detection - isMobile:', isMobile, 'userAgent:', navigator.userAgent);
+
+      // On localhost, always use popup even on mobile because redirect won't work across domains
+      const isLocalhost = window.location.hostname === 'localhost' ||
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.match(/^192\.168\.\d{1,3}\.\d{1,3}$/) ||
+                         window.location.hostname.match(/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
+
+      const usePopup = !isMobile || isLocalhost;
+
+      console.log('[Auth] Device detection - isMobile:', isMobile, 'isLocalhost:', isLocalhost, 'usePopup:', usePopup);
+      console.log('[Auth] User agent:', navigator.userAgent);
+      console.log('[Auth] Hostname:', window.location.hostname);
+      console.log('[Auth] Auth domain:', auth.config.authDomain);
 
       if (currentUser && currentUser.isAnonymous) {
-        console.log('Linking anonymous account to Google...');
-        if (isMobile) {
-          // Store that we're linking (for after redirect)
+        console.log('[Auth] Linking anonymous account to Google...');
+        if (usePopup) {
+          console.log('[Auth] Using popup flow');
+          await linkWithPopup(currentUser, googleProvider);
+        } else {
           localStorage.setItem('pendingGoogleLink', 'true');
           console.log('[Auth] Using redirect flow for mobile');
           await linkWithRedirect(currentUser, googleProvider);
-        } else {
-          console.log('[Auth] Using popup flow for desktop');
-          await linkWithPopup(currentUser, googleProvider);
         }
-        console.log('Account successfully linked to Google!');
+        console.log('[Auth] Account successfully linked to Google!');
       } else {
         // Regular sign-in for non-anonymous users
-        if (isMobile) {
+        if (usePopup) {
+          console.log('[Auth] Using popup flow for sign-in');
+          await signInWithPopup(auth, googleProvider);
+        } else {
           console.log('[Auth] Using redirect flow for mobile sign-in');
           await signInWithRedirect(auth, googleProvider);
-        } else {
-          console.log('[Auth] Using popup flow for desktop sign-in');
-          await signInWithPopup(auth, googleProvider);
         }
       }
     } catch (error: any) {
