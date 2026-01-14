@@ -32,6 +32,7 @@ export type Currency = 'USD' | 'CNY';
 export enum AcquisitionSource {
   SELF_RIP = 'Self Rip (Case/Box)',
   BREAK = 'Break',
+  TRADE = 'Trade',
   EBAY = 'eBay',
   CARD_HOBBY = 'CardHobby',
   WECARD = 'Wecard',
@@ -41,6 +42,24 @@ export enum AcquisitionSource {
   FANATICS = 'Fanatics',
   PWCC = 'PWCC',
   OTHER = 'Other'
+}
+
+// Simplified card for trade execution (received cards)
+export interface ReceivedCardInput {
+  player: string;
+  year: number;
+  brand: string;
+  series: string;
+  insert: string;
+  parallel?: string;
+  serialNumber?: string;
+  graded: boolean;
+  gradeCompany?: string;
+  gradeValue?: string;
+  currentValue: number; // FMV at trade time (becomes cost basis)
+  currency: Currency;
+  imageUrl?: string;
+  notes?: string;
 }
 
 export enum Platform {
