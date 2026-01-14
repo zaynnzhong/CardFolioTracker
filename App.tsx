@@ -447,25 +447,34 @@ export default function App() {
     setShowUserMenu(false);
   };
 
-  const handleExecuteTradePlan = async (data: {
+  const handleExecuteTradePlan = async (tradeData: {
     receivedValue: number;
     cashBoot: number;
     tradeDate: string;
   }) => {
     if (!executingPlan) return;
 
+    // Get the plan's currency (what the plan values are stored in)
+    const planCurrency = executingPlan.cashCurrency || displayCurrency;
+
     try {
       // 1. Mark all bundled cards as sold
       for (const bundledCard of executingPlan.bundleCards) {
         const card = cards.find(c => c.id === bundledCard.cardId);
         if (card) {
+          // Convert soldPrice from plan currency to card's original currency
+          const soldPriceInCardCurrency = convertPrice(
+            bundledCard.currentValueAtPlanTime,
+            planCurrency,
+            card.currency
+          );
+
           const soldCard: Card = {
             ...card,
             sold: true,
-            soldDate: data.tradeDate,
-            soldPrice: bundledCard.currentValueAtPlanTime,
-            soldVia: 'trade',
-            tradeCashBoot: data.cashBoot / executingPlan.bundleCards.length // Distribute cash boot across cards
+            soldDate: tradeData.tradeDate,
+            soldPrice: soldPriceInCardCurrency,
+            soldVia: 'trade'
           };
           await handleSaveCard(soldCard);
         }
@@ -480,8 +489,8 @@ export default function App() {
       setTradePlansView(null);
 
       // Reload cards to reflect changes
-      const data = await dataService.getCards(getIdToken);
-      setCards(data);
+      const refreshedCards = await dataService.getCards(getIdToken);
+      setCards(refreshedCards);
     } catch (error) {
       console.error('Failed to execute trade plan:', error);
       throw error;
@@ -1185,7 +1194,7 @@ export default function App() {
         <TradePlanExecutionModal
           plan={executingPlan}
           displayCurrency={displayCurrency}
-          convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
+          convertPrice={(amount) => convertPrice(amount, executingPlan.cashCurrency || displayCurrency, displayCurrency).toLocaleString()}
           onExecute={handleExecuteTradePlan}
           onCancel={() => {
             setShowExecutionModal(false);
