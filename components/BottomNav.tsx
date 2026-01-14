@@ -13,10 +13,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-card backdrop-blur-xl border-t border-white/10 z-40">
-      <div className="flex items-center justify-around px-2 pt-3 pb-6 ios-bottom-safe">
+      <div className="grid grid-cols-5 items-center pt-3 pb-6 ios-bottom-safe">
         <button
           onClick={() => onTabChange('portfolio')}
-          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-200 ${
+          className={`flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 ${
             currentTab === 'portfolio'
               ? 'text-crypto-lime'
               : 'text-slate-500 hover:text-slate-300'
@@ -28,7 +28,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
         <button
           onClick={() => onTabChange('analytics')}
-          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-200 ${
+          className={`flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 ${
             currentTab === 'analytics'
               ? 'text-crypto-lime'
               : 'text-slate-500 hover:text-slate-300'
@@ -39,7 +39,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
         </button>
 
         {/* Floating Action Button for Add */}
-        <div className="-mt-10">
+        <div className="flex justify-center -mt-10">
           <button
             onClick={onAdd}
             className="relative w-16 h-16 crypto-gradient rounded-full flex items-center justify-center text-black shadow-xl hover:scale-105 transition-all duration-200 active:scale-95 border-4 border-crypto-darker glow-lime"
@@ -50,7 +50,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
         <button
           onClick={() => onTabChange('trade-plans')}
-          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-200 ${
+          className={`flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 ${
             currentTab === 'trade-plans'
               ? 'text-crypto-lime'
               : 'text-slate-500 hover:text-slate-300'
@@ -62,7 +62,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
         <button
           onClick={() => onTabChange('transactions')}
-          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-200 ${
+          className={`flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 ${
             currentTab === 'transactions'
               ? 'text-crypto-lime'
               : 'text-slate-500 hover:text-slate-300'
