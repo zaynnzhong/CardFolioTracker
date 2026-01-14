@@ -68,5 +68,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Prism Portfolio needs camera access to take photos of your trading cards for your collection.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Prism Portfolio needs photo library access to select images of your trading cards.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Prism Portfolio needs permission to save card photos to your photo library.</string>
 </dict>
 </plist>
