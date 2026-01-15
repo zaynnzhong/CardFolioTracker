@@ -13,7 +13,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bottom-nav-glass z-40 bottom-nav-container">
-      <div className="grid grid-cols-5 items-center pt-2 pb-1">
+      <div className="grid grid-cols-5 items-center pt-2 pb-4">
         <button
           onClick={() => onTabChange('portfolio')}
           className={`flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 ${

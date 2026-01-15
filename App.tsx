@@ -972,8 +972,8 @@ export default function App() {
 
         {/* Main Scrollable Area - Full Width */}
         <main className="relative lg:pt-0 lg:pb-0 bg-crypto-dark overflow-y-auto overscroll-contain" style={{
-          paddingTop: 'calc(3.5rem + env(safe-area-inset-top))',
-          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(3rem + env(safe-area-inset-top))',
+          paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))',
           height: '100%'
         }}>
           {activeTab === 'portfolio' ? (
