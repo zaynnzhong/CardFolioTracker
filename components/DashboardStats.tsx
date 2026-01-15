@@ -26,6 +26,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
   const unrealizedProfit = convertAndSum(stats.unrealizedProfit.USD, stats.unrealizedProfit.CNY);
   const realizedProfit = convertAndSum(stats.realizedProfit.USD, stats.realizedProfit.CNY);
   const cash = convertAndSum(stats.cash.USD, stats.cash.CNY);
+  const salesRevenue = convertAndSum(stats.soldTotal.USD, stats.soldTotal.CNY);
 
   const isPositive = totalGain >= 0;
   const symbol = displayCurrency === 'USD' ? '$' : '¥';
@@ -88,9 +89,9 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, displayCu
 
           <div className="glass-card backdrop-blur-sm border border-white/10 rounded-2xl p-4">
             <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">{t('dashboard.assets')}</span>
+              <span className="text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wide">{t('dashboard.salesRevenue')}</span>
               <div className="text-xl lg:text-2xl font-extrabold text-white">
-                {stats.cardCount}
+                {symbol}{salesRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
           </div>

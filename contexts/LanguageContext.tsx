@@ -195,7 +195,7 @@ const translations: Translations = {
     'dashboard.cashInGame': 'Cash in the Game',
     'dashboard.cashTooltip': 'How much of your own money is currently in cards (negative) or ready to spend (positive).',
     'dashboard.readyToHunt': 'ready to hunt',
-    'dashboard.assets': 'Assets',
+    'dashboard.salesRevenue': 'Sales Revenue',
     'dashboard.unrealizedPL': 'Unrealized P/L',
     'dashboard.realizedPL': 'Realized P/L',
 
@@ -417,7 +417,7 @@ const translations: Translations = {
     'dashboard.cashInGame': '投入资金',
     'dashboard.cashTooltip': '您目前投入卡片的资金（负数）或可用于消费的资金（正数）。',
     'dashboard.readyToHunt': '准备猎卡',
-    'dashboard.assets': '资产',
+    'dashboard.salesRevenue': '销售收入',
     'dashboard.unrealizedPL': '未实现盈亏',
     'dashboard.realizedPL': '已实现盈亏',
 
