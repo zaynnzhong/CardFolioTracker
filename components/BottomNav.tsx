@@ -12,7 +12,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
   const { t } = useLanguage();
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-card backdrop-blur-xl border-t border-white/10 z-40 bottom-nav-container">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-card backdrop-blur-xl border-t border-white/10 border-l-0 border-r-0 z-40 bottom-nav-container">
       <div className="grid grid-cols-5 items-center pt-2 pb-1">
         <button
           onClick={() => onTabChange('portfolio')}
