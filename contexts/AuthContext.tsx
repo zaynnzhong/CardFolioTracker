@@ -13,9 +13,7 @@ import {
   linkWithPopup,
   linkWithRedirect,
   linkWithCredential,
-  signInWithCredential,
   EmailAuthProvider,
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithCustomToken,
@@ -26,7 +24,6 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
 import { Capacitor } from '@capacitor/core';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 // Check if running in Capacitor native environment
 const isCapacitorNative = Capacitor.isNativePlatform();
@@ -61,17 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('[Auth] Current URL:', window.location.href);
     console.log('[Auth] User agent:', navigator.userAgent);
     console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
-
-    // Initialize Capacitor GoogleAuth plugin for native platforms
-    if (isCapacitorNative) {
-      console.log('[Auth] Initializing Capacitor GoogleAuth plugin...');
-      GoogleAuth.initialize({
-        clientId: '398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d.apps.googleusercontent.com',
-        scopes: ['profile', 'email'],
-        grantOfflineAccess: true
-      });
-      console.log('[Auth] Capacitor GoogleAuth initialized');
-    }
 
     let unsubscribe: (() => void) | undefined;
 
@@ -140,47 +126,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
       console.log('[Auth] Current user:', currentUser?.email || 'none');
 
-      // Use native Google Auth for Capacitor apps (iOS/Android)
+      // For Capacitor native apps, try popup flow first (works better in WKWebView)
+      // The redirect flow doesn't work because it leaves the app and can't return
       if (isCapacitorNative) {
-        console.log('[Auth] Using native Capacitor Google Auth...');
+        console.log('[Auth] Capacitor native detected - using popup flow for WKWebView...');
 
         try {
-          // Sign in with native Google Auth
-          const googleUser = await GoogleAuth.signIn();
-          console.log('[Auth] Native Google sign-in successful:', googleUser.email);
-
-          // Get the ID token from the native response
-          const idToken = googleUser.authentication.idToken;
-
-          if (!idToken) {
-            throw new Error('No ID token received from Google');
-          }
-
-          // Create Firebase credential from the Google ID token
-          const credential = GoogleAuthProvider.credential(idToken);
-
-          // Sign in to Firebase with the credential
           if (currentUser && currentUser.isAnonymous) {
-            console.log('[Auth] Linking anonymous account to Google (native)...');
-            await linkWithCredential(currentUser, credential);
+            console.log('[Auth] Linking anonymous account to Google (popup)...');
+            await linkWithPopup(currentUser, googleProvider);
             console.log('[Auth] Account successfully linked to Google!');
           } else {
-            console.log('[Auth] Signing in to Firebase with Google credential (native)...');
-            await signInWithCredential(auth, credential);
-            console.log('[Auth] Firebase sign-in successful!');
+            console.log('[Auth] Signing in with Google (popup)...');
+            await signInWithPopup(auth, googleProvider);
+            console.log('[Auth] Google sign-in successful!');
           }
-
           return;
-        } catch (nativeError: any) {
-          console.error('[Auth] Native Google Auth error:', nativeError);
+        } catch (popupError: any) {
+          console.error('[Auth] Popup auth error:', popupError);
 
-          // Handle user cancellation
-          if (nativeError.message?.includes('canceled') || nativeError.message?.includes('cancelled')) {
-            console.log('[Auth] User cancelled native Google sign-in');
-            return;
+          // If popup was blocked or failed, the error will be caught here
+          if (popupError.code === 'auth/popup-blocked' ||
+              popupError.code === 'auth/popup-closed-by-user' ||
+              popupError.code === 'auth/cancelled-popup-request') {
+            console.log('[Auth] Popup was blocked or closed, user needs to try again');
+            throw new Error('Sign-in popup was blocked. Please try again.');
           }
 
-          throw nativeError;
+          throw popupError;
         }
       }
 
@@ -220,20 +193,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Handle account-exists-with-different-credential error
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
         await firebaseSignOut(auth);
-
-        if (isCapacitorNative) {
-          // Retry with native auth
-          const googleUser = await GoogleAuth.signIn();
-          const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-          await signInWithCredential(auth, credential);
-        } else {
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          if (isMobile) {
-            await signInWithRedirect(auth, googleProvider);
-          } else {
-            await signInWithPopup(auth, googleProvider);
-          }
-        }
+        // Retry with popup (works for both native and web)
+        await signInWithPopup(auth, googleProvider);
       } else {
         throw error;
       }
@@ -347,17 +308,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      // Sign out from native Google Auth if on Capacitor
-      if (isCapacitorNative) {
-        try {
-          await GoogleAuth.signOut();
-          console.log('[Auth] Signed out from native Google Auth');
-        } catch (e) {
-          // Ignore errors if not signed in with Google
-          console.log('[Auth] Native Google signOut skipped (may not have been signed in with Google)');
-        }
-      }
       await firebaseSignOut(auth);
+      console.log('[Auth] Signed out from Firebase');
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
