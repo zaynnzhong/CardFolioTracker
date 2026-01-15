@@ -544,12 +544,19 @@ router.get('/trade-plans', authMiddleware, async (req, res) => {
         const userId = (req as any).userId;
         const { status } = req.query;
 
+        // Debug: Log collection info
+        const collectionName = TradePlanModel.collection.name;
+        const totalInCollection = await TradePlanModel.countDocuments({});
+        const totalForUser = await TradePlanModel.countDocuments({ userId });
+        console.log(`[DEBUG] Collection: ${collectionName}, Total docs: ${totalInCollection}, For user ${userId}: ${totalForUser}`);
+
         const query: any = { userId };
         if (status && ['pending', 'completed', 'cancelled'].includes(status as string)) {
             query.status = status;
         }
 
         const plans = await TradePlanModel.find(query).sort({ createdAt: -1 });
+        console.log(`[DEBUG] Found ${plans.length} plans with query:`, JSON.stringify(query));
         res.json(plans);
     } catch (error: any) {
         console.error('[Local API] Error fetching trade plans:', error);

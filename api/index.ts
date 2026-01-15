@@ -292,6 +292,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GET /api/trade-plans
             if (method === 'GET' && path === '/trade-plans') {
                 console.log('[API] GET /trade-plans');
+                // Ensure DB connection before importing model
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { status } = req.query;
 
@@ -300,14 +303,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     query.status = status;
                 }
 
+                console.log(`[API] Querying trade plans with:`, JSON.stringify(query));
                 const plans = await TradePlanModel.find(query).sort({ createdAt: -1 });
+                console.log(`[API] Found ${plans.length} trade plans`);
                 return res.status(200).json(plans);
             }
 
             // GET /api/trade-plans/:id
             if (method === 'GET' && path.startsWith('/trade-plans/') && !path.includes('/complete')) {
                 const id = path.split('/')[2];
-                console.log('[API] GET /trade-plans/:id');
+                console.log('[API] GET /trade-plans/:id', id);
+                // Ensure DB connection before importing model
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 const plan = await TradePlanModel.findOne({ _id: id, userId });
@@ -355,7 +363,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // PUT /api/trade-plans/:id
             if (method === 'PUT' && path.startsWith('/trade-plans/') && !path.endsWith('/complete')) {
                 const id = path.split('/')[2];
-                console.log('[API] PUT /trade-plans/:id');
+                console.log('[API] PUT /trade-plans/:id', id);
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const updates = req.body;
 
@@ -379,7 +389,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // DELETE /api/trade-plans/:id
             if (method === 'DELETE' && path.startsWith('/trade-plans/')) {
                 const id = path.split('/')[2];
-                console.log('[API] DELETE /trade-plans/:id');
+                console.log('[API] DELETE /trade-plans/:id', id);
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 const plan = await TradePlanModel.findOneAndDelete({ _id: id, userId });
@@ -393,7 +405,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // POST /api/trade-plans/:id/complete
             if (method === 'POST' && path.match(/^\/trade-plans\/[^/]+\/complete$/)) {
                 const id = path.split('/')[2];
-                console.log('[API] POST /trade-plans/:id/complete');
+                console.log('[API] POST /trade-plans/:id/complete', id);
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { transactionId } = req.body;
 
@@ -417,6 +431,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // POST /api/trade-plans/migrate-currency
             if (method === 'POST' && path === '/trade-plans/migrate-currency') {
                 console.log('[API] POST /trade-plans/migrate-currency');
+                const { connectToDb } = await import('../server/src/db.js');
+                await connectToDb();
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 // Find all plans without cashCurrency set
