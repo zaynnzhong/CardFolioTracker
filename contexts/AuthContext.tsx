@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import {
   User,
   signInWithPopup,
@@ -13,20 +13,36 @@ import {
   linkWithPopup,
   linkWithRedirect,
   linkWithCredential,
+  signInWithCredential,
   EmailAuthProvider,
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithCustomToken,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
-  PhoneAuthProvider
+  PhoneAuthProvider,
+  OAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { App } from '@capacitor/app';
 
 // Check if running in Capacitor native environment
 const isCapacitorNative = Capacitor.isNativePlatform();
+
+// Google OAuth configuration for iOS
+const GOOGLE_CLIENT_ID = '398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d.apps.googleusercontent.com';
+const GOOGLE_IOS_REDIRECT_URI = 'com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:/oauth2callback';
+
+// Generate a random nonce for OAuth security
+const generateNonce = () => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
 
 interface AuthContextType {
   user: User | null;
@@ -52,6 +68,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const pendingOAuthNonce = useRef<string | null>(null);
 
   useEffect(() => {
     console.log('[Auth] AuthProvider initializing...');
@@ -60,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
 
     let unsubscribe: (() => void) | undefined;
+    let urlOpenListener: any = null;
 
     const setupAuthListener = () => {
       console.log('[Auth] Setting up auth state listener...');
@@ -79,9 +97,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
-    // For native platforms, skip redirect handling - just set up auth listener
+    // Set up URL listener for OAuth callback on native platforms
+    const setupUrlListener = async () => {
+      console.log('[Auth] Setting up URL listener for OAuth callback...');
+      urlOpenListener = await App.addListener('appUrlOpen', async ({ url }) => {
+        console.log('[Auth] 📱 App URL opened:', url);
+
+        // Check if this is a Google OAuth callback
+        if (url.includes('oauth2callback') || url.includes('id_token')) {
+          console.log('[Auth] Google OAuth callback detected');
+
+          try {
+            // Close the browser
+            await Browser.close();
+
+            // Parse the URL - tokens are in the fragment (after #)
+            const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
+            const fragment = urlObj.hash.substring(1); // Remove the #
+            const params = new URLSearchParams(fragment);
+
+            const idToken = params.get('id_token');
+            const accessToken = params.get('access_token');
+            const error = params.get('error');
+
+            if (error) {
+              console.error('[Auth] OAuth error:', error);
+              throw new Error(`Google sign-in failed: ${error}`);
+            }
+
+            if (idToken) {
+              console.log('[Auth] Got ID token from OAuth callback');
+
+              // Create Google credential and sign in with Firebase
+              const credential = GoogleAuthProvider.credential(idToken, accessToken);
+
+              // Check if we need to link to anonymous account
+              const currentUser = auth.currentUser;
+              if (currentUser && currentUser.isAnonymous) {
+                console.log('[Auth] Linking anonymous account to Google...');
+                await linkWithCredential(currentUser, credential);
+                console.log('[Auth] ✅ Account linked to Google successfully!');
+              } else {
+                console.log('[Auth] Signing in with Google credential...');
+                await signInWithCredential(auth, credential);
+                console.log('[Auth] ✅ Google sign-in successful!');
+              }
+            } else {
+              console.error('[Auth] No ID token in callback');
+              throw new Error('No ID token received from Google');
+            }
+          } catch (error: any) {
+            console.error('[Auth] Error handling OAuth callback:', error);
+            // If credential already in use, sign out anonymous and sign in
+            if (error.code === 'auth/credential-already-in-use') {
+              console.log('[Auth] Credential already in use, signing out and retrying...');
+              await firebaseSignOut(auth);
+              const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
+              const fragment = urlObj.hash.substring(1);
+              const params = new URLSearchParams(fragment);
+              const idToken = params.get('id_token');
+              const accessToken = params.get('access_token');
+              if (idToken) {
+                const credential = GoogleAuthProvider.credential(idToken, accessToken);
+                await signInWithCredential(auth, credential);
+              }
+            }
+          }
+        }
+      });
+    };
+
+    // For native platforms, set up URL listener and auth listener
     if (isCapacitorNative) {
-      console.log('[Auth] Native platform - skipping redirect check');
+      console.log('[Auth] Native platform - setting up URL listener');
+      setupUrlListener();
       setupAuthListener();
     } else {
       // Handle redirect result from Google Sign-In for web platforms
@@ -115,6 +204,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('[Auth] Cleaning up auth listener');
         unsubscribe();
       }
+      if (urlOpenListener) {
+        console.log('[Auth] Cleaning up URL listener');
+        urlOpenListener.remove();
+      }
     };
   }, []);
 
@@ -126,35 +219,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
       console.log('[Auth] Current user:', currentUser?.email || 'none');
 
-      // For Capacitor native apps, try popup flow first (works better in WKWebView)
-      // The redirect flow doesn't work because it leaves the app and can't return
+      // For Capacitor native apps, use in-app browser OAuth flow
       if (isCapacitorNative) {
-        console.log('[Auth] Capacitor native detected - using popup flow for WKWebView...');
+        console.log('[Auth] Capacitor native detected - using in-app browser OAuth flow...');
 
-        try {
-          if (currentUser && currentUser.isAnonymous) {
-            console.log('[Auth] Linking anonymous account to Google (popup)...');
-            await linkWithPopup(currentUser, googleProvider);
-            console.log('[Auth] Account successfully linked to Google!');
-          } else {
-            console.log('[Auth] Signing in with Google (popup)...');
-            await signInWithPopup(auth, googleProvider);
-            console.log('[Auth] Google sign-in successful!');
-          }
-          return;
-        } catch (popupError: any) {
-          console.error('[Auth] Popup auth error:', popupError);
+        // Generate nonce for security
+        const nonce = generateNonce();
+        pendingOAuthNonce.current = nonce;
 
-          // If popup was blocked or failed, the error will be caught here
-          if (popupError.code === 'auth/popup-blocked' ||
-              popupError.code === 'auth/popup-closed-by-user' ||
-              popupError.code === 'auth/cancelled-popup-request') {
-            console.log('[Auth] Popup was blocked or closed, user needs to try again');
-            throw new Error('Sign-in popup was blocked. Please try again.');
-          }
+        // Build Google OAuth URL for implicit flow (returns tokens directly)
+        const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+        authUrl.searchParams.set('redirect_uri', GOOGLE_IOS_REDIRECT_URI);
+        authUrl.searchParams.set('response_type', 'id_token token');
+        authUrl.searchParams.set('scope', 'openid email profile');
+        authUrl.searchParams.set('nonce', nonce);
+        authUrl.searchParams.set('prompt', 'select_account');
 
-          throw popupError;
-        }
+        console.log('[Auth] Opening Google OAuth URL in in-app browser...');
+        console.log('[Auth] Auth URL:', authUrl.toString());
+
+        // Open in-app browser - this will show a Safari view controller inside the app
+        await Browser.open({
+          url: authUrl.toString(),
+          presentationStyle: 'popover', // Shows as a sheet on iOS
+          windowName: '_blank'
+        });
+
+        // The URL listener set up in useEffect will handle the callback
+        console.log('[Auth] In-app browser opened, waiting for OAuth callback...');
+        return;
       }
 
       // Web platform - use Firebase redirect/popup flow
@@ -193,8 +287,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Handle account-exists-with-different-credential error
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
         await firebaseSignOut(auth);
-        // Retry with popup (works for both native and web)
-        await signInWithPopup(auth, googleProvider);
+        // Retry with popup (works for web)
+        if (!isCapacitorNative) {
+          await signInWithPopup(auth, googleProvider);
+        }
       } else {
         throw error;
       }
