@@ -194,9 +194,23 @@
         padding-bottom: env(safe-area-inset-bottom);
       }
 
-      /* Bottom nav container - extends background into safe area */
+      /* Bottom nav - extend background into safe area using pseudo-element */
       .bottom-nav-container {
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        position: relative;
+      }
+
+      .bottom-nav-container::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: env(safe-area-inset-bottom, 34px);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transform: translateY(100%);
+        pointer-events: none;
       }
     </style>
   <script type="importmap">
