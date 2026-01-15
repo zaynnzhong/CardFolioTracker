@@ -716,7 +716,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
+    <div className="h-screen relative bg-crypto-darker text-slate-100 font-sans flex">
 
       {/* Sidebar Navigation - Desktop Only */}
       <aside
