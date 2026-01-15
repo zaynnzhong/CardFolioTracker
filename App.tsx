@@ -905,7 +905,7 @@ export default function App() {
       {/* Main Content Area - Full Width on Desktop */}
       <div className={`flex-1 transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Bar - Mobile Only */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 glass-card backdrop-blur-xl z-30 px-4 ios-header-safe flex justify-between items-center border-b border-white/10">
+        <header className="lg:hidden fixed top-0 left-0 right-0 bg-black/90 backdrop-blur-xl z-30 px-4 ios-header-safe flex justify-between items-center">
           <img src="/white-type.svg" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
           <div className="flex items-center gap-2">
             <button onClick={exportToCSV} className="p-2 text-slate-400 hover:text-white">

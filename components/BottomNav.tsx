@@ -12,8 +12,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, o
   const { t } = useLanguage();
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-card backdrop-blur-xl border-t border-white/10 z-40">
-      <div className="grid grid-cols-5 items-center pt-3 pb-6 ios-bottom-safe">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-card backdrop-blur-xl border-t border-white/10 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="grid grid-cols-5 items-center pt-3 pb-2">
         <button
           onClick={() => onTabChange('portfolio')}
           className={`flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 ${
