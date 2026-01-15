@@ -116,10 +116,21 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
-      body {
+      html, body {
         -webkit-tap-highlight-color: transparent;
         background: linear-gradient(180deg, #000000 0%, #070506 100%);
         min-height: 100vh;
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        position: fixed;
+        width: 100%;
+      }
+
+      #root {
+        height: 100%;
+        overflow: hidden;
       }
 
       /* Glassmorphic card effect */

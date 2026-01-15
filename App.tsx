@@ -716,7 +716,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
+    <div className="h-screen relative bg-crypto-darker text-slate-100 font-sans overflow-hidden flex">
 
       {/* Sidebar Navigation - Desktop Only */}
       <aside
@@ -971,10 +971,10 @@ export default function App() {
         </header>
 
         {/* Main Scrollable Area - Full Width */}
-        <main className="relative lg:pt-0 lg:pb-0 bg-crypto-dark" style={{
+        <main className="relative lg:pt-0 lg:pb-0 bg-crypto-dark overflow-y-auto overscroll-contain" style={{
           paddingTop: 'calc(3.5rem + env(safe-area-inset-top))',
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))',
-          minHeight: '100vh'
+          height: '100vh'
         }}>
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
