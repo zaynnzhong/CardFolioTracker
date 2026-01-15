@@ -128,7 +128,7 @@ export default function App() {
 
   // Trade Plans States
   const [tradePlansView, setTradePlansView] = useState<'list' | 'detail' | null>(null);
-  const [tradePlansTab, setTradePlansTab] = useState<'plans' | 'never-trade'>('plans');
+  const [tradePlansTab, setTradePlansTab] = useState<'plans' | 'executed' | 'never-trade'>('plans');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [showTradePlanner, setShowTradePlanner] = useState(false);
   const [showExecutionModal, setShowExecutionModal] = useState(false);
@@ -281,7 +281,7 @@ export default function App() {
     return { totalInvested, currentPortfolioValue, unrealizedProfit, realizedProfit, soldTotal, cash, cardCount };
   }, [portfolioCards]);
 
-  const handleSaveCard = async (card: Card) => {
+  const handleSaveCard = async (card: Card): Promise<Card | null> => {
     // Check if this is a new card (not editing)
     const isNewCard = !cards.find(c => c.id === card.id);
 
@@ -290,7 +290,7 @@ export default function App() {
       const currentCardCount = cards.length;
       if (currentCardCount >= 8) {
         setShowUpgradePrompt(true);
-        return; // Don't save the card
+        return null; // Don't save the card
       }
     }
 
@@ -303,6 +303,7 @@ export default function App() {
     setIsFormOpen(false);
     setEditingCard(null);
     if (selectedCard?.id === card.id) setSelectedCard(saved);
+    return saved;
   };
 
   const handleDeleteCard = async (id: string) => {
@@ -461,6 +462,7 @@ export default function App() {
 
     // Get the plan's currency (what the plan values are stored in)
     const planCurrency = executingPlan.cashCurrency || displayCurrency;
+    const receivedCardIds: string[] = [];
 
     try {
       // 1. Mark all bundled cards as sold
@@ -479,7 +481,8 @@ export default function App() {
             sold: true,
             soldDate: tradeData.tradeDate,
             soldPrice: soldPriceInCardCurrency,
-            soldVia: 'trade'
+            soldVia: 'trade',
+            tradePlanId: executingPlan._id // Link to trade plan
           };
           await handleSaveCard(soldCard);
         }
@@ -511,13 +514,27 @@ export default function App() {
             platform: 'Trade'
           }],
           sold: false,
+          tradePlanId: executingPlan._id, // Link to trade plan
           notes: receivedCard.notes ? `Trade received: ${receivedCard.notes}` : `Received in trade from plan: ${executingPlan.planName}`
         };
-        await handleSaveCard(newCard);
+        const savedCard = await handleSaveCard(newCard);
+        if (savedCard && savedCard.id) {
+          receivedCardIds.push(savedCard.id);
+        }
       }
 
-      // 3. Mark plan as completed
-      await dataService.completeTradePlan(executingPlan._id, 'trade-execution', getIdToken);
+      // 3. Mark plan as completed and store execution details
+      await dataService.updateTradePlan(
+        executingPlan._id,
+        {
+          status: 'completed',
+          executedReceivedCards: tradeData.receivedCards,
+          executedReceivedCardIds: receivedCardIds,
+          executedCashBoot: tradeData.cashBoot,
+          executedDate: tradeData.tradeDate
+        },
+        getIdToken
+      );
 
       // 4. Close modals and refresh
       setShowExecutionModal(false);
@@ -529,6 +546,119 @@ export default function App() {
       setCards(refreshedCards);
     } catch (error) {
       console.error('Failed to execute trade plan:', error);
+      throw error;
+    }
+  };
+
+  // Re-execute a completed trade (for editing executed trades)
+  const handleReExecuteTradePlan = async (
+    plan: TradePlan,
+    tradeData: {
+      receivedValue: number;
+      cashBoot: number;
+      tradeDate: string;
+      receivedCards: ReceivedCardInput[];
+    }
+  ) => {
+    const planCurrency = plan.cashCurrency || displayCurrency;
+    const receivedCardIds: string[] = [];
+
+    try {
+      // 1. Revert previously sold cards (cards that were given out in the old trade)
+      const previouslySoldCards = cards.filter(c => c.tradePlanId === plan._id && c.sold && c.soldVia === 'trade');
+      for (const card of previouslySoldCards) {
+        const revertedCard: Card = {
+          ...card,
+          sold: false,
+          soldDate: undefined,
+          soldPrice: undefined,
+          soldVia: undefined,
+          tradePlanId: undefined
+        };
+        await handleSaveCard(revertedCard);
+      }
+
+      // 2. Delete previously received cards
+      if (plan.executedReceivedCardIds) {
+        for (const cardId of plan.executedReceivedCardIds) {
+          await dataService.deleteCard(cardId, getIdToken);
+        }
+      }
+
+      // 3. Mark new bundled cards as sold
+      for (const bundledCard of plan.bundleCards) {
+        const card = cards.find(c => c.id === bundledCard.cardId);
+        if (card) {
+          const soldPriceInCardCurrency = convertPrice(
+            bundledCard.currentValueAtPlanTime,
+            planCurrency,
+            card.currency
+          );
+
+          const soldCard: Card = {
+            ...card,
+            sold: true,
+            soldDate: tradeData.tradeDate,
+            soldPrice: soldPriceInCardCurrency,
+            soldVia: 'trade',
+            tradePlanId: plan._id
+          };
+          await handleSaveCard(soldCard);
+        }
+      }
+
+      // 4. Create new cards for received items
+      for (const receivedCard of tradeData.receivedCards) {
+        const newCard: Card = {
+          id: '',
+          player: receivedCard.player,
+          year: receivedCard.year,
+          sport: Sport.BASKETBALL,
+          brand: receivedCard.brand || 'Unknown',
+          series: receivedCard.series || 'Unknown',
+          insert: receivedCard.insert || 'Base',
+          parallel: receivedCard.parallel,
+          serialNumber: receivedCard.serialNumber,
+          graded: receivedCard.graded,
+          gradeCompany: receivedCard.gradeCompany,
+          gradeValue: receivedCard.gradeValue,
+          currency: receivedCard.currency,
+          purchaseDate: tradeData.tradeDate,
+          purchasePrice: receivedCard.currentValue,
+          acquisitionSource: AcquisitionSource.TRADE,
+          currentValue: receivedCard.currentValue,
+          priceHistory: [{
+            date: tradeData.tradeDate,
+            value: receivedCard.currentValue,
+            platform: 'Trade'
+          }],
+          sold: false,
+          tradePlanId: plan._id,
+          notes: receivedCard.notes ? `Trade received: ${receivedCard.notes}` : `Received in trade from plan: ${plan.planName}`
+        };
+        const savedCard = await handleSaveCard(newCard);
+        if (savedCard && savedCard.id) {
+          receivedCardIds.push(savedCard.id);
+        }
+      }
+
+      // 5. Update trade plan with new execution details
+      await dataService.updateTradePlan(
+        plan._id,
+        {
+          executedReceivedCards: tradeData.receivedCards,
+          executedReceivedCardIds: receivedCardIds,
+          executedCashBoot: tradeData.cashBoot,
+          executedDate: tradeData.tradeDate
+        },
+        getIdToken
+      );
+
+      // 6. Reload cards
+      const refreshedCards = await dataService.getCards(getIdToken);
+      setCards(refreshedCards);
+    } catch (error) {
+      console.error('Failed to re-execute trade plan:', error);
       throw error;
     }
   };
@@ -953,6 +1083,16 @@ export default function App() {
                       My Plans
                     </button>
                     <button
+                      onClick={() => setTradePlansTab('executed')}
+                      className={`px-4 py-2 font-medium transition-all ${
+                        tradePlansTab === 'executed'
+                          ? 'text-crypto-lime border-b-2 border-crypto-lime'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Executed Trades
+                    </button>
+                    <button
                       onClick={() => setTradePlansTab('never-trade')}
                       className={`px-4 py-2 font-medium transition-all ${
                         tradePlansTab === 'never-trade'
@@ -970,6 +1110,19 @@ export default function App() {
                       convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
                       formatCurrency={(amount, currency) => `${currency === 'USD' ? '$' : '¥'}${amount.toLocaleString()}`}
                       getIdToken={getIdToken}
+                      statusFilter="pending"
+                      onViewPlan={(id) => {
+                        setSelectedPlanId(id);
+                        setTradePlansView('detail');
+                      }}
+                    />
+                  ) : tradePlansTab === 'executed' ? (
+                    <TradePlansList
+                      displayCurrency={displayCurrency}
+                      convertPrice={(amount) => convertPrice(amount, 'USD', displayCurrency).toLocaleString()}
+                      formatCurrency={(amount, currency) => `${currency === 'USD' ? '$' : '¥'}${amount.toLocaleString()}`}
+                      getIdToken={getIdToken}
+                      statusFilter="completed"
                       onViewPlan={(id) => {
                         setSelectedPlanId(id);
                         setTradePlansView('detail');
@@ -1002,6 +1155,7 @@ export default function App() {
                     setExecutingPlan(plan);
                     setShowExecutionModal(true);
                   }}
+                  onReExecuteTrade={handleReExecuteTradePlan}
                 />
               ) : null}
             </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { TradePlan, Currency, Card, BundledCard } from '../types';
-import { ArrowLeft, FileText, Calendar, DollarSign, Package, CheckCircle, PlayCircle, Edit2, XCircle, Save, Target } from 'lucide-react';
+import { TradePlan, Currency, Card, BundledCard, ReceivedCardInput } from '../types';
+import { ArrowLeft, FileText, Calendar, DollarSign, Package, CheckCircle, PlayCircle, Edit2, XCircle, Save, Target, RefreshCw, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { EditTradePlanModal } from './EditTradePlanModal';
+import { EditExecutedTradeModal } from './EditExecutedTradeModal';
 
 interface TradePlanDetailProps {
   planId: string;
@@ -14,6 +15,12 @@ interface TradePlanDetailProps {
   getIdToken: () => Promise<string | null>;
   onBack: () => void;
   onExecuteTrade: (plan: TradePlan) => void;
+  onReExecuteTrade?: (plan: TradePlan, tradeData: {
+    receivedValue: number;
+    cashBoot: number;
+    tradeDate: string;
+    receivedCards: ReceivedCardInput[];
+  }) => Promise<void>;
 }
 
 export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
@@ -25,7 +32,8 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
   allCards,
   getIdToken,
   onBack,
-  onExecuteTrade
+  onExecuteTrade,
+  onReExecuteTrade
 }) => {
   const [plan, setPlan] = useState<TradePlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +41,7 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditExecutedModal, setShowEditExecutedModal] = useState(false);
 
   useEffect(() => {
     loadPlan();
@@ -116,6 +125,41 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
     } catch (error) {
       console.error('Failed to update trade plan:', error);
       alert('Failed to update trade plan. Please try again.');
+    }
+  };
+
+  const handleReExecute = async (tradeData: {
+    receivedValue: number;
+    cashBoot: number;
+    tradeDate: string;
+    receivedCards: ReceivedCardInput[];
+    bundleCards: BundledCard[];
+  }) => {
+    if (!plan || !onReExecuteTrade) return;
+
+    try {
+      // First update the plan with new bundle cards
+      const updatedPlan = await dataService.updateTradePlan(
+        plan._id,
+        { bundleCards: tradeData.bundleCards },
+        getIdToken
+      );
+      setPlan(updatedPlan);
+
+      // Then re-execute with new data
+      await onReExecuteTrade(updatedPlan, {
+        receivedValue: tradeData.receivedValue,
+        cashBoot: tradeData.cashBoot,
+        tradeDate: tradeData.tradeDate,
+        receivedCards: tradeData.receivedCards
+      });
+
+      // Reload the plan to get updated execution details
+      await loadPlan();
+      setShowEditExecutedModal(false);
+    } catch (error) {
+      console.error('Failed to re-execute trade:', error);
+      alert('Failed to update trade. Please try again.');
     }
   };
 
@@ -384,19 +428,84 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
         </div>
       </div>
 
+      {/* Received Cards (for completed trades) */}
+      {plan.status === 'completed' && plan.executedReceivedCards && plan.executedReceivedCards.length > 0 && (
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <ArrowDownRight className="text-green-400" size={20} />
+            Cards Received
+          </h2>
+
+          <div className="space-y-3">
+            {plan.executedReceivedCards.map((card, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20"
+              >
+                {card.imageUrl && (
+                  <img
+                    src={card.imageUrl}
+                    alt={card.player}
+                    className="w-16 h-20 object-cover rounded"
+                  />
+                )}
+
+                <div className="flex-1">
+                  <div className="font-medium text-white mb-1">
+                    {card.player}
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    {card.year} {card.series}
+                    {card.parallel && ` • ${card.parallel}`}
+                    {card.gradeValue && ` • ${card.gradeValue}`}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="font-bold text-green-400">
+                    {formatCurrency(card.currentValue, card.currency)}
+                  </div>
+                  <div className="text-xs text-slate-500">received value</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {plan.executedCashBoot && plan.executedCashBoot > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-700/50">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 font-medium">Cash Boot Received</span>
+                <span className="text-lg font-bold text-yellow-400">
+                  {formatCurrency(plan.executedCashBoot, plan.cashCurrency || displayCurrency)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trade Summary (for completed trades) */}
+      {plan.status === 'completed' && plan.executedDate && (
+        <div className="glass-card p-4 bg-slate-800/50">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Trade Executed:</span>
+            <span className="text-white font-medium">{new Date(plan.executedDate).toLocaleDateString()}</span>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex gap-3">
-        {/* Edit button - available for all statuses */}
-        <button
-          onClick={() => setShowEditModal(true)}
-          className="flex-1 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
-        >
-          <Edit2 size={20} />
-          Edit Trade Plan
-        </button>
-
         {plan.status === 'pending' && (
           <>
+            {/* Edit button - for pending trades */}
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="flex-1 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <Edit2 size={20} />
+              Edit Plan
+            </button>
             <button
               onClick={() => onExecuteTrade(plan)}
               className="flex-1 bg-gradient-to-r from-crypto-lime to-green-500 text-black font-bold py-4 px-6 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
@@ -412,14 +521,24 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
             </button>
           </>
         )}
+
+        {plan.status === 'completed' && onReExecuteTrade && (
+          <button
+            onClick={() => setShowEditExecutedModal(true)}
+            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
+            <RefreshCw size={20} />
+            Update Trade
+          </button>
+        )}
       </div>
 
-      {plan.status === 'completed' && plan.completedTransactionId && (
+      {plan.status === 'completed' && (
         <div className="glass-card p-4 bg-green-500/10 border-green-500/30">
           <div className="flex items-center gap-2 text-green-400">
             <CheckCircle size={20} />
             <span className="font-medium">
-              This trade has been completed and logged in your transactions.
+              This trade has been executed. You can update the trade details above.
             </span>
           </div>
         </div>
@@ -436,7 +555,7 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal (for pending plans) */}
       {showEditModal && (
         <EditTradePlanModal
           plan={plan}
@@ -446,6 +565,19 @@ export const TradePlanDetail: React.FC<TradePlanDetailProps> = ({
           formatPrice={formatCurrency}
           onSave={handleSaveEdit}
           onClose={() => setShowEditModal(false)}
+        />
+      )}
+
+      {/* Edit Executed Trade Modal (for completed trades) */}
+      {showEditExecutedModal && plan.status === 'completed' && (
+        <EditExecutedTradeModal
+          plan={plan}
+          allCards={allCards}
+          plannerCurrency={plan.cashCurrency || displayCurrency}
+          convertPrice={convertCurrency}
+          formatPrice={formatCurrency}
+          onSave={handleReExecute}
+          onClose={() => setShowEditExecutedModal(false)}
         />
       )}
     </div>

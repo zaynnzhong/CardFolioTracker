@@ -10,9 +10,8 @@ interface TradePlansListProps {
   getIdToken: () => Promise<string | null>;
   onViewPlan: (planId: string) => void;
   onRefresh?: () => void;
+  statusFilter?: 'pending' | 'completed' | 'cancelled';
 }
-
-type StatusFilter = 'all' | 'pending' | 'completed' | 'cancelled';
 
 export const TradePlansList: React.FC<TradePlansListProps> = ({
   displayCurrency,
@@ -20,11 +19,11 @@ export const TradePlansList: React.FC<TradePlansListProps> = ({
   formatCurrency,
   getIdToken,
   onViewPlan,
-  onRefresh
+  onRefresh,
+  statusFilter
 }) => {
   const [plans, setPlans] = useState<TradePlan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,8 +33,7 @@ export const TradePlansList: React.FC<TradePlansListProps> = ({
   const loadPlans = async () => {
     try {
       setLoading(true);
-      const filter = statusFilter === 'all' ? undefined : statusFilter;
-      const data = await dataService.getTradePlans(getIdToken, filter);
+      const data = await dataService.getTradePlans(getIdToken, statusFilter);
       setPlans(data);
     } catch (error) {
       console.error('Failed to load trade plans:', error);
@@ -90,11 +88,6 @@ export const TradePlansList: React.FC<TradePlansListProps> = ({
     }
   };
 
-  const getStatusCount = (status: StatusFilter) => {
-    if (status === 'all') return plans.length;
-    return plans.filter(p => p.status === status).length;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -105,37 +98,17 @@ export const TradePlansList: React.FC<TradePlansListProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Status Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {(['all', 'pending', 'completed', 'cancelled'] as StatusFilter[]).map(status => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-              statusFilter === status
-                ? 'bg-crypto-lime text-black'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
-            }`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-            {statusFilter !== 'all' && status !== 'all' && (
-              <span className="ml-2 px-2 py-0.5 bg-black/20 rounded text-xs">
-                {plans.filter(p => p.status === status).length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
       {/* Plans List */}
       {plans.length === 0 ? (
         <div className="glass-card p-12 text-center">
           <Folder className="w-16 h-16 mx-auto mb-4 text-slate-600" />
           <h3 className="text-xl font-semibold text-white mb-2">No Trade Plans</h3>
           <p className="text-slate-400">
-            {statusFilter === 'all'
+            {statusFilter === 'pending'
               ? "You haven't created any trade plans yet."
-              : `No ${statusFilter} trade plans.`}
+              : statusFilter === 'completed'
+              ? "No executed trades yet."
+              : "No trade plans found."}
           </p>
         </div>
       ) : (

@@ -126,6 +126,9 @@ export interface Card {
   // Bulk Entry Grouping
   bulkGroupId?: string; // Links cards added together in bulk mode
 
+  // Trade Tracking
+  tradePlanId?: string; // ID of trade plan this card was received from
+
   notes?: string;
 }
 
@@ -228,6 +231,11 @@ export interface TradePlan {
   createdAt: string;
   updatedAt: string;
   completedTransactionId?: string;
+  // Stored when trade is executed for editing
+  executedReceivedCards?: ReceivedCardInput[];
+  executedReceivedCardIds?: string[]; // IDs of cards created from received cards
+  executedCashBoot?: number;
+  executedDate?: string;
 }
 
 export interface BundleSuggestion {
