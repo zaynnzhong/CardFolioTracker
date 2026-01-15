@@ -32,6 +32,7 @@ import { ProfileSettings } from './components/ProfileSettings';
 import { CardLimitBanner } from './components/CardLimitBanner';
 import { UnlockKeyModal } from './components/UnlockKeyModal';
 import { AdminPanel } from './components/AdminPanel';
+import { ExportModal } from './components/ExportModal';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { tierService } from './services/tierService';
@@ -133,6 +134,7 @@ export default function App() {
   const [showTradePlanner, setShowTradePlanner] = useState(false);
   const [showExecutionModal, setShowExecutionModal] = useState(false);
   const [executingPlan, setExecutingPlan] = useState<TradePlan | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -424,26 +426,7 @@ export default function App() {
   };
 
   const exportToCSV = () => {
-    const headers = ['ID', 'Type', 'Player', 'Year', 'Brand', 'Series', 'Cost/Target', 'Current Value'];
-    const csvContent = [
-      headers.join(','),
-      ...cards.map(c => [
-        c.id,
-        c.watchlist ? 'Watchlist' : 'Asset',
-        c.player,
-        c.year,
-        c.brand,
-        c.series,
-        c.purchasePrice,
-        c.currentValue
-      ].join(','))
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `prism_portfolio_${new Date().toISOString()}.csv`;
-    link.click();
+    setShowExportModal(true);
   };
 
   const handleSignOut = async () => {
@@ -1344,6 +1327,15 @@ export default function App() {
           convertPrice={convertPrice}
         />
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        cards={cards}
+        displayCurrency={displayCurrency}
+        formatCurrency={(amount, currency) => `${currency === 'USD' ? '$' : '¥'}${amount.toLocaleString()}`}
+      />
 
       {showUpgradePrompt && (
         <UpgradePromptModal
