@@ -292,6 +292,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // DEBUG: Get trade plans debug info
             if (method === 'GET' && path === '/trade-plans/debug') {
                 console.log('[API] GET /trade-plans/debug');
+                // Ensure DB connection first
+                await db.getCards(userId); // This internally calls connectToDb()
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 const totalCount = await TradePlanModel.countDocuments({});
@@ -302,13 +304,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     authUserId: userId,
                     totalPlansInCollection: totalCount,
                     plansForThisUser: userCount,
-                    sampleUserIds: sampleDocs.map(d => ({ oderId: d.userId, name: d.planName }))
+                    sampleUserIds: sampleDocs.map(d => ({ userId: d.userId, name: d.planName }))
                 });
             }
 
             // GET /api/trade-plans
             if (method === 'GET' && path === '/trade-plans') {
                 console.log('[API] GET /trade-plans');
+                // Ensure DB connection first
+                await db.getCards(userId); // This internally calls connectToDb()
                 const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { status } = req.query;
 
