@@ -289,6 +289,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             // ===== Trade Plans API =====
 
+            // DEBUG: Get trade plans debug info
+            if (method === 'GET' && path === '/trade-plans/debug') {
+                console.log('[API] GET /trade-plans/debug');
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+
+                const totalCount = await TradePlanModel.countDocuments({});
+                const userCount = await TradePlanModel.countDocuments({ userId });
+                const sampleDocs = await TradePlanModel.find({}).limit(2).select('userId planName');
+
+                return res.status(200).json({
+                    authUserId: userId,
+                    totalPlansInCollection: totalCount,
+                    plansForThisUser: userCount,
+                    sampleUserIds: sampleDocs.map(d => ({ oderId: d.userId, name: d.planName }))
+                });
+            }
+
             // GET /api/trade-plans
             if (method === 'GET' && path === '/trade-plans') {
                 console.log('[API] GET /trade-plans');
