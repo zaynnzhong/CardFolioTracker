@@ -10,10 +10,11 @@ const config: CapacitorConfig = {
     cleartext: true
   },
   ios: {
-    contentInset: 'always',
-    scrollEnabled: true,
+    contentInset: 'never',  // Let CSS handle safe areas via env()
+    scrollEnabled: false,   // Disable native scrolling, let web handle it
     backgroundColor: '#000000',
     allowsLinkPreview: false,
+    preferredContentMode: 'mobile',
     // Use WKWebView to load your PWA
     scheme: 'capacitor'
   },

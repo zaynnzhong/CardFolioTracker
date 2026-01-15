@@ -139,7 +139,16 @@
       .glass-card {
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
+        -webkit-backdrop-filter: blur(12px);
         backdrop-filter: blur(12px);
+      }
+
+      /* Bottom nav styling - iOS compatible */
+      .bottom-nav-glass {
+        background: rgba(0, 0, 0, 0.85);
+        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
       }
 
       /* Crypto gradient accents */

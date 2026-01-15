@@ -903,7 +903,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Area - Full Width on Desktop */}
-      <div className={`flex-1 transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
+      <div className={`flex-1 h-full transition-all duration-300 ${(isNarrowScreen && !sidebarHovered) ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Bar - Mobile Only */}
         <header className="lg:hidden fixed top-0 left-0 right-0 bg-black/90 backdrop-blur-xl z-30 px-4 ios-header-safe flex justify-between items-center">
           <img src="/white-type.svg" alt="Prism Logo" className="object-contain" style={{ width: '120px', height: 'auto' }} />
@@ -974,7 +974,7 @@ export default function App() {
         <main className="relative lg:pt-0 lg:pb-0 bg-crypto-dark overflow-y-auto overscroll-contain" style={{
           paddingTop: 'calc(3.5rem + env(safe-area-inset-top))',
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))',
-          height: '100vh'
+          height: '100%'
         }}>
           {activeTab === 'portfolio' ? (
             <div className="p-4 lg:p-6 space-y-6">
