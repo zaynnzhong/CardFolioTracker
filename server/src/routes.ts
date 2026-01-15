@@ -691,6 +691,38 @@ router.post('/trade-plans/migrate-currency', authMiddleware, async (req, res) =>
     }
 });
 
+// Debug: Get trade plan status distribution
+router.get('/trade-plans/debug/status-counts', authMiddleware, async (req, res) => {
+    console.log('[Local API] GET /trade-plans/debug/status-counts');
+    try {
+        const userId = (req as any).userId;
+
+        const allPlans = await TradePlanModel.find({ userId });
+        const statusCounts: Record<string, number> = {};
+        const planDetails: any[] = [];
+
+        allPlans.forEach(plan => {
+            const status = plan.status || 'NO_STATUS';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+            planDetails.push({
+                id: plan._id,
+                name: plan.planName,
+                status: plan.status,
+                createdAt: plan.createdAt
+            });
+        });
+
+        res.json({
+            total: allPlans.length,
+            statusCounts,
+            plans: planDetails
+        });
+    } catch (error: any) {
+        console.error('[Local API] Error getting status counts:', error);
+        res.status(500).json({ error: 'Failed to get status counts', details: error.message });
+    }
+});
+
 // Mark trade plan as completed
 router.post('/trade-plans/:id/complete', authMiddleware, async (req, res) => {
     console.log('[Local API] POST /trade-plans/:id/complete');
