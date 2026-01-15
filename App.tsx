@@ -274,6 +274,17 @@ export default function App() {
     cash.USD = soldTotal.USD + tradeCashBoots.USD - totalCostBasisOwned.USD;
     cash.CNY = soldTotal.CNY + tradeCashBoots.CNY - totalCostBasisOwned.CNY;
 
+    // Debug: Log sold cards breakdown
+    console.log('=== SALES REVENUE DEBUG ===');
+    console.log('soldTotal.USD:', soldTotal.USD);
+    console.log('soldTotal.CNY:', soldTotal.CNY);
+    const soldCards = portfolioCards.filter(c => c.sold);
+    console.log('Sold cards count:', soldCards.length);
+    soldCards.forEach(c => {
+      console.log(`- ${c.player} (${c.currency}): soldPrice=${c.soldPrice}`);
+    });
+    console.log('===========================');
+
     return { totalInvested, currentPortfolioValue, unrealizedProfit, realizedProfit, soldTotal, cash, cardCount };
   }, [portfolioCards]);
 
