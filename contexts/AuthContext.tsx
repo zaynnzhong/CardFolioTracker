@@ -201,9 +201,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
+    // Handle OAuth callback from native code via custom event
+    const handleNativeOAuthCallback = async (event: CustomEvent<{ url: string }>) => {
+      const url = event.detail.url;
+      console.log('[Auth] 📱 Native OAuth callback received:', url);
+
+      try {
+        // Parse the URL - tokens are in the fragment (after #)
+        const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
+        const fragment = urlObj.hash.substring(1); // Remove the #
+        const params = new URLSearchParams(fragment);
+
+        const idToken = params.get('id_token');
+        const accessToken = params.get('access_token');
+        const error = params.get('error');
+
+        if (error) {
+          console.error('[Auth] OAuth error:', error);
+          return;
+        }
+
+        if (idToken) {
+          console.log('[Auth] Got ID token from native OAuth callback');
+
+          // Create Google credential and sign in with Firebase
+          const credential = GoogleAuthProvider.credential(idToken, accessToken);
+
+          // Check if we need to link to anonymous account
+          const currentUser = auth.currentUser;
+          if (currentUser && currentUser.isAnonymous) {
+            console.log('[Auth] Linking anonymous account to Google...');
+            try {
+              await linkWithCredential(currentUser, credential);
+              console.log('[Auth] ✅ Account linked to Google successfully!');
+            } catch (linkError: any) {
+              if (linkError.code === 'auth/credential-already-in-use') {
+                console.log('[Auth] Credential in use, signing out and signing in...');
+                await firebaseSignOut(auth);
+                await signInWithCredential(auth, credential);
+              } else {
+                throw linkError;
+              }
+            }
+          } else {
+            console.log('[Auth] Signing in with Google credential...');
+            await signInWithCredential(auth, credential);
+            console.log('[Auth] ✅ Google sign-in successful!');
+          }
+        }
+      } catch (error) {
+        console.error('[Auth] Error handling native OAuth callback:', error);
+      }
+    };
+
     // For native platforms, set up URL listener and auth listener
     if (isCapacitorNative) {
-      console.log('[Auth] Native platform - setting up URL listener');
+      console.log('[Auth] Native platform - setting up listeners');
+
+      // Listen for native OAuth callback event (injected from AppDelegate.swift)
+      window.addEventListener('capacitor-oauth-callback', handleNativeOAuthCallback as EventListener);
+
       setupUrlListener();
       setupAuthListener();
     } else {
@@ -241,6 +298,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (urlOpenListener) {
         console.log('[Auth] Cleaning up URL listener');
         urlOpenListener.remove();
+      }
+      if (isCapacitorNative) {
+        window.removeEventListener('capacitor-oauth-callback', handleNativeOAuthCallback as EventListener);
       }
     };
   }, []);

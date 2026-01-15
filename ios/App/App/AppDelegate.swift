@@ -34,6 +34,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        // Check if this is a Google OAuth callback
+        if url.scheme?.contains("googleusercontent") == true {
+            print("[AppDelegate] Google OAuth callback received: \(url)")
+
+            // Get the URL string and extract tokens from fragment
+            let urlString = url.absoluteString
+
+            // Inject JavaScript into the WebView to handle the OAuth callback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if let bridge = (self.window?.rootViewController as? CAPBridgeViewController)?.bridge {
+                    let escapedUrl = urlString.replacingOccurrences(of: "'", with: "\\'")
+                    let js = """
+                    (function() {
+                        console.log('[Native] OAuth callback received from native');
+                        window.dispatchEvent(new CustomEvent('capacitor-oauth-callback', { detail: { url: '\(escapedUrl)' } }));
+                    })();
+                    """
+                    bridge.webView?.evaluateJavaScript(js) { result, error in
+                        if let error = error {
+                            print("[AppDelegate] JS injection error: \(error)")
+                        } else {
+                            print("[AppDelegate] JS injection successful")
+                        }
+                    }
+                }
+            }
+        }
+
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
