@@ -112,7 +112,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const { url, method } = req;
-        const path = url?.replace('/api', '') || '';
+        // Strip query params from path for route matching
+        const fullPath = url?.replace('/api', '') || '';
+        const path = fullPath.split('?')[0];
 
         console.log(`[API] ${method} ${path}`);
 
