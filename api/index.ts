@@ -4,7 +4,6 @@ import { getMarketInsight } from '../server/src/gemini.js';
 import { verifyAuthToken, initializeFirebaseAdmin } from '../server/src/firebaseAdmin.js';
 import { sendOTPEmail } from '../server/src/emailService.js';
 import { otpStore } from '../server/src/otpStore.js';
-import { TradePlanModel } from '../server/src/models/tradePlan.js';
 import admin from 'firebase-admin';
 import ImageKit from 'imagekit';
 import formidable from 'formidable';
@@ -294,6 +293,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (method === 'GET' && path === '/trade-plans') {
                 console.log('[API] GET /trade-plans');
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { status } = req.query;
 
                 const query: any = { userId };
@@ -312,6 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const id = path.split('/')[2];
                 console.log('[API] GET /trade-plans/:id', id);
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 const plan = await TradePlanModel.findOne({ _id: id, userId });
                 if (!plan) {
@@ -325,6 +326,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (method === 'POST' && path === '/trade-plans') {
                 console.log('[API] POST /trade-plans');
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { planName, targetValue, targetCard, bundleCards, cashAmount, cashCurrency, totalBundleValue, notes } = req.body;
 
                 if (!planName || !bundleCards || !Array.isArray(bundleCards) || bundleCards.length === 0) {
@@ -357,6 +359,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const id = path.split('/')[2];
                 console.log('[API] PUT /trade-plans/:id', id);
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const updates = req.body;
 
                 // Don't allow changing userId
@@ -381,6 +384,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const id = path.split('/')[2];
                 console.log('[API] DELETE /trade-plans/:id', id);
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 const plan = await TradePlanModel.findOneAndDelete({ _id: id, userId });
                 if (!plan) {
@@ -395,6 +399,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const id = path.split('/')[2];
                 console.log('[API] POST /trade-plans/:id/complete', id);
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
                 const { transactionId } = req.body;
 
                 const plan = await TradePlanModel.findOneAndUpdate(
@@ -418,6 +423,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (method === 'POST' && path === '/trade-plans/migrate-currency') {
                 console.log('[API] POST /trade-plans/migrate-currency');
                 await connectToDb();
+                const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
 
                 // Find all plans without cashCurrency set
                 const plansToUpdate = await TradePlanModel.find({
