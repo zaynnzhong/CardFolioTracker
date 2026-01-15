@@ -13,7 +13,9 @@ import {
   linkWithPopup,
   linkWithRedirect,
   linkWithCredential,
+  signInWithCredential,
   EmailAuthProvider,
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithCustomToken,
@@ -23,6 +25,11 @@ import {
   PhoneAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+
+// Check if running in Capacitor native environment
+const isCapacitorNative = Capacitor.isNativePlatform();
 
 interface AuthContextType {
   user: User | null;
@@ -53,65 +60,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('[Auth] AuthProvider initializing...');
     console.log('[Auth] Current URL:', window.location.href);
     console.log('[Auth] User agent:', navigator.userAgent);
+    console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
+
+    // Initialize Capacitor GoogleAuth plugin for native platforms
+    if (isCapacitorNative) {
+      console.log('[Auth] Initializing Capacitor GoogleAuth plugin...');
+      GoogleAuth.initialize({
+        clientId: '398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true
+      });
+      console.log('[Auth] Capacitor GoogleAuth initialized');
+    }
 
     let unsubscribe: (() => void) | undefined;
 
-    // Handle redirect result from Google Sign-In FIRST, before setting up auth listener
-    console.log('[Auth] Checking for redirect result...');
-    console.log('[Auth] Current localStorage pendingGoogleLink:', localStorage.getItem('pendingGoogleLink'));
-    console.log('[Auth] Current auth.currentUser:', auth.currentUser);
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          console.log('[Auth] ✅ Google Sign-In redirect successful!');
-          console.log('[Auth] User email:', result.user.email);
-          console.log('[Auth] User ID:', result.user.uid);
-          console.log('[Auth] Is Anonymous:', result.user.isAnonymous);
-          console.log('[Auth] Provider data:', result.user.providerData);
-          console.log('[Auth] Operation type:', result.operationType);
-          console.log('[Auth] Additional user info:', result.user.metadata);
-          localStorage.removeItem('pendingGoogleLink');
-        } else {
-          console.log('[Auth] No redirect result (user may have navigated directly or already authenticated)');
+    const setupAuthListener = () => {
+      console.log('[Auth] Setting up auth state listener...');
+      unsubscribe = onAuthStateChanged(auth, (user) => {
+        console.log('[Auth] 🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+        if (user) {
+          console.log('[Auth] User details:', {
+            email: user.email,
+            uid: user.uid,
+            isAnonymous: user.isAnonymous,
+            emailVerified: user.emailVerified
+          });
         }
-      })
-      .catch((error) => {
-        console.error('[Auth] ❌ Error handling redirect result:');
-        console.error('[Auth] Error code:', error.code);
-        console.error('[Auth] Error message:', error.message);
-        console.error('[Auth] Full error:', error);
-
-        // Log specific error types
-        if (error.code === 'auth/unauthorized-domain') {
-          console.error('[Auth] UNAUTHORIZED DOMAIN! Add this domain to Firebase Console:');
-          console.error('[Auth] Domain:', window.location.hostname);
-          console.error('[Auth] Go to: Firebase Console > Authentication > Settings > Authorized domains');
-        } else if (error.code === 'auth/popup-blocked') {
-          console.error('[Auth] Popup was blocked by browser');
-        } else if (error.code === 'auth/cancelled-popup-request') {
-          console.error('[Auth] User cancelled the popup');
-        }
-
-        localStorage.removeItem('pendingGoogleLink');
-      })
-      .finally(() => {
-        console.log('[Auth] Setting up auth state listener...');
-        // Set up the auth state listener AFTER redirect handling completes
-        unsubscribe = onAuthStateChanged(auth, (user) => {
-          console.log('[Auth] 🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
-          if (user) {
-            console.log('[Auth] User details:', {
-              email: user.email,
-              uid: user.uid,
-              isAnonymous: user.isAnonymous,
-              emailVerified: user.emailVerified
-            });
-          }
-          setUser(user);
-          setLoading(false);
-          console.log('[Auth] Loading set to false');
-        });
+        setUser(user);
+        setLoading(false);
+        console.log('[Auth] Loading set to false');
       });
+    };
+
+    // For native platforms, skip redirect handling - just set up auth listener
+    if (isCapacitorNative) {
+      console.log('[Auth] Native platform - skipping redirect check');
+      setupAuthListener();
+    } else {
+      // Handle redirect result from Google Sign-In for web platforms
+      console.log('[Auth] Checking for redirect result...');
+      console.log('[Auth] Current localStorage pendingGoogleLink:', localStorage.getItem('pendingGoogleLink'));
+
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result) {
+            console.log('[Auth] ✅ Google Sign-In redirect successful!');
+            console.log('[Auth] User email:', result.user.email);
+            localStorage.removeItem('pendingGoogleLink');
+          } else {
+            console.log('[Auth] No redirect result');
+          }
+        })
+        .catch((error) => {
+          console.error('[Auth] ❌ Error handling redirect result:', error.code, error.message);
+          if (error.code === 'auth/unauthorized-domain') {
+            console.error('[Auth] UNAUTHORIZED DOMAIN! Add this domain to Firebase Console');
+          }
+          localStorage.removeItem('pendingGoogleLink');
+        })
+        .finally(() => {
+          setupAuthListener();
+        });
+    }
 
     return () => {
       if (unsubscribe) {
@@ -125,11 +136,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const currentUser = auth.currentUser;
 
-      // Detect if user is on a mobile device (iOS, Android, or other mobile browsers)
-      // Use redirect flow for mobile devices to avoid popup blockers
-      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      console.log('[Auth] signInWithGoogle called');
+      console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
+      console.log('[Auth] Current user:', currentUser?.email || 'none');
 
-      // On localhost, always use popup even on mobile because redirect won't work across domains
+      // Use native Google Auth for Capacitor apps (iOS/Android)
+      if (isCapacitorNative) {
+        console.log('[Auth] Using native Capacitor Google Auth...');
+
+        try {
+          // Sign in with native Google Auth
+          const googleUser = await GoogleAuth.signIn();
+          console.log('[Auth] Native Google sign-in successful:', googleUser.email);
+
+          // Get the ID token from the native response
+          const idToken = googleUser.authentication.idToken;
+
+          if (!idToken) {
+            throw new Error('No ID token received from Google');
+          }
+
+          // Create Firebase credential from the Google ID token
+          const credential = GoogleAuthProvider.credential(idToken);
+
+          // Sign in to Firebase with the credential
+          if (currentUser && currentUser.isAnonymous) {
+            console.log('[Auth] Linking anonymous account to Google (native)...');
+            await linkWithCredential(currentUser, credential);
+            console.log('[Auth] Account successfully linked to Google!');
+          } else {
+            console.log('[Auth] Signing in to Firebase with Google credential (native)...');
+            await signInWithCredential(auth, credential);
+            console.log('[Auth] Firebase sign-in successful!');
+          }
+
+          return;
+        } catch (nativeError: any) {
+          console.error('[Auth] Native Google Auth error:', nativeError);
+
+          // Handle user cancellation
+          if (nativeError.message?.includes('canceled') || nativeError.message?.includes('cancelled')) {
+            console.log('[Auth] User cancelled native Google sign-in');
+            return;
+          }
+
+          throw nativeError;
+        }
+      }
+
+      // Web platform - use Firebase redirect/popup flow
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isLocalhost = window.location.hostname === 'localhost' ||
                          window.location.hostname === '127.0.0.1' ||
                          window.location.hostname.match(/^192\.168\.\d{1,3}\.\d{1,3}$/) ||
@@ -137,24 +193,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const usePopup = !isMobile || isLocalhost;
 
-      console.log('[Auth] Device detection - isMobile:', isMobile, 'isLocalhost:', isLocalhost, 'usePopup:', usePopup);
-      console.log('[Auth] User agent:', navigator.userAgent);
-      console.log('[Auth] Hostname:', window.location.hostname);
-      console.log('[Auth] Auth domain:', auth.config.authDomain);
+      console.log('[Auth] Web platform - isMobile:', isMobile, 'usePopup:', usePopup);
 
       if (currentUser && currentUser.isAnonymous) {
         console.log('[Auth] Linking anonymous account to Google...');
         if (usePopup) {
-          console.log('[Auth] Using popup flow');
           await linkWithPopup(currentUser, googleProvider);
         } else {
           localStorage.setItem('pendingGoogleLink', 'true');
-          console.log('[Auth] Using redirect flow for mobile');
           await linkWithRedirect(currentUser, googleProvider);
         }
-        console.log('[Auth] Account successfully linked to Google!');
       } else {
-        // Regular sign-in for non-anonymous users
         if (usePopup) {
           console.log('[Auth] Using popup flow for sign-in');
           await signInWithPopup(auth, googleProvider);
@@ -164,19 +213,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (error: any) {
-      console.error('Error signing in with Google:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
+      console.error('[Auth] Error signing in with Google:', error);
+      console.error('[Auth] Error code:', error.code);
+      console.error('[Auth] Error message:', error.message);
 
       // Handle account-exists-with-different-credential error
       if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
-        // Sign out the anonymous account and sign in with the existing account
         await firebaseSignOut(auth);
-        const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-          await signInWithRedirect(auth, googleProvider);
+
+        if (isCapacitorNative) {
+          // Retry with native auth
+          const googleUser = await GoogleAuth.signIn();
+          const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+          await signInWithCredential(auth, credential);
         } else {
-          await signInWithPopup(auth, googleProvider);
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          if (isMobile) {
+            await signInWithRedirect(auth, googleProvider);
+          } else {
+            await signInWithPopup(auth, googleProvider);
+          }
         }
       } else {
         throw error;
@@ -291,6 +347,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Sign out from native Google Auth if on Capacitor
+      if (isCapacitorNative) {
+        try {
+          await GoogleAuth.signOut();
+          console.log('[Auth] Signed out from native Google Auth');
+        } catch (e) {
+          // Ignore errors if not signed in with Google
+          console.log('[Auth] Native Google signOut skipped (may not have been signed in with Google)');
+        }
+      }
       await firebaseSignOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
