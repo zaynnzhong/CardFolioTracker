@@ -27,8 +27,6 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '../firebase';
 import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
-import { App } from '@capacitor/app';
 
 // Check if running in Capacitor native environment
 const isCapacitorNative = Capacitor.isNativePlatform();
@@ -42,6 +40,31 @@ const generateNonce = () => {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+// Dynamic imports for Capacitor plugins (may not be available when loading from remote URL)
+let BrowserPlugin: any = null;
+let AppPlugin: any = null;
+
+const loadCapacitorPlugins = async () => {
+  if (isCapacitorNative && !BrowserPlugin) {
+    try {
+      const browserModule = await import('@capacitor/browser');
+      BrowserPlugin = browserModule.Browser;
+      console.log('[Auth] Browser plugin loaded successfully');
+    } catch (e) {
+      console.log('[Auth] Browser plugin not available:', e);
+    }
+  }
+  if (isCapacitorNative && !AppPlugin) {
+    try {
+      const appModule = await import('@capacitor/app');
+      AppPlugin = appModule.App;
+      console.log('[Auth] App plugin loaded successfully');
+    } catch (e) {
+      console.log('[Auth] App plugin not available:', e);
+    }
+  }
 };
 
 interface AuthContextType {
@@ -100,7 +123,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up URL listener for OAuth callback on native platforms
     const setupUrlListener = async () => {
       console.log('[Auth] Setting up URL listener for OAuth callback...');
-      urlOpenListener = await App.addListener('appUrlOpen', async ({ url }) => {
+
+      // Load plugins dynamically
+      await loadCapacitorPlugins();
+
+      if (!AppPlugin) {
+        console.log('[Auth] App plugin not available, skipping URL listener setup');
+        return;
+      }
+
+      urlOpenListener = await AppPlugin.addListener('appUrlOpen', async ({ url }: { url: string }) => {
         console.log('[Auth] 📱 App URL opened:', url);
 
         // Check if this is a Google OAuth callback
@@ -108,8 +140,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('[Auth] Google OAuth callback detected');
 
           try {
-            // Close the browser
-            await Browser.close();
+            // Close the browser if available
+            if (BrowserPlugin) {
+              await BrowserPlugin.close();
+            }
 
             // Parse the URL - tokens are in the fragment (after #)
             const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
@@ -221,7 +255,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // For Capacitor native apps, use in-app browser OAuth flow
       if (isCapacitorNative) {
-        console.log('[Auth] Capacitor native detected - using in-app browser OAuth flow...');
+        console.log('[Auth] Capacitor native detected - using OAuth flow...');
+
+        // Load plugins
+        await loadCapacitorPlugins();
 
         // Generate nonce for security
         const nonce = generateNonce();
@@ -236,18 +273,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authUrl.searchParams.set('nonce', nonce);
         authUrl.searchParams.set('prompt', 'select_account');
 
-        console.log('[Auth] Opening Google OAuth URL in in-app browser...');
+        console.log('[Auth] Opening Google OAuth URL...');
         console.log('[Auth] Auth URL:', authUrl.toString());
 
-        // Open in-app browser - this will show a Safari view controller inside the app
-        await Browser.open({
-          url: authUrl.toString(),
-          presentationStyle: 'popover', // Shows as a sheet on iOS
-          windowName: '_blank'
-        });
+        // Try Browser plugin first, fallback to window.location
+        if (BrowserPlugin) {
+          console.log('[Auth] Using Browser plugin...');
+          await BrowserPlugin.open({
+            url: authUrl.toString(),
+            presentationStyle: 'popover'
+          });
+        } else {
+          console.log('[Auth] Browser plugin not available, using window.location...');
+          // Use window.location which will navigate in-place
+          // The URL scheme redirect will bring the user back
+          window.location.href = authUrl.toString();
+        }
 
         // The URL listener set up in useEffect will handle the callback
-        console.log('[Auth] In-app browser opened, waiting for OAuth callback...');
+        console.log('[Auth] OAuth started, waiting for callback...');
         return;
       }
 
