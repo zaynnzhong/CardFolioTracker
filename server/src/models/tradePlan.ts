@@ -86,4 +86,5 @@ TradePlanSchema.pre('save', function() {
 TradePlanSchema.index({ userId: 1, status: 1 });
 TradePlanSchema.index({ userId: 1, createdAt: -1 });
 
-export const TradePlanModel = mongoose.model<ITradePlan>('TradePlan', TradePlanSchema, 'tradePlans');
+// Use a global variable to prevent recompiling model in serverless hot-reloads
+export const TradePlanModel = mongoose.models.TradePlan || mongoose.model<ITradePlan>('TradePlan', TradePlanSchema, 'tradePlans');
