@@ -237,7 +237,11 @@ export default function App() {
 
       if (card.sold) {
         const soldPrice = card.soldPrice || 0;
-        soldTotal[cur] += soldPrice;
+
+        // Only count actual sales in soldTotal, not trades
+        if (card.soldVia !== 'trade') {
+          soldTotal[cur] += soldPrice;
+        }
 
         // Track cash boots from trades
         if (card.tradeCashBoot) {
@@ -273,17 +277,6 @@ export default function App() {
     // Cash in the Game = (Total received from sales + cash boots from trades) - (Total cost basis of owned cards)
     cash.USD = soldTotal.USD + tradeCashBoots.USD - totalCostBasisOwned.USD;
     cash.CNY = soldTotal.CNY + tradeCashBoots.CNY - totalCostBasisOwned.CNY;
-
-    // Debug: Log sold cards breakdown
-    console.log('=== SALES REVENUE DEBUG ===');
-    console.log('soldTotal.USD:', soldTotal.USD);
-    console.log('soldTotal.CNY:', soldTotal.CNY);
-    const soldCards = portfolioCards.filter(c => c.sold);
-    console.log('Sold cards count:', soldCards.length);
-    soldCards.forEach(c => {
-      console.log(`- ${c.player} (${c.currency}): soldPrice=${c.soldPrice}`);
-    });
-    console.log('===========================');
 
     return { totalInvested, currentPortfolioValue, unrealizedProfit, realizedProfit, soldTotal, cash, cardCount };
   }, [portfolioCards]);
