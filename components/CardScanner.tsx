@@ -441,10 +441,13 @@ export const CardScanner: React.FC<CardScannerProps> = ({ onScanComplete, onClos
           )}
 
           {/* Powered by CardSight */}
-          <div className="text-center pt-2">
+          <div className="text-center pt-2 space-y-1">
             <span className="text-xs text-slate-500">
               Powered by CardSight AI
             </span>
+            <p className="text-[10px] text-amber-500/70">
+              ⚠️ Currently supports baseball cards only
+            </p>
           </div>
         </div>
       </div>
