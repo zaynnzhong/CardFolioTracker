@@ -32,8 +32,9 @@ import { Capacitor } from '@capacitor/core';
 const isCapacitorNative = Capacitor.isNativePlatform();
 
 // Google OAuth configuration for iOS
-const GOOGLE_CLIENT_ID = '398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d.apps.googleusercontent.com';
-const GOOGLE_IOS_REDIRECT_URI = 'com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:/oauth2callback';
+// Use iOS-specific client ID (not web client ID)
+const GOOGLE_IOS_CLIENT_ID = '398836187935-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com';
+const GOOGLE_IOS_REDIRECT_URI = 'com.googleusercontent.apps.398836187935-ia0u2mmotml5bqfm7u32tvuqhvobd5q1:/oauth2callback';
 
 // Generate a random nonce for OAuth security
 const generateNonce = () => {
@@ -103,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         // Parse the URL - tokens are in the fragment (after #)
-        const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
+        const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-ia0u2mmotml5bqfm7u32tvuqhvobd5q1:', 'https://localhost'));
         const fragment = urlObj.hash.substring(1); // Remove the #
         const params = new URLSearchParams(fragment);
 
@@ -213,7 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Build Google OAuth URL for implicit flow (returns tokens directly)
         const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-        authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+        authUrl.searchParams.set('client_id', GOOGLE_IOS_CLIENT_ID);
         authUrl.searchParams.set('redirect_uri', GOOGLE_IOS_REDIRECT_URI);
         authUrl.searchParams.set('response_type', 'id_token token');
         authUrl.searchParams.set('scope', 'openid email profile');
