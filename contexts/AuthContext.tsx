@@ -145,31 +145,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
       console.log('[Auth] Current user:', currentUser?.email || 'none');
 
-      // For Capacitor native apps, use web OAuth with redirect to prism-cards.com
+      // For Capacitor native apps, use native Google Sign-In via ASWebAuthenticationSession
       if (isCapacitorNative) {
-        console.log('[Auth] Capacitor native detected - using web OAuth flow...');
+        console.log('[Auth] Capacitor native detected - checking for native Google Sign-In...');
 
-        // Generate nonce for security
-        const nonce = generateNonce();
-        localStorage.setItem('oauth_nonce', nonce);
+        // Check if native bridge is available (injected by CustomViewController)
+        if (typeof (window as any).nativeGoogleSignIn === 'function') {
+          console.log('[Auth] Using native Google Sign-In bridge (ASWebAuthenticationSession)');
 
-        // Build Google OAuth URL for implicit flow (returns tokens directly)
-        const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-        authUrl.searchParams.set('client_id', GOOGLE_WEB_CLIENT_ID);
-        authUrl.searchParams.set('redirect_uri', GOOGLE_OAUTH_REDIRECT_URI);
-        authUrl.searchParams.set('response_type', 'id_token token');
-        authUrl.searchParams.set('scope', 'openid email profile');
-        authUrl.searchParams.set('nonce', nonce);
-        authUrl.searchParams.set('prompt', 'select_account');
+          try {
+            const result = await (window as any).nativeGoogleSignIn();
+            console.log('[Auth] Native sign-in returned tokens');
 
-        console.log('[Auth] Opening Google OAuth URL via window.location...');
-        console.log('[Auth] Auth URL:', authUrl.toString());
+            const { idToken, accessToken } = result;
 
-        // Navigate directly - will redirect back to prism-cards.com/auth/google/callback
-        window.location.href = authUrl.toString();
+            if (!idToken) {
+              throw new Error('No ID token received from native sign-in');
+            }
 
-        console.log('[Auth] OAuth started, waiting for callback...');
-        return;
+            // Create Google credential and sign in with Firebase
+            const credential = GoogleAuthProvider.credential(idToken, accessToken || null);
+
+            // Check if we need to link to anonymous account
+            if (currentUser && currentUser.isAnonymous) {
+              console.log('[Auth] Linking anonymous account to Google...');
+              try {
+                await linkWithCredential(currentUser, credential);
+                console.log('[Auth] ✅ Account linked successfully!');
+              } catch (linkError: any) {
+                if (linkError.code === 'auth/credential-already-in-use') {
+                  console.log('[Auth] Credential in use, signing in directly...');
+                  await firebaseSignOut(auth);
+                  await signInWithCredential(auth, credential);
+                } else {
+                  throw linkError;
+                }
+              }
+            } else {
+              console.log('[Auth] Signing in with Google credential...');
+              await signInWithCredential(auth, credential);
+            }
+
+            console.log('[Auth] ✅ Native Google Sign-In successful!');
+            return;
+          } catch (error: any) {
+            // Check if user cancelled
+            if (error.message === 'cancelled' || error.message?.includes('cancelled')) {
+              console.log('[Auth] User cancelled Google Sign-In');
+              return; // Don't throw, just return silently
+            }
+            console.error('[Auth] Native Google Sign-In failed:', error);
+            throw error;
+          }
+        } else {
+          console.log('[Auth] Native bridge not available, falling back to web OAuth...');
+
+          // Fallback: Use web OAuth with redirect (though this should be avoided)
+          const nonce = generateNonce();
+          localStorage.setItem('oauth_nonce', nonce);
+
+          const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+          authUrl.searchParams.set('client_id', GOOGLE_WEB_CLIENT_ID);
+          authUrl.searchParams.set('redirect_uri', GOOGLE_OAUTH_REDIRECT_URI);
+          authUrl.searchParams.set('response_type', 'id_token token');
+          authUrl.searchParams.set('scope', 'openid email profile');
+          authUrl.searchParams.set('nonce', nonce);
+          authUrl.searchParams.set('prompt', 'select_account');
+
+          console.log('[Auth] Opening Google OAuth URL via window.location...');
+          window.location.href = authUrl.toString();
+          return;
+        }
       }
 
       // Web platform - use Firebase redirect/popup flow

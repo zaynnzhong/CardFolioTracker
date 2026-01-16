@@ -65,12 +65,20 @@ export const GoogleAuthCallback: React.FC = () => {
         console.log('[GoogleAuthCallback] ✅ Sign-in successful!');
         setStatus('success');
 
-        // Clear the URL fragment and redirect to home
+        // Redirect back to app or home page
         setTimeout(() => {
-          // For native apps, redirect back to the app
-          if (Capacitor.isNativePlatform()) {
-            window.location.href = '/';
+          // Check if we came from the iOS app by checking for the app URL scheme
+          // The app's URL scheme is 'prismportfolio'
+          const isFromApp = localStorage.getItem('oauth_nonce') !== null;
+
+          if (isFromApp) {
+            // Clear the nonce
+            localStorage.removeItem('oauth_nonce');
+            // Redirect to app using URL scheme - this will open the app
+            console.log('[GoogleAuthCallback] Redirecting to app via URL scheme...');
+            window.location.href = 'prismportfolio://auth/success';
           } else {
+            // Regular web - just go home
             window.location.href = '/';
           }
         }, 1000);
