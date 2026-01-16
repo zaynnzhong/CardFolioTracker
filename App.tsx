@@ -28,6 +28,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { CardStackLoader } from './components/CardStackLoader';
 import { LoaderPreview } from './components/LoaderPreview';
 import { ConfirmEmail } from './components/ConfirmEmail';
+import { GoogleAuthCallback } from './components/GoogleAuthCallback';
 import { ProfileSettings } from './components/ProfileSettings';
 import { CardLimitBanner } from './components/CardLimitBanner';
 import { UnlockKeyModal } from './components/UnlockKeyModal';
@@ -47,6 +48,7 @@ export default function App() {
   const pathname = window.location.pathname;
   const isPreview = urlParams.get('preview') === 'loader';
   const isConfirmEmail = pathname === '/confirm-email';
+  const isGoogleAuthCallback = pathname === '/auth/google/callback';
   const isProfileSettings = pathname === '/profile' || pathname === '/settings';
 
   if (isPreview) {
@@ -55,6 +57,10 @@ export default function App() {
 
   if (isConfirmEmail) {
     return <ConfirmEmail />;
+  }
+
+  if (isGoogleAuthCallback) {
+    return <GoogleAuthCallback />;
   }
 
   const { user, loading: authLoading, signOut, getIdToken } = useAuth();

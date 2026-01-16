@@ -31,10 +31,10 @@ import { Capacitor } from '@capacitor/core';
 // Check if running in Capacitor native environment
 const isCapacitorNative = Capacitor.isNativePlatform();
 
-// Google OAuth configuration for iOS
-// Use iOS-specific client ID (not web client ID)
-const GOOGLE_IOS_CLIENT_ID = '286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com';
-const GOOGLE_IOS_REDIRECT_URI = 'com.googleusercontent.apps.286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1:/oauth2callback';
+// Google OAuth configuration
+// Use Web client ID for browser-based OAuth (works on both web and iOS WKWebView)
+const GOOGLE_WEB_CLIENT_ID = '286826518600-ht2pnomv9npsmua25vm2adkff9h962u0.apps.googleusercontent.com';
+const GOOGLE_OAUTH_REDIRECT_URI = 'https://prism-cards.com/auth/google/callback';
 
 // Generate a random nonce for OAuth security
 const generateNonce = () => {
@@ -97,66 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
 
-    // Handle OAuth callback from native code via custom event
-    const handleNativeOAuthCallback = async (event: CustomEvent<{ url: string }>) => {
-      const url = event.detail.url;
-      console.log('[Auth] 📱 Native OAuth callback received:', url);
-
-      try {
-        // Parse the URL - tokens are in the fragment (after #)
-        const urlObj = new URL(url.replace('com.googleusercontent.apps.286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1:', 'https://localhost'));
-        const fragment = urlObj.hash.substring(1); // Remove the #
-        const params = new URLSearchParams(fragment);
-
-        const idToken = params.get('id_token');
-        const accessToken = params.get('access_token');
-        const error = params.get('error');
-
-        if (error) {
-          console.error('[Auth] OAuth error:', error);
-          return;
-        }
-
-        if (idToken) {
-          console.log('[Auth] Got ID token from native OAuth callback');
-
-          // Create Google credential and sign in with Firebase
-          const credential = GoogleAuthProvider.credential(idToken, accessToken);
-
-          // Check if we need to link to anonymous account
-          const currentUser = auth.currentUser;
-          if (currentUser && currentUser.isAnonymous) {
-            console.log('[Auth] Linking anonymous account to Google...');
-            try {
-              await linkWithCredential(currentUser, credential);
-              console.log('[Auth] ✅ Account linked to Google successfully!');
-            } catch (linkError: any) {
-              if (linkError.code === 'auth/credential-already-in-use') {
-                console.log('[Auth] Credential in use, signing out and signing in...');
-                await firebaseSignOut(auth);
-                await signInWithCredential(auth, credential);
-              } else {
-                throw linkError;
-              }
-            }
-          } else {
-            console.log('[Auth] Signing in with Google credential...');
-            await signInWithCredential(auth, credential);
-            console.log('[Auth] ✅ Google sign-in successful!');
-          }
-        }
-      } catch (error) {
-        console.error('[Auth] Error handling native OAuth callback:', error);
-      }
-    };
-
-    // For native platforms, set up OAuth callback listener
+    // For native platforms, just set up auth listener
+    // OAuth callback is handled by GoogleAuthCallback component
     if (isCapacitorNative) {
-      console.log('[Auth] Native platform - setting up OAuth callback listener');
-
-      // Listen for native OAuth callback event (injected from AppDelegate.swift)
-      window.addEventListener('capacitor-oauth-callback', handleNativeOAuthCallback as EventListener);
-
+      console.log('[Auth] Native platform - setting up auth listener');
       setupAuthListener();
     } else {
       // Handle redirect result from Google Sign-In for web platforms
@@ -190,9 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('[Auth] Cleaning up auth listener');
         unsubscribe();
       }
-      if (isCapacitorNative) {
-        window.removeEventListener('capacitor-oauth-callback', handleNativeOAuthCallback as EventListener);
-      }
     };
   }, []);
 
@@ -204,18 +145,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
       console.log('[Auth] Current user:', currentUser?.email || 'none');
 
-      // For Capacitor native apps, use direct navigation OAuth flow
+      // For Capacitor native apps, use web OAuth with redirect to prism-cards.com
       if (isCapacitorNative) {
-        console.log('[Auth] Capacitor native detected - using direct OAuth flow...');
+        console.log('[Auth] Capacitor native detected - using web OAuth flow...');
 
         // Generate nonce for security
         const nonce = generateNonce();
-        pendingOAuthNonce.current = nonce;
+        localStorage.setItem('oauth_nonce', nonce);
 
         // Build Google OAuth URL for implicit flow (returns tokens directly)
         const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-        authUrl.searchParams.set('client_id', GOOGLE_IOS_CLIENT_ID);
-        authUrl.searchParams.set('redirect_uri', GOOGLE_IOS_REDIRECT_URI);
+        authUrl.searchParams.set('client_id', GOOGLE_WEB_CLIENT_ID);
+        authUrl.searchParams.set('redirect_uri', GOOGLE_OAUTH_REDIRECT_URI);
         authUrl.searchParams.set('response_type', 'id_token token');
         authUrl.searchParams.set('scope', 'openid email profile');
         authUrl.searchParams.set('nonce', nonce);
@@ -224,11 +165,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('[Auth] Opening Google OAuth URL via window.location...');
         console.log('[Auth] Auth URL:', authUrl.toString());
 
-        // Navigate directly - iOS will handle the URL scheme redirect back to the app
+        // Navigate directly - will redirect back to prism-cards.com/auth/google/callback
         window.location.href = authUrl.toString();
 
-        // The native AppDelegate will handle the callback and inject JS
-        console.log('[Auth] OAuth started, waiting for native callback...');
+        console.log('[Auth] OAuth started, waiting for callback...');
         return;
       }
 
