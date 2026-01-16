@@ -28,6 +28,7 @@
     "@splinetool/runtime": "^1.12.6",
     "@tremor/react": "^3.18.7",
     "@types/formidable": "^3.4.6",
+    "cardsightai": "^2.4.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

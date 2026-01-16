@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Sport, Currency, AcquisitionSource, Offer, PricePoint } from '../types';
-import { X, Upload, Image as ImageIcon, Eye, Wallet, Plus, Trash2 } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Eye, Wallet, Plus, Trash2, Sparkles } from 'lucide-react';
 import { GradingInput } from './GradingInput';
 import { uploadImage } from '../services/imagekit';
+import { CardScanner } from './CardScanner';
 
 interface CardFormProps {
   initialData?: Card | null;
@@ -72,6 +73,47 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
 
   const [notes, setNotes] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Card Scanner state
+  const [showScanner, setShowScanner] = useState(false);
+
+  // Handle scan completion from CardScanner
+  const handleScanComplete = async (scannedData: {
+    player: string;
+    year: number;
+    brand: string;
+    series: string;
+    insert: string;
+    parallel?: string;
+    serialNumber?: string;
+  }, imageFile: File) => {
+    // Auto-fill form fields
+    setPlayer(scannedData.player);
+    setYear(scannedData.year.toString());
+    setBrand(scannedData.brand);
+    setSeries(scannedData.series);
+    setInsert(scannedData.insert);
+    if (scannedData.parallel) setParallel(scannedData.parallel);
+    if (scannedData.serialNumber) setSerialNumber(scannedData.serialNumber);
+
+    // Upload the scanned image
+    try {
+      setImageUploading(true);
+      const resizedFile = await resizeImage(imageFile, 400);
+      const fileName = `${scannedData.player || 'card'}_${scannedData.year}_${scannedData.brand}_${Date.now()}`.replace(/\s+/g, '_');
+      const result = await uploadImage(resizedFile, fileName, getIdToken);
+      setImageUrl(result.url);
+      console.log('[CardForm] Scanned image uploaded to ImageKit:', result.url);
+    } catch (error) {
+      console.error('[CardForm] Scanned image upload failed:', error);
+      // Still close scanner and keep the form data even if image upload fails
+    } finally {
+      setImageUploading(false);
+    }
+
+    // Close the scanner
+    setShowScanner(false);
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -506,6 +548,16 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
                     disabled={imageUploading}
                   />
                 </div>
+
+                {/* AI Card Scanner Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="w-full py-3 bg-gradient-to-r from-crypto-lime/20 to-emerald-500/20 hover:from-crypto-lime/30 hover:to-emerald-500/30 border border-crypto-lime/30 text-crypto-lime font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                >
+                  <Sparkles size={18} />
+                  Scan with AI
+                </button>
               </div>
 
               {/* Data Section - Right Column */}
@@ -1128,6 +1180,14 @@ export const CardForm: React.FC<CardFormProps> = ({ initialData, onSave, onCance
           background-color: #334155;
         }
       `}</style>
+
+      {/* Card Scanner Modal */}
+      {showScanner && (
+        <CardScanner
+          onScanComplete={handleScanComplete}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 };
