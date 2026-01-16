@@ -6,6 +6,7 @@ import AuthenticationServices
 class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASWebAuthenticationPresentationContextProviding {
 
     private var authSession: ASWebAuthenticationSession?
+    private var webViewObserver: NSKeyValueObservation?
 
     // Google OAuth configuration
     private let clientId = "286826518600-ht2pnomv9npsmua25vm2adkff9h962u0.apps.googleusercontent.com"
@@ -17,19 +18,34 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         // Register script message handler for Google Sign-In
         bridge?.webView?.configuration.userContentController.add(self, name: "nativeGoogleSignIn")
 
-        // Inject the JavaScript bridge function
+        // Observe when page finishes loading to inject our bridge
+        webViewObserver = bridge?.webView?.observe(\.isLoading, options: [.new]) { [weak self] webView, change in
+            if let isLoading = change.newValue, !isLoading {
+                self?.injectGoogleSignInBridge()
+            }
+        }
+
+        // Also inject immediately in case page is already loaded
         injectGoogleSignInBridge()
+
+        print("[CustomVC] Google Sign-In bridge setup complete")
+    }
+
+    deinit {
+        webViewObserver?.invalidate()
     }
 
     private func injectGoogleSignInBridge() {
         let js = """
-        window.nativeGoogleSignIn = function() {
-            return new Promise((resolve, reject) => {
-                window._googleSignInCallback = { resolve, reject };
-                window.webkit.messageHandlers.nativeGoogleSignIn.postMessage('signIn');
-            });
-        };
-        console.log('[Native] Google Sign-In bridge injected');
+        if (!window.nativeGoogleSignIn) {
+            window.nativeGoogleSignIn = function() {
+                return new Promise((resolve, reject) => {
+                    window._googleSignInCallback = { resolve, reject };
+                    window.webkit.messageHandlers.nativeGoogleSignIn.postMessage('signIn');
+                });
+            };
+            console.log('[Native] Google Sign-In bridge injected');
+        }
         """
 
         bridge?.webView?.evaluateJavaScript(js) { _, error in
