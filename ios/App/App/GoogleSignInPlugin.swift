@@ -14,8 +14,8 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticatio
 
     private var authSession: ASWebAuthenticationSession?
 
-    // Google OAuth configuration
-    private let clientId = "286826518600-ht2pnomv9npsmua25vm2adkff9h962u0.apps.googleusercontent.com"
+    // Google OAuth configuration - iOS client ID
+    private let clientId = "286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com"
     private let redirectScheme = "com.googleusercontent.apps.286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1"
 
     public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {

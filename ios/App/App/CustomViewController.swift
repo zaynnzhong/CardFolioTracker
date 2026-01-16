@@ -8,8 +8,8 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
     private var authSession: ASWebAuthenticationSession?
     private var webViewObserver: NSKeyValueObservation?
 
-    // Google OAuth configuration
-    private let clientId = "286826518600-ht2pnomv9npsmua25vm2adkff9h962u0.apps.googleusercontent.com"
+    // Google OAuth configuration - iOS client ID
+    private let clientId = "286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com"
     private let redirectScheme = "com.googleusercontent.apps.286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1"
 
     override func viewDidLoad() {
