@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, X, Loader2, Check, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { scanCard, CardScanResult } from '../services/cardsight';
 import { Sport } from '../types';
@@ -30,6 +30,13 @@ export const CardScanner: React.FC<CardScannerProps> = ({ onScanComplete, onClos
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Set video srcObject when camera stream is available and video element is rendered
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream, showCamera]);
+
   // Handle file selection
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,9 +59,7 @@ export const CardScanner: React.FC<CardScannerProps> = ({ onScanComplete, onClos
       });
       setCameraStream(stream);
       setShowCamera(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      // srcObject is set via useEffect after video element renders
     } catch (error) {
       console.error('Camera error:', error);
       alert('Unable to access camera. Please use file upload instead.');
