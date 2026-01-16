@@ -42,30 +42,6 @@ const generateNonce = () => {
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
-// Dynamic imports for Capacitor plugins (may not be available when loading from remote URL)
-let BrowserPlugin: any = null;
-let AppPlugin: any = null;
-
-const loadCapacitorPlugins = async () => {
-  if (isCapacitorNative && !BrowserPlugin) {
-    try {
-      const browserModule = await import('@capacitor/browser');
-      BrowserPlugin = browserModule.Browser;
-      console.log('[Auth] Browser plugin loaded successfully');
-    } catch (e) {
-      console.log('[Auth] Browser plugin not available:', e);
-    }
-  }
-  if (isCapacitorNative && !AppPlugin) {
-    try {
-      const appModule = await import('@capacitor/app');
-      AppPlugin = appModule.App;
-      console.log('[Auth] App plugin loaded successfully');
-    } catch (e) {
-      console.log('[Auth] App plugin not available:', e);
-    }
-  }
-};
 
 interface AuthContextType {
   user: User | null;
@@ -100,7 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
 
     let unsubscribe: (() => void) | undefined;
-    let urlOpenListener: any = null;
 
     const setupAuthListener = () => {
       console.log('[Auth] Setting up auth state listener...');
@@ -120,86 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
-    // Set up URL listener for OAuth callback on native platforms
-    const setupUrlListener = async () => {
-      console.log('[Auth] Setting up URL listener for OAuth callback...');
-
-      // Load plugins dynamically
-      await loadCapacitorPlugins();
-
-      if (!AppPlugin) {
-        console.log('[Auth] App plugin not available, skipping URL listener setup');
-        return;
-      }
-
-      urlOpenListener = await AppPlugin.addListener('appUrlOpen', async ({ url }: { url: string }) => {
-        console.log('[Auth] 📱 App URL opened:', url);
-
-        // Check if this is a Google OAuth callback
-        if (url.includes('oauth2callback') || url.includes('id_token')) {
-          console.log('[Auth] Google OAuth callback detected');
-
-          try {
-            // Close the browser if available
-            if (BrowserPlugin) {
-              await BrowserPlugin.close();
-            }
-
-            // Parse the URL - tokens are in the fragment (after #)
-            const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
-            const fragment = urlObj.hash.substring(1); // Remove the #
-            const params = new URLSearchParams(fragment);
-
-            const idToken = params.get('id_token');
-            const accessToken = params.get('access_token');
-            const error = params.get('error');
-
-            if (error) {
-              console.error('[Auth] OAuth error:', error);
-              throw new Error(`Google sign-in failed: ${error}`);
-            }
-
-            if (idToken) {
-              console.log('[Auth] Got ID token from OAuth callback');
-
-              // Create Google credential and sign in with Firebase
-              const credential = GoogleAuthProvider.credential(idToken, accessToken);
-
-              // Check if we need to link to anonymous account
-              const currentUser = auth.currentUser;
-              if (currentUser && currentUser.isAnonymous) {
-                console.log('[Auth] Linking anonymous account to Google...');
-                await linkWithCredential(currentUser, credential);
-                console.log('[Auth] ✅ Account linked to Google successfully!');
-              } else {
-                console.log('[Auth] Signing in with Google credential...');
-                await signInWithCredential(auth, credential);
-                console.log('[Auth] ✅ Google sign-in successful!');
-              }
-            } else {
-              console.error('[Auth] No ID token in callback');
-              throw new Error('No ID token received from Google');
-            }
-          } catch (error: any) {
-            console.error('[Auth] Error handling OAuth callback:', error);
-            // If credential already in use, sign out anonymous and sign in
-            if (error.code === 'auth/credential-already-in-use') {
-              console.log('[Auth] Credential already in use, signing out and retrying...');
-              await firebaseSignOut(auth);
-              const urlObj = new URL(url.replace('com.googleusercontent.apps.398836187935-rbujq4f4v9ihmu28g87r0kgd38dlrg3d:', 'https://localhost'));
-              const fragment = urlObj.hash.substring(1);
-              const params = new URLSearchParams(fragment);
-              const idToken = params.get('id_token');
-              const accessToken = params.get('access_token');
-              if (idToken) {
-                const credential = GoogleAuthProvider.credential(idToken, accessToken);
-                await signInWithCredential(auth, credential);
-              }
-            }
-          }
-        }
-      });
-    };
 
     // Handle OAuth callback from native code via custom event
     const handleNativeOAuthCallback = async (event: CustomEvent<{ url: string }>) => {
@@ -254,14 +149,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // For native platforms, set up URL listener and auth listener
+    // For native platforms, set up OAuth callback listener
     if (isCapacitorNative) {
-      console.log('[Auth] Native platform - setting up listeners');
+      console.log('[Auth] Native platform - setting up OAuth callback listener');
 
       // Listen for native OAuth callback event (injected from AppDelegate.swift)
       window.addEventListener('capacitor-oauth-callback', handleNativeOAuthCallback as EventListener);
 
-      setupUrlListener();
       setupAuthListener();
     } else {
       // Handle redirect result from Google Sign-In for web platforms
@@ -295,10 +189,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('[Auth] Cleaning up auth listener');
         unsubscribe();
       }
-      if (urlOpenListener) {
-        console.log('[Auth] Cleaning up URL listener');
-        urlOpenListener.remove();
-      }
       if (isCapacitorNative) {
         window.removeEventListener('capacitor-oauth-callback', handleNativeOAuthCallback as EventListener);
       }
@@ -313,12 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
       console.log('[Auth] Current user:', currentUser?.email || 'none');
 
-      // For Capacitor native apps, use in-app browser OAuth flow
+      // For Capacitor native apps, use direct navigation OAuth flow
       if (isCapacitorNative) {
-        console.log('[Auth] Capacitor native detected - using OAuth flow...');
-
-        // Load plugins
-        await loadCapacitorPlugins();
+        console.log('[Auth] Capacitor native detected - using direct OAuth flow...');
 
         // Generate nonce for security
         const nonce = generateNonce();
@@ -333,25 +220,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authUrl.searchParams.set('nonce', nonce);
         authUrl.searchParams.set('prompt', 'select_account');
 
-        console.log('[Auth] Opening Google OAuth URL...');
+        console.log('[Auth] Opening Google OAuth URL via window.location...');
         console.log('[Auth] Auth URL:', authUrl.toString());
 
-        // Try Browser plugin first, fallback to window.location
-        if (BrowserPlugin) {
-          console.log('[Auth] Using Browser plugin...');
-          await BrowserPlugin.open({
-            url: authUrl.toString(),
-            presentationStyle: 'popover'
-          });
-        } else {
-          console.log('[Auth] Browser plugin not available, using window.location...');
-          // Use window.location which will navigate in-place
-          // The URL scheme redirect will bring the user back
-          window.location.href = authUrl.toString();
-        }
+        // Navigate directly - iOS will handle the URL scheme redirect back to the app
+        window.location.href = authUrl.toString();
 
-        // The URL listener set up in useEffect will handle the callback
-        console.log('[Auth] OAuth started, waiting for callback...');
+        // The native AppDelegate will handle the callback and inject JS
+        console.log('[Auth] OAuth started, waiting for native callback...');
         return;
       }
 
