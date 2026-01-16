@@ -54,15 +54,19 @@ export interface CardScanResult {
 export async function scanCard(imageFile: File | Blob | ArrayBuffer): Promise<CardScanResult> {
   try {
     const cardSightClient = getClient();
+    console.log('[CardSight] Scanning card, file type:', imageFile instanceof File ? 'File' : imageFile instanceof Blob ? 'Blob' : 'ArrayBuffer');
+
     const result = await cardSightClient.identify.card(imageFile);
+    console.log('[CardSight] API response:', JSON.stringify(result, null, 2));
 
     if (!result.data?.success) {
+      console.error('[CardSight] API returned unsuccessful:', result);
       return {
         success: false,
         confidence: null,
         card: null,
         allDetections: [],
-        error: 'Card identification failed'
+        error: result.data?.error || result.error || 'Card identification failed'
       };
     }
 
