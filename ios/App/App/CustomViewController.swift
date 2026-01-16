@@ -2,11 +2,13 @@ import UIKit
 import Capacitor
 import WebKit
 import AuthenticationServices
+import CryptoKit
 
 class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASWebAuthenticationPresentationContextProviding {
 
     private var authSession: ASWebAuthenticationSession?
     private var webViewObserver: NSKeyValueObservation?
+    private var codeVerifier: String?
 
     // Google OAuth configuration - iOS client ID
     private let clientId = "286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com"
@@ -57,6 +59,26 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         }
     }
 
+    // MARK: - PKCE Helpers
+
+    private func generateCodeVerifier() -> String {
+        var buffer = [UInt8](repeating: 0, count: 32)
+        _ = SecRandomCopyBytes(kSecRandomDefault, buffer.count, &buffer)
+        return Data(buffer).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func generateCodeChallenge(from verifier: String) -> String {
+        let data = Data(verifier.utf8)
+        let hash = SHA256.hash(data: data)
+        return Data(hash).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
     // MARK: - WKScriptMessageHandler
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -72,18 +94,21 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         return view.window!
     }
 
-    // MARK: - Google Sign-In
+    // MARK: - Google Sign-In with PKCE
 
     private func performGoogleSignIn() {
-        let nonce = UUID().uuidString
+        // Generate PKCE code verifier and challenge
+        codeVerifier = generateCodeVerifier()
+        let codeChallenge = generateCodeChallenge(from: codeVerifier!)
 
         var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
         components.queryItems = [
             URLQueryItem(name: "client_id", value: clientId),
             URLQueryItem(name: "redirect_uri", value: "\(redirectScheme):/oauth2callback"),
-            URLQueryItem(name: "response_type", value: "id_token token"),
+            URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "scope", value: "openid email profile"),
-            URLQueryItem(name: "nonce", value: nonce),
+            URLQueryItem(name: "code_challenge", value: codeChallenge),
+            URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "prompt", value: "select_account")
         ]
 
@@ -92,7 +117,7 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
             return
         }
 
-        print("[CustomVC] Starting ASWebAuthenticationSession")
+        print("[CustomVC] Starting ASWebAuthenticationSession with PKCE")
 
         authSession = ASWebAuthenticationSession(
             url: authURL,
@@ -112,7 +137,7 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
                 return
             }
 
-            self?.handleCallback(url: callbackURL)
+            self?.handleAuthCodeCallback(url: callbackURL)
         }
 
         authSession?.presentationContextProvider = self
@@ -123,32 +148,74 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         }
     }
 
-    private func handleCallback(url: URL) {
-        let urlString = url.absoluteString
-
-        guard let fragmentStart = urlString.range(of: "#") else {
-            rejectSignIn(error: "Invalid callback URL")
+    private func handleAuthCodeCallback(url: URL) {
+        // Parse authorization code from URL query
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let code = components.queryItems?.first(where: { $0.name == "code" })?.value else {
+            if let error = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "error" })?.value {
+                rejectSignIn(error: error)
+            } else {
+                rejectSignIn(error: "No authorization code received")
+            }
             return
         }
 
-        let fragment = String(urlString[fragmentStart.upperBound...])
-        var params: [String: String] = [:]
+        print("[CustomVC] Got authorization code, exchanging for tokens...")
 
-        for param in fragment.components(separatedBy: "&") {
-            let parts = param.components(separatedBy: "=")
-            if parts.count == 2 {
-                params[parts[0]] = parts[1].removingPercentEncoding
+        // Exchange code for tokens
+        exchangeCodeForTokens(code: code)
+    }
+
+    private func exchangeCodeForTokens(code: String) {
+        guard let verifier = codeVerifier else {
+            rejectSignIn(error: "Missing code verifier")
+            return
+        }
+
+        let tokenURL = URL(string: "https://oauth2.googleapis.com/token")!
+        var request = URLRequest(url: tokenURL)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+
+        let params = [
+            "client_id": clientId,
+            "code": code,
+            "code_verifier": verifier,
+            "grant_type": "authorization_code",
+            "redirect_uri": "\(redirectScheme):/oauth2callback"
+        ]
+
+        let body = params.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)" }.joined(separator: "&")
+        request.httpBody = body.data(using: .utf8)
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            if let error = error {
+                self?.rejectSignIn(error: error.localizedDescription)
+                return
             }
-        }
 
-        if let idToken = params["id_token"] {
-            let accessToken = params["access_token"] ?? ""
-            resolveSignIn(idToken: idToken, accessToken: accessToken)
-        } else if let error = params["error"] {
-            rejectSignIn(error: error)
-        } else {
-            rejectSignIn(error: "No ID token received")
-        }
+            guard let data = data else {
+                self?.rejectSignIn(error: "No data received")
+                return
+            }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let idToken = json["id_token"] as? String {
+                        let accessToken = json["access_token"] as? String ?? ""
+                        print("[CustomVC] Successfully got tokens!")
+                        self?.resolveSignIn(idToken: idToken, accessToken: accessToken)
+                    } else if let error = json["error"] as? String {
+                        let description = json["error_description"] as? String ?? error
+                        self?.rejectSignIn(error: description)
+                    } else {
+                        self?.rejectSignIn(error: "Invalid token response")
+                    }
+                }
+            } catch {
+                self?.rejectSignIn(error: "Failed to parse token response")
+            }
+        }.resume()
     }
 
     private func resolveSignIn(idToken: String, accessToken: String) {
