@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, X, Loader2, Check, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { scanCard, CardScanResult } from '../services/cardsight';
 import { Sport } from '../types';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 interface ScannedCardData {
   player: string;
@@ -51,18 +53,52 @@ export const CardScanner: React.FC<CardScannerProps> = ({ onScanComplete, onClos
     }
   }, []);
 
-  // Start camera
+  // Start camera - use native on iOS/Android, web API on browser
   const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
-      });
-      setCameraStream(stream);
-      setShowCamera(true);
-      // srcObject is set via useEffect after video element renders
-    } catch (error) {
-      console.error('Camera error:', error);
-      alert('Unable to access camera. Please use file upload instead.');
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      // Use Capacitor Camera plugin on iOS/Android
+      try {
+        const photo = await CapCamera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Camera,
+          correctOrientation: true
+        });
+
+        if (photo.base64String) {
+          // Convert base64 to File
+          const base64Data = `data:image/${photo.format};base64,${photo.base64String}`;
+          setImagePreview(base64Data);
+
+          // Convert to File for scanning
+          const response = await fetch(base64Data);
+          const blob = await response.blob();
+          const file = new File([blob], `card-scan.${photo.format}`, { type: `image/${photo.format}` });
+          setImageFile(file);
+          setScanResult(null);
+        }
+      } catch (error: any) {
+        console.error('Native camera error:', error);
+        if (error.message !== 'User cancelled photos app') {
+          alert('Unable to access camera. Please use file upload instead.');
+        }
+      }
+    } else {
+      // Use web getUserMedia on browser
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        setCameraStream(stream);
+        setShowCamera(true);
+        // srcObject is set via useEffect after video element renders
+      } catch (error) {
+        console.error('Camera error:', error);
+        alert('Unable to access camera. Please use file upload instead.');
+      }
     }
   }, []);
 
