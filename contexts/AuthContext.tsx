@@ -43,6 +43,57 @@ const generateNonce = () => {
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
+// Wait for native Google Sign-In bridge to be available (with retries and event listener)
+const waitForNativeBridge = async (maxWaitMs: number = 3000): Promise<boolean> => {
+  // Check if already available
+  if (typeof (window as any).nativeGoogleSignIn === 'function') {
+    console.log('[Auth] Native bridge already available');
+    return true;
+  }
+
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const checkInterval = 100; // Check every 100ms
+    let resolved = false;
+
+    // Listen for ready event from native side
+    const handleReady = () => {
+      if (!resolved) {
+        resolved = true;
+        console.log('[Auth] Native bridge ready (via event) after', Date.now() - startTime, 'ms');
+        window.removeEventListener('nativeGoogleSignInReady', handleReady);
+        resolve(true);
+      }
+    };
+    window.addEventListener('nativeGoogleSignInReady', handleReady);
+
+    // Also poll in case event was already fired
+    const pollInterval = setInterval(() => {
+      if (resolved) {
+        clearInterval(pollInterval);
+        return;
+      }
+
+      if (typeof (window as any).nativeGoogleSignIn === 'function') {
+        resolved = true;
+        clearInterval(pollInterval);
+        window.removeEventListener('nativeGoogleSignInReady', handleReady);
+        console.log('[Auth] Native bridge found (via polling) after', Date.now() - startTime, 'ms');
+        resolve(true);
+        return;
+      }
+
+      if (Date.now() - startTime >= maxWaitMs) {
+        resolved = true;
+        clearInterval(pollInterval);
+        window.removeEventListener('nativeGoogleSignInReady', handleReady);
+        console.log('[Auth] Native bridge not found after', maxWaitMs, 'ms');
+        resolve(false);
+      }
+    }, checkInterval);
+  });
+};
+
 
 interface AuthContextType {
   user: User | null;
@@ -147,10 +198,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // For Capacitor native apps, use native Google Sign-In via ASWebAuthenticationSession
       if (isCapacitorNative) {
-        console.log('[Auth] Capacitor native detected - checking for native Google Sign-In...');
+        console.log('[Auth] Capacitor native detected - waiting for native Google Sign-In bridge...');
 
-        // Check if native bridge is available (injected by CustomViewController)
-        if (typeof (window as any).nativeGoogleSignIn === 'function') {
+        // Wait for native bridge to be available (may take a moment after page load)
+        const bridgeAvailable = await waitForNativeBridge(3000);
+
+        if (bridgeAvailable) {
           console.log('[Auth] Using native Google Sign-In bridge (ASWebAuthenticationSession)');
 
           try {
@@ -198,23 +251,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw error;
           }
         } else {
-          console.log('[Auth] Native bridge not available, falling back to web OAuth...');
-
-          // Fallback: Use web OAuth with redirect (though this should be avoided)
-          const nonce = generateNonce();
-          localStorage.setItem('oauth_nonce', nonce);
-
-          const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-          authUrl.searchParams.set('client_id', GOOGLE_WEB_CLIENT_ID);
-          authUrl.searchParams.set('redirect_uri', GOOGLE_OAUTH_REDIRECT_URI);
-          authUrl.searchParams.set('response_type', 'id_token token');
-          authUrl.searchParams.set('scope', 'openid email profile');
-          authUrl.searchParams.set('nonce', nonce);
-          authUrl.searchParams.set('prompt', 'select_account');
-
-          console.log('[Auth] Opening Google OAuth URL via window.location...');
-          window.location.href = authUrl.toString();
-          return;
+          // Bridge not available after waiting - this shouldn't happen in normal operation
+          console.error('[Auth] Native bridge not available after waiting! This indicates a problem with iOS setup.');
+          throw new Error('Google Sign-In is not available. Please restart the app and try again.');
         }
       }
 

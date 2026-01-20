@@ -47,6 +47,9 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
                 });
             };
             console.log('[Native] Google Sign-In bridge injected');
+
+            // Dispatch event to notify JavaScript that native bridge is ready
+            window.dispatchEvent(new CustomEvent('nativeGoogleSignInReady'));
         }
         """
 
