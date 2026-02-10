@@ -68,6 +68,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Prism Portfolio needs camera access to scan and identify your trading cards</string>
 	<key>NSPhotoLibraryUsageDescription</key>
