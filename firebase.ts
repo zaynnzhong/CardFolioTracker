@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  OAuthProvider,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   PhoneAuthProvider,
@@ -45,6 +46,11 @@ export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+
+// Apple Auth Provider
+export const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 
 // Email link auth configuration
 // Use production URL if available, otherwise fall back to current origin

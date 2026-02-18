@@ -25,7 +25,7 @@ import {
   PhoneAuthProvider,
   OAuthProvider
 } from 'firebase/auth';
-import { auth, googleProvider, actionCodeSettings } from '../firebase';
+import { auth, googleProvider, appleProvider, actionCodeSettings } from '../firebase';
 import { Capacitor } from '@capacitor/core';
 
 // Check if running in Capacitor native environment
@@ -95,10 +95,55 @@ const waitForNativeBridge = async (maxWaitMs: number = 3000): Promise<boolean> =
 };
 
 
+// Wait for native Apple Sign-In bridge to be available
+const waitForNativeAppleBridge = async (maxWaitMs: number = 3000): Promise<boolean> => {
+  if (typeof (window as any).nativeAppleSignIn === 'function') {
+    return true;
+  }
+
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const checkInterval = 100;
+    let resolved = false;
+
+    const handleReady = () => {
+      if (!resolved) {
+        resolved = true;
+        window.removeEventListener('nativeAppleSignInReady', handleReady);
+        resolve(true);
+      }
+    };
+    window.addEventListener('nativeAppleSignInReady', handleReady);
+
+    const pollInterval = setInterval(() => {
+      if (resolved) {
+        clearInterval(pollInterval);
+        return;
+      }
+
+      if (typeof (window as any).nativeAppleSignIn === 'function') {
+        resolved = true;
+        clearInterval(pollInterval);
+        window.removeEventListener('nativeAppleSignInReady', handleReady);
+        resolve(true);
+        return;
+      }
+
+      if (Date.now() - startTime >= maxWaitMs) {
+        resolved = true;
+        clearInterval(pollInterval);
+        window.removeEventListener('nativeAppleSignInReady', handleReady);
+        resolve(false);
+      }
+    }, checkInterval);
+  });
+};
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signInAsGuest: () => Promise<void>;
   sendEmailLink: (email: string) => Promise<void>;
   confirmEmailLink: (email: string, url: string) => Promise<void>;
@@ -110,6 +155,7 @@ interface AuthContextType {
   setupRecaptcha: (containerId: string) => RecaptchaVerifier;
   sendPhoneCode: (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier) => Promise<ConfirmationResult>;
   verifyPhoneCode: (confirmationResult: ConfirmationResult, code: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   signOut: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
 }
@@ -303,6 +349,120 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithApple = async () => {
+    try {
+      const currentUser = auth.currentUser;
+
+      console.log('[Auth] signInWithApple called');
+      console.log('[Auth] Is Capacitor Native:', isCapacitorNative);
+
+      // For Capacitor native apps, use native Apple Sign-In via ASAuthorizationAppleIDProvider
+      if (isCapacitorNative) {
+        console.log('[Auth] Capacitor native detected - waiting for native Apple Sign-In bridge...');
+
+        const bridgeAvailable = await waitForNativeAppleBridge(3000);
+
+        if (bridgeAvailable) {
+          console.log('[Auth] Using native Apple Sign-In bridge');
+
+          try {
+            const result = await (window as any).nativeAppleSignIn();
+            console.log('[Auth] Native Apple sign-in returned tokens');
+
+            const { idToken, rawNonce } = result;
+
+            if (!idToken) {
+              throw new Error('No ID token received from native Apple sign-in');
+            }
+
+            // Create Apple credential with nonce
+            const credential = OAuthProvider.credentialFromJSON({
+              providerId: 'apple.com',
+              signInMethod: 'oauth',
+              idToken: idToken,
+              rawNonce: rawNonce
+            }) as any;
+
+            // Use OAuthProvider.credential instead for proper nonce handling
+            const oauthCredential = new OAuthProvider('apple.com').credential({
+              idToken: idToken,
+              rawNonce: rawNonce
+            });
+
+            if (currentUser && currentUser.isAnonymous) {
+              console.log('[Auth] Linking anonymous account to Apple...');
+              try {
+                await linkWithCredential(currentUser, oauthCredential);
+                console.log('[Auth] Account linked successfully!');
+              } catch (linkError: any) {
+                if (linkError.code === 'auth/credential-already-in-use') {
+                  console.log('[Auth] Credential in use, signing in directly...');
+                  await firebaseSignOut(auth);
+                  await signInWithCredential(auth, oauthCredential);
+                } else {
+                  throw linkError;
+                }
+              }
+            } else {
+              console.log('[Auth] Signing in with Apple credential...');
+              await signInWithCredential(auth, oauthCredential);
+            }
+
+            console.log('[Auth] Native Apple Sign-In successful!');
+            return;
+          } catch (error: any) {
+            if (error.message === 'cancelled' || error.message?.includes('cancelled')) {
+              console.log('[Auth] User cancelled Apple Sign-In');
+              return;
+            }
+            console.error('[Auth] Native Apple Sign-In failed:', error);
+            throw error;
+          }
+        } else {
+          console.error('[Auth] Native Apple bridge not available after waiting!');
+          throw new Error('Apple Sign-In is not available. Please restart the app and try again.');
+        }
+      }
+
+      // Web platform - use Firebase popup/redirect flow with Apple provider
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isLocalhost = window.location.hostname === 'localhost' ||
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.match(/^192\.168\.\d{1,3}\.\d{1,3}$/) ||
+                         window.location.hostname.match(/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
+
+      const usePopup = !isMobile || isLocalhost;
+
+      console.log('[Auth] Web platform Apple Sign-In - isMobile:', isMobile, 'usePopup:', usePopup);
+
+      if (currentUser && currentUser.isAnonymous) {
+        console.log('[Auth] Linking anonymous account to Apple...');
+        if (usePopup) {
+          await linkWithPopup(currentUser, appleProvider);
+        } else {
+          await linkWithRedirect(currentUser, appleProvider);
+        }
+      } else {
+        if (usePopup) {
+          await signInWithPopup(auth, appleProvider);
+        } else {
+          await signInWithRedirect(auth, appleProvider);
+        }
+      }
+    } catch (error: any) {
+      console.error('[Auth] Error signing in with Apple:', error);
+
+      if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
+        await firebaseSignOut(auth);
+        if (!isCapacitorNative) {
+          await signInWithPopup(auth, appleProvider);
+        }
+      } else {
+        throw error;
+      }
+    }
+  };
+
   const signInAsGuest = async () => {
     try {
       await signInAnonymously(auth);
@@ -405,6 +565,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         throw error;
       }
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      if (!user) throw new Error('No user logged in');
+
+      const token = await user.getIdToken();
+      const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
+
+      console.log('[Auth] Deleting account...');
+      const response = await fetch(`${apiUrl}/api/auth/delete-account`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      console.log('[Auth] Account deleted successfully, signing out...');
+      await firebaseSignOut(auth);
+    } catch (error: any) {
+      console.error('[Auth] Error deleting account:', error);
+      throw new Error(error.message || 'Failed to delete account');
     }
   };
 
@@ -563,6 +753,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     signInWithGoogle,
+    signInWithApple,
     signInAsGuest,
     sendEmailLink,
     confirmEmailLink,
@@ -574,6 +765,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setupRecaptcha,
     sendPhoneCode,
     verifyPhoneCode,
+    deleteAccount,
     signOut,
     getIdToken
   };

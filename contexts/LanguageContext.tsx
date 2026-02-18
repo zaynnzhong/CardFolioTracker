@@ -188,6 +188,14 @@ const translations: Translations = {
     'profile.migrationDesc': 'If you have existing trade plans created before the currency update, click below to migrate them to use the default CNY currency.',
     'profile.migratePlans': 'Migrate Trade Plans Currency',
     'profile.migrating': 'Migrating Trade Plans...',
+    'profile.dangerZone': 'Danger Zone',
+    'profile.deleteAccount': 'Delete Account',
+    'profile.deleteAccountDesc': 'Permanently delete your account and all associated data. This action cannot be undone.',
+    'profile.deleteConfirmMsg': 'This will permanently delete all your cards, trade plans, and account data. Type DELETE to confirm.',
+    'profile.typeDelete': 'Type DELETE to confirm',
+    'profile.confirmDelete': 'Delete Forever',
+    'profile.deleting': 'Deleting...',
+    'profile.deleteError': 'Failed to delete account. Please try again.',
 
     // Dashboard
     'dashboard.portfolioValue': 'PORTFOLIO VALUE',
@@ -410,6 +418,14 @@ const translations: Translations = {
     'profile.migrationDesc': '如果您在货币更新前创建了交易计划，请点击下方将其迁移为默认的人民币货币。',
     'profile.migratePlans': '迁移交易计划货币',
     'profile.migrating': '正在迁移交易计划...',
+    'profile.dangerZone': '危险区域',
+    'profile.deleteAccount': '删除账户',
+    'profile.deleteAccountDesc': '永久删除您的账户和所有相关数据。此操作无法撤销。',
+    'profile.deleteConfirmMsg': '此操作将永久删除您所有的卡片、交易计划和账户数据。请输入 DELETE 确认。',
+    'profile.typeDelete': '输入 DELETE 确认',
+    'profile.confirmDelete': '永久删除',
+    'profile.deleting': '删除中...',
+    'profile.deleteError': '删除账户失败，请重试。',
 
     // Dashboard
     'dashboard.portfolioValue': '投资组合价值',

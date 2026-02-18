@@ -174,19 +174,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(400).json({ error: 'Email and code are required' });
                 }
 
-                // Check if OTP exists in MongoDB
-                const storedData = await otpStore.get(email);
-                if (!storedData) {
-                    return res.status(400).json({ error: 'Invalid or expired OTP code' });
-                }
+                // Demo account bypass: skip OTP validation for demo credentials
+                const demoEmail = process.env.DEMO_EMAIL;
+                const demoOtpCode = process.env.DEMO_OTP_CODE;
+                const isDemoLogin = demoEmail && demoOtpCode && email === demoEmail && code === demoOtpCode;
 
-                // Verify code matches
-                if (storedData.code !== code) {
-                    return res.status(400).json({ error: 'Invalid OTP code' });
-                }
+                if (!isDemoLogin) {
+                    // Check if OTP exists in MongoDB
+                    const storedData = await otpStore.get(email);
+                    if (!storedData) {
+                        return res.status(400).json({ error: 'Invalid or expired OTP code' });
+                    }
 
-                // Delete used OTP from MongoDB
-                await otpStore.delete(email);
+                    // Verify code matches
+                    if (storedData.code !== code) {
+                        return res.status(400).json({ error: 'Invalid OTP code' });
+                    }
+
+                    // Delete used OTP from MongoDB
+                    await otpStore.delete(email);
+                } else {
+                    console.log('[API] Demo account login bypass activated');
+                }
 
                 // Create or get user by email
                 let userRecord;
@@ -477,6 +486,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(200).json(result);
                 } else {
                     return res.status(400).json(result);
+                }
+            }
+
+            // DELETE /api/auth/delete-account
+            if (method === 'DELETE' && path === '/auth/delete-account') {
+                console.log('[API] DELETE /auth/delete-account');
+                try {
+                    const { connectToDb } = await import('../server/src/db.js');
+                    await connectToDb();
+                    const mongoose = await import('mongoose');
+                    const { TradePlanModel } = await import('../server/src/models/tradePlan.js');
+                    const { UserProfileModel } = await import('../server/src/models/userTier.js');
+
+                    console.log(`[API] Deleting all data for user ${userId}...`);
+
+                    // 1. Delete all cards
+                    const cardResult = await mongoose.default.models.Card.deleteMany({ userId });
+                    console.log(`[API] Deleted ${cardResult.deletedCount} cards`);
+
+                    // 2. Delete all trade plans
+                    const tradePlanResult = await TradePlanModel.deleteMany({ userId });
+                    console.log(`[API] Deleted ${tradePlanResult.deletedCount} trade plans`);
+
+                    // 3. Delete user profile
+                    const profileResult = await UserProfileModel.deleteOne({ userId });
+                    console.log(`[API] Deleted ${profileResult.deletedCount} user profile(s)`);
+
+                    // 4. Delete Firebase auth user (LAST)
+                    try {
+                        await admin.auth().deleteUser(userId);
+                        console.log(`[API] Deleted Firebase auth user ${userId}`);
+                    } catch (firebaseError: any) {
+                        console.error(`[API] Error deleting Firebase user: ${firebaseError.message}`);
+                    }
+
+                    return res.status(200).json({ success: true, message: 'Account and all data deleted successfully' });
+                } catch (error: any) {
+                    console.error('[API] Error deleting account:', error);
+                    return res.status(500).json({ error: 'Failed to delete account', details: error.message });
                 }
             }
 

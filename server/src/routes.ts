@@ -1,6 +1,7 @@
 import express from 'express';
 import ImageKit from 'imagekit';
 import multer from 'multer';
+import mongoose from 'mongoose';
 import admin from 'firebase-admin';
 import { db } from './db';
 import { getMarketInsight } from './gemini';
@@ -8,6 +9,7 @@ import { verifyAuthToken, initializeFirebaseAdmin } from './firebaseAdmin';
 import { sendOTPEmail } from './emailService';
 import { tierService } from './services/tierService';
 import { TradePlanModel } from './models/tradePlan';
+import { UserProfileModel } from './models/userTier';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -124,25 +126,34 @@ router.post('/auth/otp/verify', async (req, res) => {
             return res.status(400).json({ error: 'Email and code are required' });
         }
 
-        // Check if OTP exists
-        const storedData = otpStore.get(email);
-        if (!storedData) {
-            return res.status(400).json({ error: 'Invalid or expired OTP code' });
-        }
+        // Demo account bypass: skip OTP validation for demo credentials
+        const demoEmail = process.env.DEMO_EMAIL;
+        const demoOtpCode = process.env.DEMO_OTP_CODE;
+        const isDemoLogin = demoEmail && demoOtpCode && email === demoEmail && code === demoOtpCode;
 
-        // Check if OTP is expired
-        if (storedData.expiry < Date.now()) {
+        if (!isDemoLogin) {
+            // Check if OTP exists
+            const storedData = otpStore.get(email);
+            if (!storedData) {
+                return res.status(400).json({ error: 'Invalid or expired OTP code' });
+            }
+
+            // Check if OTP is expired
+            if (storedData.expiry < Date.now()) {
+                otpStore.delete(email);
+                return res.status(400).json({ error: 'OTP code has expired' });
+            }
+
+            // Verify code matches
+            if (storedData.code !== code) {
+                return res.status(400).json({ error: 'Invalid OTP code' });
+            }
+
+            // Delete used OTP
             otpStore.delete(email);
-            return res.status(400).json({ error: 'OTP code has expired' });
+        } else {
+            console.log('[Local API] Demo account login bypass activated');
         }
-
-        // Verify code matches
-        if (storedData.code !== code) {
-            return res.status(400).json({ error: 'Invalid OTP code' });
-        }
-
-        // Delete used OTP
-        otpStore.delete(email);
 
         // Ensure Firebase Admin is initialized
         if (admin.apps.length === 0) {
@@ -179,6 +190,46 @@ router.post('/auth/otp/verify', async (req, res) => {
     } catch (error: any) {
         console.error('[Local API] Error verifying OTP:', error);
         res.status(500).json({ error: 'Failed to verify OTP', details: error.message });
+    }
+});
+
+// Delete user account and all associated data
+router.delete('/auth/delete-account', authMiddleware, async (req, res) => {
+    console.log('[Local API] DELETE /auth/delete-account');
+    try {
+        const userId = (req as any).userId;
+
+        console.log(`[Local API] Deleting all data for user ${userId}...`);
+
+        // 1. Delete all cards
+        const cardResult = await mongoose.models.Card.deleteMany({ userId });
+        console.log(`[Local API] Deleted ${cardResult.deletedCount} cards`);
+
+        // 2. Delete all trade plans
+        const tradePlanResult = await TradePlanModel.deleteMany({ userId });
+        console.log(`[Local API] Deleted ${tradePlanResult.deletedCount} trade plans`);
+
+        // 3. Delete user profile
+        const profileResult = await UserProfileModel.deleteOne({ userId });
+        console.log(`[Local API] Deleted ${profileResult.deletedCount} user profile(s)`);
+
+        // 4. Delete Firebase auth user (LAST - since it invalidates the token)
+        try {
+            if (admin.apps.length === 0) {
+                initializeFirebaseAdmin();
+            }
+            await admin.auth().deleteUser(userId);
+            console.log(`[Local API] Deleted Firebase auth user ${userId}`);
+        } catch (firebaseError: any) {
+            // Log but don't fail if Firebase user deletion fails
+            // (data is already cleaned up)
+            console.error(`[Local API] Error deleting Firebase user: ${firebaseError.message}`);
+        }
+
+        res.json({ success: true, message: 'Account and all data deleted successfully' });
+    } catch (error: any) {
+        console.error('[Local API] Error deleting account:', error);
+        res.status(500).json({ error: 'Failed to delete account', details: error.message });
     }
 });
 

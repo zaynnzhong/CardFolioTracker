@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage, Language } from '../contexts/LanguageContext';
-import { DollarSign, User, Mail, Settings as SettingsIcon, ArrowLeft, Crown, Sparkles, RefreshCw, Globe } from 'lucide-react';
+import { DollarSign, User, Mail, Settings as SettingsIcon, ArrowLeft, Crown, Sparkles, RefreshCw, Globe, AlertTriangle, Trash2 } from 'lucide-react';
 import { tierService } from '../services/tierService';
 import { revenueCatService } from '../services/revenueCatService';
 import { dataService } from '../services/dataService';
@@ -10,7 +10,7 @@ import { UserProfile, UserTier } from '../types';
 type Currency = 'USD' | 'CNY';
 
 export const ProfileSettings: React.FC = () => {
-  const { user, signOut, getIdToken } = useAuth();
+  const { user, signOut, deleteAccount, getIdToken } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [currency, setCurrency] = useState<Currency>('USD');
   const [saved, setSaved] = useState(false);
@@ -19,6 +19,10 @@ export const ProfileSettings: React.FC = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [migrating, setMigrating] = useState(false);
   const [migrationResult, setMigrationResult] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Load currency from localStorage on mount
   useEffect(() => {
@@ -100,6 +104,22 @@ export const ProfileSettings: React.FC = () => {
       setTimeout(() => setMigrationResult(null), 5000);
     } finally {
       setMigrating(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteAccount();
+      // User will be signed out automatically after deletion
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      setDeleteError(error.message || t('profile.deleteError'));
+      setDeleting(false);
     }
   };
 
@@ -373,7 +393,7 @@ export const ProfileSettings: React.FC = () => {
       )}
 
       {/* Sign Out Button */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-6 mb-6">
         <h2 className="text-xl font-bold text-white mb-4">{t('profile.accountActions')}</h2>
         <button
           onClick={handleSignOut}
@@ -382,6 +402,73 @@ export const ProfileSettings: React.FC = () => {
           {t('profile.signOut')}
         </button>
       </div>
+
+      {/* Danger Zone - Delete Account */}
+      {!isGuest && (
+        <div className="glass-card p-6 border border-red-500/20">
+          <h2 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2">
+            <AlertTriangle size={20} />
+            {t('profile.dangerZone')}
+          </h2>
+          <p className="text-slate-400 text-sm mb-4">
+            {t('profile.deleteAccountDesc')}
+          </p>
+
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Trash2 size={18} />
+              {t('profile.deleteAccount')}
+            </button>
+          ) : (
+            <div className="bg-red-500/5 border border-red-500/30 rounded-xl p-4">
+              <p className="text-red-400 text-sm font-medium mb-3">
+                {t('profile.deleteConfirmMsg')}
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={t('profile.typeDelete')}
+                className="w-full px-4 py-2.5 mb-3 bg-slate-800/50 border border-red-500/30 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 font-mono"
+                disabled={deleting}
+              />
+
+              {deleteError && (
+                <p className="text-red-400 text-xs mb-3">{deleteError}</p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteConfirmText('');
+                    setDeleteError(null);
+                  }}
+                  disabled={deleting}
+                  className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-lg transition-all duration-200"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirmText !== 'DELETE'}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {deleting ? (
+                    <RefreshCw size={16} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
+                  {deleting ? t('profile.deleting') : t('profile.confirmDelete')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

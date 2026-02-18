@@ -9,6 +9,7 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
     private var authSession: ASWebAuthenticationSession?
     private var webViewObserver: NSKeyValueObservation?
     private var codeVerifier: String?
+    private var appleSignInHandler: AppleSignInHandler?
 
     // Google OAuth configuration - iOS client ID
     private let clientId = "286826518600-ia0u2mmotml5bqfm7u32tvuqhvobd5q1.apps.googleusercontent.com"
@@ -17,20 +18,26 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Register script message handler for Google Sign-In
+        // Register script message handlers for Google and Apple Sign-In
         bridge?.webView?.configuration.userContentController.add(self, name: "nativeGoogleSignIn")
+        bridge?.webView?.configuration.userContentController.add(self, name: "nativeAppleSignIn")
 
-        // Observe when page finishes loading to inject our bridge
+        // Initialize Apple Sign-In handler
+        appleSignInHandler = AppleSignInHandler(webView: bridge?.webView)
+
+        // Observe when page finishes loading to inject our bridges
         webViewObserver = bridge?.webView?.observe(\.isLoading, options: [.new]) { [weak self] webView, change in
             if let isLoading = change.newValue, !isLoading {
                 self?.injectGoogleSignInBridge()
+                self?.injectAppleSignInBridge()
             }
         }
 
         // Also inject immediately in case page is already loaded
         injectGoogleSignInBridge()
+        injectAppleSignInBridge()
 
-        print("[CustomVC] Google Sign-In bridge setup complete")
+        print("[CustomVC] Google + Apple Sign-In bridge setup complete")
     }
 
     deinit {
@@ -62,6 +69,31 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         }
     }
 
+    private func injectAppleSignInBridge() {
+        let js = """
+        if (!window.nativeAppleSignIn) {
+            window.nativeAppleSignIn = function() {
+                return new Promise((resolve, reject) => {
+                    window._appleSignInCallback = { resolve, reject };
+                    window.webkit.messageHandlers.nativeAppleSignIn.postMessage('signIn');
+                });
+            };
+            console.log('[Native] Apple Sign-In bridge injected');
+
+            // Dispatch event to notify JavaScript that native bridge is ready
+            window.dispatchEvent(new CustomEvent('nativeAppleSignInReady'));
+        }
+        """
+
+        bridge?.webView?.evaluateJavaScript(js) { _, error in
+            if let error = error {
+                print("[CustomVC] Failed to inject Apple JS: \(error)")
+            } else {
+                print("[CustomVC] Apple Sign-In bridge injected successfully")
+            }
+        }
+    }
+
     // MARK: - PKCE Helpers
 
     private func generateCodeVerifier() -> String {
@@ -88,6 +120,9 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         if message.name == "nativeGoogleSignIn" {
             print("[CustomVC] Google Sign-In requested from JavaScript")
             performGoogleSignIn()
+        } else if message.name == "nativeAppleSignIn" {
+            print("[CustomVC] Apple Sign-In requested from JavaScript")
+            appleSignInHandler?.performAppleSignIn()
         }
     }
 
@@ -244,5 +279,130 @@ class CustomViewController: CAPBridgeViewController, WKScriptMessageHandler, ASW
         DispatchQueue.main.async {
             self.bridge?.webView?.evaluateJavaScript(js, completionHandler: nil)
         }
+    }
+}
+
+// MARK: - Apple Sign-In Handler
+
+class AppleSignInHandler: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+
+    private weak var webView: WKWebView?
+    private var currentNonce: String?
+
+    init(webView: WKWebView?) {
+        self.webView = webView
+        super.init()
+    }
+
+    func performAppleSignIn() {
+        let nonce = randomNonceString()
+        currentNonce = nonce
+
+        let appleIDProvider = ASAuthorizationAppleIDProvider()
+        let request = appleIDProvider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(nonce)
+
+        let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+        authorizationController.delegate = self
+        authorizationController.presentationContextProvider = self
+        authorizationController.performRequests()
+
+        print("[AppleSignIn] Started Apple Sign-In request")
+    }
+
+    // MARK: - ASAuthorizationControllerDelegate
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            rejectAppleSignIn(error: "Invalid credential type")
+            return
+        }
+
+        guard let identityTokenData = appleIDCredential.identityToken,
+              let idToken = String(data: identityTokenData, encoding: .utf8) else {
+            rejectAppleSignIn(error: "Unable to get identity token")
+            return
+        }
+
+        guard let rawNonce = currentNonce else {
+            rejectAppleSignIn(error: "Missing nonce")
+            return
+        }
+
+        print("[AppleSignIn] Got Apple ID token, resolving to JavaScript")
+
+        // Escape tokens for JavaScript
+        let escapedIdToken = idToken.replacingOccurrences(of: "'", with: "\\'")
+        let escapedNonce = rawNonce.replacingOccurrences(of: "'", with: "\\'")
+
+        let js = """
+        if (window._appleSignInCallback) {
+            window._appleSignInCallback.resolve({ idToken: '\(escapedIdToken)', rawNonce: '\(escapedNonce)' });
+            window._appleSignInCallback = null;
+        }
+        """
+        DispatchQueue.main.async {
+            self.webView?.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+            rejectAppleSignIn(error: "cancelled")
+        } else {
+            rejectAppleSignIn(error: error.localizedDescription)
+        }
+    }
+
+    // MARK: - ASAuthorizationControllerPresentationContextProviding
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        // Use the first connected scene's key window
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first(where: { $0.isKeyWindow }) {
+            return window
+        }
+        // Fallback: get any window from the web view's hierarchy
+        return webView?.window ?? UIWindow()
+    }
+
+    // MARK: - Helpers
+
+    private func rejectAppleSignIn(error: String) {
+        let escapedError = error.replacingOccurrences(of: "'", with: "\\'")
+        let js = """
+        if (window._appleSignInCallback) {
+            window._appleSignInCallback.reject(new Error('\(escapedError)'));
+            window._appleSignInCallback = null;
+        }
+        """
+        DispatchQueue.main.async {
+            self.webView?.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+
+    // Generate a random nonce string
+    private func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        var randomBytes = [UInt8](repeating: 0, count: length)
+        let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
+        if errorCode != errSecSuccess {
+            fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+        }
+
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        let nonce = randomBytes.map { byte in
+            charset[Int(byte) % charset.count]
+        }
+        return String(nonce)
+    }
+
+    // SHA256 hash of a string
+    private func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashedData = SHA256.hash(data: inputData)
+        let hashString = hashedData.compactMap { String(format: "%02x", $0) }.joined()
+        return hashString
     }
 }
